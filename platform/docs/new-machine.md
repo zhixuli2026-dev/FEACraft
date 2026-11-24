@@ -34,13 +34,13 @@ npm run dev
 
 ## 恢复现有本地资产
 
-本机随迁移生成了 `FEACraft-local-assets.zip` 和同名 `.sha256`。把这两个文件带到新电脑，照摘要核对 ZIP，再把内容解压到克隆根目录。补充包包含本地公式识别资产、回执及截图、已下载的 Docker 构建输入，以及原版静态分析的输入。包内含本地历史证据，仅用于私下换机。公式识别资产恢复后重启 Vite，发布前端时重新构建。
+从 [GitHub 换机文件](https://github.com/zhixuli2026-dev/FEACraft/releases/tag/workstation-transfer-20261125) 下载 `FEACraft-local-assets.zip` 与 `FEACraft-sha256.txt`。照摘要核对 ZIP，再把内容解压到克隆根目录。补充包包含本地公式识别资产、回执及截图、已下载的 Docker 构建输入，以及原版静态分析的输入。公式识别资产恢复后重启 Vite，发布前端时重新构建。
 
 Node.js 和 ParaView 的 Docker 构建输入也可以用仓库内的 `platform/tools/fetch_node.py` 和 `platform/tools/fetch_paraview.py` 重新获取并核验。专业求解器、WSL 发行版和 Docker 镜像按 [开发环境](dev-setup.md) 与 [部署说明](deployment.md) 安装。
 
 ## 恢复原目录和旧数据
 
-需要沿用这台机器的原始资料或算例时，再带上私有补充包 `FEACraft-original-folders-and-data.zip` 与同名 `.sha256`。核对摘要后解压到新克隆的根目录。此包保留了旧根目录的 `data/`、完整 `extracted/`、`third_party/` 和 `tools/` 的本地资料，同时备份了实际的 `platform/server/data/files/` 和 `platform/server/data/skills/`。四个开发工具脚本从 Git 获取。可读的内部链接以目标文件内容写入，并在清单中保留链接关系。源目录里原有的失效文档链接也列在清单里。
+需要沿用这台机器的原始资料或算例时，从同一个 [GitHub Release](https://github.com/zhixuli2026-dev/FEACraft/releases/tag/workstation-transfer-20261125) 再下载 `FEACraft-original-folders-and-data.zip`。核对摘要后解压到新克隆的根目录。此包保留了旧根目录的 `data/`、完整 `extracted/`、`third_party/` 和 `tools/` 的本地资料，同时备份了实际的 `platform/server/data/files/` 和 `platform/server/data/skills/`。四个开发工具脚本从 Git 获取。可读的内部链接以目标文件内容写入，并在清单中保留链接关系。源目录里原有的失效文档链接也列在清单里。
 
 开发数据库备份位于解包后的 `tmp/private-transfer/database/feacraft-dev-postgresql16.dump`。使用 PostgreSQL 16 的 `pg_restore --no-owner --no-privileges --exit-on-error` 还原到新机的空数据库，然后在指向该副本的配置上执行 Alembic 迁移。独立 PostgreSQL 16 已试还原并升级到源码当前版本，账号、工作区和算例记录数量与源库一致。后端从 `platform/server` 启动时，文件路径填 `./data/files`，用户技能路径填 `./data/skills`。模型凭据和部署密钥继续通过私有配置管理。接入真实模型时从受信任的本地来源重新配置 API 凭据。
 
