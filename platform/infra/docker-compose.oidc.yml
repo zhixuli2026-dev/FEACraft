@@ -1,0 +1,10 @@
+services:
+  api:
+    environment:
+      VIBEFLOW_OIDC_PUBLIC_ORIGIN: ${OIDC_PUBLIC_ORIGIN:?Set the HTTPS workbench origin}
+      VIBEFLOW_OIDC_PROVIDER_FILE: /run/secrets/oidc_providers
+    secrets: [oidc_providers]
+
+secrets:
+  oidc_providers:
+    file: ${OIDC_PROVIDER_FILE:?Set the organization identity provider JSON file}

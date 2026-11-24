@@ -1,0 +1,25 @@
+.case-workflow { color:var(--vf-text); font-size:14px; line-height:1.55; min-width:0; overflow-wrap:anywhere; padding-bottom:20px; margin-bottom:16px; border-bottom:1px solid var(--vf-border); }
+.case-workflow h3 { font-size:16px; line-height:1.5; margin:0; }
+.case-workflow h4 { font-size:14px; margin:20px 0 8px; }
+.case-workflow p { margin:8px 0; max-width:74ch; }
+.case-flow-heading,.case-flow-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.case-flow-heading { justify-content:space-between; }
+.case-workflow label { display:grid; gap:6px; margin:16px 0 8px; }
+.case-workflow button,.case-workflow select { min-height:44px; min-width:44px; max-width:100%; padding:8px 12px; border:1px solid var(--vf-border); border-radius:4px; background:var(--vf-bg); color:var(--vf-text); font:inherit; cursor:pointer; touch-action:manipulation; }
+.case-workflow select { width:100%; min-width:0; }
+.case-workflow button:hover:not(:disabled) { background:var(--vf-active); }
+.case-workflow button:active:not(:disabled) { border-color:var(--vf-accent); }
+.case-workflow button:disabled { color:var(--vf-muted); cursor:not-allowed; }
+.case-workflow :focus-visible { outline:2px solid var(--vf-accent); outline-offset:2px; }
+.case-flow-muted { color:var(--vf-muted); }
+.case-flow-id { font-family:ui-monospace,Consolas,monospace; font-size:12px; overflow-wrap:anywhere; }
+.case-flow-confirm,.case-flow-evidence,.case-flow-lineage,.case-flow-recovery { border-top:1px solid var(--vf-border); margin-top:20px; padding-top:8px; }
+.case-workflow summary { min-height:44px; padding:10px 0; cursor:pointer; }
+.case-flow-publications { list-style:none; padding:0; margin:8px 0; }
+.case-flow-publications > li { border-top:1px solid var(--vf-border); padding:12px 0; }
+.case-flow-publications > li:first-child { border-top:0; }
+.case-flow-publications details { color:var(--vf-muted); }
+.case-workflow .case-flow-check { display:flex; align-items:flex-start; gap:8px; }
+.case-flow-check input { width:24px; height:24px; flex-shrink:0; accent-color:var(--vf-accent); }
+.case-flow-recovery { max-height:none; overflow:visible; }
+.case-workflow ::selection { color:var(--vf-text); background:var(--vf-active); }

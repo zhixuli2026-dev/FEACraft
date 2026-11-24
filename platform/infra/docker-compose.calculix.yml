@@ -1,0 +1,16 @@
+# Build the selected base API image first; API and worker use the same solver.
+services:
+  api:
+    image: ${VIBEFLOW_CALCULIX_IMAGE:-vibeflow/api:calculix}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.calculix
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}
+  arq-worker:
+    image: ${VIBEFLOW_CALCULIX_IMAGE:-vibeflow/api:calculix}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.calculix
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}

@@ -1,0 +1,15 @@
+services:
+  api:
+    image: ${VIBEFLOW_NODE_CLI_IMAGE:-vibeflow/api:node-cli}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.node-cli
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}
+  arq-worker:
+    image: ${VIBEFLOW_NODE_CLI_IMAGE:-vibeflow/api:node-cli}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.node-cli
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}

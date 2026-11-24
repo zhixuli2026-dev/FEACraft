@@ -1,0 +1,9 @@
+# Optional SU2 layer. Build the base API image before using this file.
+ARG API_IMAGE=vibeflow/api:dev
+FROM ${API_IMAGE} AS download
+USER root
+RUN python -c "import hashlib,io,urllib.request,zipfile; data=urllib.request.urlopen('https://github.com/su2code/SU2/releases/download/v8.5.0/SU2-v8.5.0-linux64-omp.zip',timeout=120).read(); assert hashlib.sha256(data).hexdigest()=='aadc800cd9df34deff99d4725f5897f620c9f2979f62ab235313311bf501f09b'; outer=zipfile.ZipFile(io.BytesIO(data)); inner=zipfile.ZipFile(io.BytesIO(outer.read('linux64-omp.zip'))); open('/tmp/SU2_CFD','wb').write(inner.read('bin/SU2_CFD'))"
+RUN chmod 755 /tmp/SU2_CFD && /tmp/SU2_CFD --help
+
+FROM ${API_IMAGE}
+COPY --from=download /tmp/SU2_CFD /usr/local/bin/SU2_CFD

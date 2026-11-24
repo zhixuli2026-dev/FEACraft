@@ -1,0 +1,34 @@
+# Use with docker-compose.prod.yml and --profile distributed --no-build.
+x-owner-routes: &owner-routes
+  VIBEFLOW_VIZ_OWNER_ROUTES: '{"api-primary":"http://api-primary:8000","api-peer":"http://api-peer:8000"}'
+  VIBEFLOW_TERMINAL_OWNER_ROUTES: '{"api-primary":"http://api-primary:8000","api-peer":"http://api-peer:8000"}'
+  VIBEFLOW_DISTRIBUTED_JOBS: "true"
+
+services:
+  api:
+    hostname: api-primary
+    image: ${VIBEFLOW_REPLICA_API_IMAGE:?Set an existing API release or toolchain image}
+    environment: *owner-routes
+    stop_grace_period: 90s
+    networks:
+      default:
+        aliases: [api-primary]
+
+  api-peer:
+    extends:
+      file: docker-compose.prod.yml
+      service: api
+    hostname: api-peer
+    container_name: vibeflow-api-peer
+    image: ${VIBEFLOW_REPLICA_API_IMAGE:?Set an existing API release or toolchain image}
+    environment: *owner-routes
+    stop_grace_period: 90s
+
+  arq-worker:
+    image: ${VIBEFLOW_REPLICA_API_IMAGE:?Set an existing API release or toolchain image}
+
+  web:
+    volumes:
+      - ${VIBEFLOW_REPLICA_UPSTREAM_DIR:-./nginx-upstream-replicas}:/etc/nginx/vibeflow-upstreams:ro
+    depends_on:
+      api-peer: {condition: service_healthy}

@@ -1,0 +1,134 @@
+# VibeFlow 生产编排：Postgres + 持久化 fs（默认）+ api + web；受限 S3 使用 --profile s3
+# 用法：docker compose --env-file infra/.env -f infra/docker-compose.prod.yml up -d --build
+# distributed profile 启用 Redis/worker；API 同时设置 VIBEFLOW_DISTRIBUTED_JOBS=true。
+name: vibeflow-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:81e77a4833487b8132fe4b00bedd39dc3f74b8641e387f19312a48f7de218c2e
+    container_name: vibeflow-pg
+    environment:
+      POSTGRES_USER: vibeflow
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?Set PG_PASSWORD in infra/.env or the process environment}
+      POSTGRES_DB: vibeflow
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vibeflow"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    profiles: ["distributed"]
+    container_name: vibeflow-redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-}", "--port", "6380", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli -p 6380 ping | grep -qx PONG"]
+      interval: 5s
+      retries: 20
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59
+    profiles: ["s3"]
+    container_name: vibeflow-s3
+    command: server -s3 -s3.port=8333 -filer -filer.port=8888 -dir=/data
+    volumes: [s3data:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9333/cluster/status || exit 1"]
+      interval: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    container_name: vibeflow-api
+    # The owned Linux launch gate creates user/mount/PID namespaces. Docker's
+    # default seccomp profile denies unshare; the gate still controls execution.
+    security_opt: ["seccomp=unconfined"]
+    environment:
+      VIBEFLOW_DATABASE_URL: postgresql+asyncpg://vibeflow:${PG_PASSWORD:?Set PG_PASSWORD in infra/.env or the process environment}@postgres:5432/vibeflow
+      VIBEFLOW_STORAGE_BACKEND: ${VIBEFLOW_STORAGE_BACKEND:-fs}
+      VIBEFLOW_STORAGE_FS_ROOT: /data/files
+      VIBEFLOW_INDEX_ROOT: /data/index
+      VIBEFLOW_ALLOW_PARTIAL_S3: ${VIBEFLOW_ALLOW_PARTIAL_S3:-false}
+      VIBEFLOW_S3_ENDPOINT: http://seaweedfs:8333
+      VIBEFLOW_CORS_ORIGINS: ${WEB_ORIGIN:-http://localhost:8080}
+      VIBEFLOW_JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in infra/.env or the process environment}
+      VIBEFLOW_VAULT_KEY_PATH: /run/secrets/provider_vault
+      VIBEFLOW_RUNTIME_CONFIG: /data/runtime/runtime-config.json
+      VIBEFLOW_VIZ_OWNER_ROUTES:
+      VIBEFLOW_TERMINAL_OWNER_ROUTES:
+      VIBEFLOW_RATE_LIMIT_API_PER_MINUTE: ${RATE_LIMIT_API_PER_MINUTE:-1200}
+      VIBEFLOW_RATE_LIMIT_LLM_PER_MINUTE: ${RATE_LIMIT_LLM_PER_MINUTE:-120}
+      VIBEFLOW_RATE_LIMIT_PROFILE_PER_MINUTE: ${RATE_LIMIT_PROFILE_PER_MINUTE:-120}
+      VIBEFLOW_RATE_LIMIT_BACKEND: ${RATE_LIMIT_BACKEND:-memory}
+      FORWARDED_ALLOW_IPS: ${TRUSTED_PROXY_IPS:-}
+      VIBEFLOW_AGENT_CONTEXT_INPUT_TOKEN_CAP: ${AGENT_CONTEXT_INPUT_TOKEN_CAP:-}
+      VIBEFLOW_DISTRIBUTED_JOBS: ${VIBEFLOW_DISTRIBUTED_JOBS:-false}
+      VIBEFLOW_EVENT_BUS_NAMESPACE:
+      VIBEFLOW_REDIS_HOST: redis
+      VIBEFLOW_REDIS_PORT: 6380
+      VIBEFLOW_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes: [casedata:/data/files, runtimeconfig:/data/runtime, indexdata:/data/index]
+    secrets: [provider_vault]
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/health')\""]
+      interval: 10s
+      retries: 30
+
+  arq-worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    profiles: ["distributed"]
+    container_name: vibeflow-arq-worker
+    security_opt: ["seccomp=unconfined"]
+    command: ["python", "-m", "app.services.distributed_worker"]
+    stop_grace_period: 2m
+    environment:
+      VIBEFLOW_DATABASE_URL: postgresql+asyncpg://vibeflow:${PG_PASSWORD:?Set PG_PASSWORD in infra/.env or the process environment}@postgres:5432/vibeflow
+      VIBEFLOW_STORAGE_BACKEND: ${VIBEFLOW_STORAGE_BACKEND:-fs}
+      VIBEFLOW_STORAGE_FS_ROOT: /data/files
+      VIBEFLOW_INDEX_ROOT: /data/index
+      VIBEFLOW_VAULT_KEY_PATH: /run/secrets/provider_vault
+      VIBEFLOW_RUNTIME_CONFIG: /data/runtime/runtime-config.json
+      VIBEFLOW_ALLOW_PARTIAL_S3: ${VIBEFLOW_ALLOW_PARTIAL_S3:-false}
+      VIBEFLOW_S3_ENDPOINT: http://seaweedfs:8333
+      VIBEFLOW_DISTRIBUTED_JOBS: "true"
+      VIBEFLOW_REDIS_HOST: redis
+      VIBEFLOW_REDIS_PORT: 6380
+      VIBEFLOW_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes: [casedata:/data/files, runtimeconfig:/data/runtime, indexdata:/data/index]
+    secrets: [provider_vault]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+    container_name: vibeflow-web
+    ports: ["${WEB_HTTP_BIND:-8080}:80"]
+    volumes:
+      - ./nginx-upstream-default:/etc/nginx/vibeflow-upstreams:ro
+    depends_on:
+      api: {condition: service_healthy}
+
+secrets:
+  provider_vault:
+    file: ${PROVIDER_VAULT_FILE:-./secrets/provider-vault.key}
+
+volumes:
+  pgdata:
+  s3data:
+  casedata:
+  redisdata:
+  runtimeconfig:
+  indexdata:

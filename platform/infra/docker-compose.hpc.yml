@@ -1,0 +1,10 @@
+services:
+  api:
+    environment:
+      VIBEFLOW_REMOTE_HOSTS: ${VIBEFLOW_REMOTE_HOSTS:?Set the allowed SSH scheduler hosts}
+      VIBEFLOW_REMOTE_HPC_CONFIG_PATH: /run/vibeflow/hpc/profiles.json
+    volumes:
+      - type: bind
+        source: ${VIBEFLOW_HPC_CONFIG_DIR:?Set the local scheduler profile directory}
+        target: /run/vibeflow/hpc
+        read_only: true

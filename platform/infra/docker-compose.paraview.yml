@@ -1,0 +1,16 @@
+# Prefetch the pinned archive with tools/fetch_paraview.py before building.
+services:
+  api:
+    image: ${VIBEFLOW_PARAVIEW_IMAGE:-vibeflow/api:paraview}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.paraview
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}
+  arq-worker:
+    image: ${VIBEFLOW_PARAVIEW_IMAGE:-vibeflow/api:paraview}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.paraview
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}

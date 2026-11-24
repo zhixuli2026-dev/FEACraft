@@ -1,0 +1,29 @@
+.case-material-library .case-material-inline {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  column-gap: 8px;
+}
+
+.case-material-inline button { margin-bottom: 6px; }
+.case-material-library form + form { margin-top: 8px; }
+.case-material-library fieldset > legend { padding: 0; }
+.case-material-library select, .case-material-library input { width: 100%; }
+.case-material-library [aria-invalid="true"] { border-color: var(--vf-danger, #f87171); }
+.case-material-library [role="alert"]:focus-visible { outline: 2px solid var(--vf-accent); }
+.case-material-library [role="alert"] a { color: var(--vf-accent); }
+.case-material-properties {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 0 12px;
+}
+
+.case-material-quantity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  column-gap: 8px;
+  min-width: 0;
+}
+
+.case-material-quantity > label { min-width: 0; }

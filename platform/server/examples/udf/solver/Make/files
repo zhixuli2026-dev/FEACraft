@@ -1,0 +1,3 @@
+vibeflowDiffusionFoam.C
+
+EXE = ./vibeflowDiffusionFoam

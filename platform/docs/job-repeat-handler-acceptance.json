@@ -1,0 +1,842 @@
+{
+  "schema": "vibeflow.repeat-handler-acceptance.v1",
+  "recorded_at": "2026-11-08T16:28:03.109548+00:00",
+  "objective": "全部53项主线与295项全功能交付；不将命名场景视为全部模式完成",
+  "registered_handlers": 26,
+  "handlers_with_some_native_repeat_evidence": 26,
+  "handlers_without_named_native_repeat_evidence": 0,
+  "fully_accepted_handlers": 0,
+  "rows": [
+    {
+      "key": "calculix.solve",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-6resel6q/solver-repeat.json",
+          "scope": "FS/PG实际配置引擎完成后回执冲突失败、原封存重试、当前业务参数新根重跑；结果与历史保留"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-p5uxu7is/solver-repeat.json",
+          "scope": "S3/PG实际配置引擎完成后回执冲突失败、原封存重试、当前业务参数新根重跑；结果与历史保留"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "command.convert",
+      "version": "1",
+      "category": "typed_user_command",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-z348tyqd/typed-repeat.json",
+          "scope": "FS/PG真实Python命令，含来源变更拒绝；professional_workflow_proof=false；S3仍待"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-qinb5k8w/typed-repeat.json",
+          "scope": "S3/PG真实Python命令20作业，冻结重试/当前重跑/旧成果保留及来源/工程参数变化拒绝；professional_workflow_proof=false"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "command.geometry",
+      "version": "1",
+      "category": "typed_user_command",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-z348tyqd/typed-repeat.json",
+          "scope": "FS/PG真实Python命令，含来源变更拒绝；professional_workflow_proof=false；S3仍待"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-qinb5k8w/typed-repeat.json",
+          "scope": "S3/PG真实Python命令20作业，冻结重试/当前重跑/旧成果保留及来源/工程参数变化拒绝；professional_workflow_proof=false"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "command.mesh",
+      "version": "1",
+      "category": "typed_user_command",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-z348tyqd/typed-repeat.json",
+          "scope": "FS/PG真实Python命令，含来源变更拒绝；professional_workflow_proof=false；S3仍待"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-qinb5k8w/typed-repeat.json",
+          "scope": "S3/PG真实Python命令20作业，冻结重试/当前重跑/旧成果保留及来源/工程参数变化拒绝；professional_workflow_proof=false"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "command.pvpython",
+      "version": "1",
+      "category": "typed_user_command",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-z348tyqd/typed-repeat.json",
+          "scope": "FS/PG真实Python命令，含来源变更拒绝；professional_workflow_proof=false；S3仍待"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-qinb5k8w/typed-repeat.json",
+          "scope": "S3/PG真实Python命令20作业，冻结重试/当前重跑/旧成果保留及来源/工程参数变化拒绝；professional_workflow_proof=false"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "command.solve",
+      "version": "1",
+      "category": "typed_user_command",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-z348tyqd/typed-repeat.json",
+          "scope": "FS/PG真实Python命令，含来源变更拒绝；professional_workflow_proof=false；S3仍待"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-qinb5k8w/typed-repeat.json",
+          "scope": "S3/PG真实Python命令20作业，冻结重试/当前重跑/旧成果保留及来源/工程参数变化拒绝；professional_workflow_proof=false"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "flotherm.build-library",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-3mt0qf5w/flotherm-repeat.json",
+          "scope": "FS/PG实际转换/编译/加载/接入求解、原封存重试和当前输入新根重跑，旧版本保留；其他模式继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-0at19wt4/flotherm-repeat.json",
+          "scope": "S3/PG实际转换/编译/加载/接入求解、原封存重试和当前输入新根重跑，旧版本保留；其他模式继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "flotherm.convert",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-3mt0qf5w/flotherm-repeat.json",
+          "scope": "FS/PG实际转换/编译/加载/接入求解、原封存重试和当前输入新根重跑，旧版本保留；其他模式继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-0at19wt4/flotherm-repeat.json",
+          "scope": "S3/PG实际转换/编译/加载/接入求解、原封存重试和当前输入新根重跑，旧版本保留；其他模式继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "geometry.export",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-ld08jvvn/engineering-repeat.json",
+          "scope": "FS/PG实际原生失败、原封存同根重试、当前输入新根重跑及实际STEP/网格/PDF内容；其他模式继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-te_wj73z/engineering-repeat.json",
+          "scope": "S3/PG实际原生失败、原封存同根重试、当前输入新根重跑及实际STEP/网格/PDF内容；其他模式继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "geometry.preview",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/mainline-N5-repeat-progress-evidence/validation.json",
+          "scope": "实际CadQuery preview；历史命名场景，源码版本限制见原归档"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-7xvfkme4/job-repeat-geometry.json",
+          "scope": "S3/PG实际CadQuery失败、冻结重试、当前几何重跑及正式发布"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "latex.build",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-ld08jvvn/engineering-repeat.json",
+          "scope": "FS/PG实际原生失败、原封存同根重试、当前输入新根重跑及实际STEP/网格/PDF内容；其他模式继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-te_wj73z/engineering-repeat.json",
+          "scope": "S3/PG实际原生失败、原封存同根重试、当前输入新根重跑及实际STEP/网格/PDF内容；其他模式继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "mesh.generate",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-ld08jvvn/engineering-repeat.json",
+          "scope": "FS/PG实际原生失败、原封存同根重试、当前输入新根重跑及实际STEP/网格/PDF内容；其他模式继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-te_wj73z/engineering-repeat.json",
+          "scope": "S3/PG实际原生失败、原封存同根重试、当前输入新根重跑及实际STEP/网格/PDF内容；其他模式继续"
+        },
+        {
+          "actions": [
+            "reprepare"
+          ],
+          "path": "../../tmp/live-cli-startup-b6fmzqvv/legacy-engineering-reprepare.json",
+          "scope": "FS/PG真实旧固定argv一次执行，当前配置正式新根及实际工程产物；原其余要求继续"
+        },
+        {
+          "actions": [
+            "reprepare"
+          ],
+          "path": "../../tmp/live-cli-startup-3vlrbntw/legacy-engineering-reprepare.json",
+          "scope": "S3/PG真实旧固定argv一次执行，当前配置正式新根及实际工程产物；原其余要求继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "mpi.openfoam",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-ht33lsob/mpi-repeat.json",
+          "scope": "FS/PG实际400单元MPI回执失败、原输入两分区重试、当前边界四分区新根重跑与旧版本保留；其他模式继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-joqrwtu8/mpi-repeat.json",
+          "scope": "S3/PG实际400单元MPI回执失败、原输入两分区重试、当前边界四分区新根重跑与旧版本保留；其他模式继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "paraview.run",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-6resel6q/solver-repeat.json",
+          "scope": "FS/PG实际配置引擎完成后回执冲突失败、原封存重试、当前业务参数新根重跑；结果与历史保留"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-p5uxu7is/solver-repeat.json",
+          "scope": "S3/PG实际配置引擎完成后回执冲突失败、原封存重试、当前业务参数新根重跑；结果与历史保留"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "pdf.number",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-_4vfrk1q/document-repeat.json",
+          "scope": "FS/PG实际PDF/PPT worker失败、原封存重试、当前资源新根重跑、文件内容与版本保留；S3及其他模式仍待"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-aoi5hnle/document-repeat.json",
+          "scope": "S3/PG实际PDF/PPT资源、失败/重试/重跑、占用输出拒绝和旧版本保留"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "postprocess.case",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-9dajzasj/post-report-repeat.json",
+          "scope": "FS/PG实际80单元导热提取/图表或报告组织/Pandoc，实际工具链回执冲突、原封存重试、当前输入新根重跑及旧版本保留；原整项条件继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-y7oom2qx/post-report-repeat.json",
+          "scope": "S3/PG实际80单元导热提取/图表或报告组织/Pandoc，实际工具链回执冲突、原封存重试、当前输入新根重跑及旧版本保留；原整项条件继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "postprocess.run",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-9dajzasj/post-report-repeat.json",
+          "scope": "FS/PG实际80单元导热提取/图表或报告组织/Pandoc，实际工具链回执冲突、原封存重试、当前输入新根重跑及旧版本保留；原整项条件继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-y7oom2qx/post-report-repeat.json",
+          "scope": "S3/PG实际80单元导热提取/图表或报告组织/Pandoc，实际工具链回执冲突、原封存重试、当前输入新根重跑及旧版本保留；原整项条件继续"
+        },
+        {
+          "actions": [
+            "reprepare"
+          ],
+          "path": "../../tmp/live-cli-startup-b6fmzqvv/legacy-engineering-reprepare.json",
+          "scope": "FS/PG真实旧固定argv一次执行，当前配置正式新根及实际工程产物；原其余要求继续"
+        },
+        {
+          "actions": [
+            "reprepare"
+          ],
+          "path": "../../tmp/live-cli-startup-3vlrbntw/legacy-engineering-reprepare.json",
+          "scope": "S3/PG真实旧固定argv一次执行，当前配置正式新根及实际工程产物；原其余要求继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "ppt.build",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-_4vfrk1q/document-repeat.json",
+          "scope": "FS/PG实际PDF/PPT worker失败、原封存重试、当前资源新根重跑、文件内容与版本保留；S3及其他模式仍待"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-aoi5hnle/document-repeat.json",
+          "scope": "S3/PG实际PDF/PPT资源、失败/重试/重跑、占用输出拒绝和旧版本保留"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "report.build",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-9dajzasj/post-report-repeat.json",
+          "scope": "FS/PG实际80单元导热提取/图表或报告组织/Pandoc，实际工具链回执冲突、原封存重试、当前输入新根重跑及旧版本保留；原整项条件继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-y7oom2qx/post-report-repeat.json",
+          "scope": "S3/PG实际80单元导热提取/图表或报告组织/Pandoc，实际工具链回执冲突、原封存重试、当前输入新根重跑及旧版本保留；原整项条件继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "report.compose",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-9dajzasj/post-report-repeat.json",
+          "scope": "FS/PG实际80单元导热提取/图表或报告组织/Pandoc，实际工具链回执冲突、原封存重试、当前输入新根重跑及旧版本保留；原整项条件继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-y7oom2qx/post-report-repeat.json",
+          "scope": "S3/PG实际80单元导热提取/图表或报告组织/Pandoc，实际工具链回执冲突、原封存重试、当前输入新根重跑及旧版本保留；原整项条件继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "report.compose-generated",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-9dajzasj/post-report-repeat.json",
+          "scope": "FS/PG实际80单元导热提取/图表或报告组织/Pandoc，实际工具链回执冲突、原封存重试、当前输入新根重跑及旧版本保留；原整项条件继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-y7oom2qx/post-report-repeat.json",
+          "scope": "S3/PG实际80单元导热提取/图表或报告组织/Pandoc，实际工具链回执冲突、原封存重试、当前输入新根重跑及旧版本保留；原整项条件继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "solve.openfoam",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": true,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "resume"
+          ],
+          "path": "../../tmp/mainline-N5-s3-resume-verified-evidence/validation.json",
+          "scope": "从fresh源取消后续算；FS/S3实际场数值比较；具体后端见原证据"
+        },
+        {
+          "actions": [
+            "resume"
+          ],
+          "path": "../../tmp/live-cli-startup-tnvayoys/solve-resume.json",
+          "scope": "S3/PG旧封存部分缺失/损坏/未知内容保留，独立归档输入视图；实际续算发布与fresh的U/p差0，12项拒绝"
+        },
+        {
+          "actions": [
+            "reprepare"
+          ],
+          "path": "../../tmp/live-cli-startup-b6fmzqvv/legacy-engineering-reprepare.json",
+          "scope": "FS/PG真实旧固定argv一次执行，当前配置正式新根及实际工程产物；原其余要求继续"
+        },
+        {
+          "actions": [
+            "reprepare"
+          ],
+          "path": "../../tmp/live-cli-startup-3vlrbntw/legacy-engineering-reprepare.json",
+          "scope": "S3/PG真实旧固定argv一次执行，当前配置正式新根及实际工程产物；原其余要求继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-b9fg66vm/openfoam-retry-modes.json",
+          "scope": "FS/PG实际400单元原求解冻结retry首步0.0005及当前新根rerun；续算冻结retry首步0.0055/原检查点0.005，三次取消历史、同根attempt1-4和U/p比较"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-0fravix5/openfoam-retry-modes.json",
+          "scope": "S3/PG实际400单元原求解冻结retry首步0.0005及当前新根rerun；续算冻结retry首步0.0055/原检查点0.005，三次取消历史、同根attempt1-4和U/p比较"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "solve.openfoam.resume",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": true,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "resume",
+            "rerun"
+          ],
+          "path": "../../tmp/mainline-N5-cache-and-typed-repeat-evidence/validation.json",
+          "scope": "FS/PG从第一次续算取消后再次续算；fresh重跑；S3多次续算仍待"
+        },
+        {
+          "actions": [
+            "resume",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-d95kjyca/solve-resume.json",
+          "scope": "S3/PG两次真实取消后attempt3续算，整份源缓存移走；发布及fresh的U/p差0；崩溃交错仍待"
+        },
+        {
+          "actions": [
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-tnvayoys/solve-resume.json",
+          "scope": "S3/PG旧封存部分缺失/损坏/未知内容保留，独立归档输入视图；实际续算发布与fresh的U/p差0，12项拒绝"
+        },
+        {
+          "actions": [
+            "retry"
+          ],
+          "path": "../../tmp/live-cli-startup-b9fg66vm/openfoam-retry-modes.json",
+          "scope": "FS/PG实际400单元原求解冻结retry首步0.0005及当前新根rerun；续算冻结retry首步0.0055/原检查点0.005，三次取消历史、同根attempt1-4和U/p比较"
+        },
+        {
+          "actions": [
+            "retry"
+          ],
+          "path": "../../tmp/live-cli-startup-0fravix5/openfoam-retry-modes.json",
+          "scope": "S3/PG实际400单元原求解冻结retry首步0.0005及当前新根rerun；续算冻结retry首步0.0055/原检查点0.005，三次取消历史、同根attempt1-4和U/p比较"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "su2.solve",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-6resel6q/solver-repeat.json",
+          "scope": "FS/PG实际配置引擎完成后回执冲突失败、原封存重试、当前业务参数新根重跑；结果与历史保留"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-p5uxu7is/solver-repeat.json",
+          "scope": "S3/PG实际配置引擎完成后回执冲突失败、原封存重试、当前业务参数新根重跑；结果与历史保留"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "udf.build",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-jx_ff6gm/udf-repeat.json",
+          "scope": "FS/PG实际转换/编译/加载/接入求解、原封存重试和当前输入新根重跑，旧版本保留；其他模式继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-lgxhl_1e/udf-repeat.json",
+          "scope": "S3/PG实际转换/编译/加载/接入求解、原封存重试和当前输入新根重跑，旧版本保留；其他模式继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    },
+    {
+      "key": "udf.integrate",
+      "version": "1",
+      "category": "professional_handler",
+      "shared_repeat_api_present": true,
+      "resume_checkpoint_registered": false,
+      "native_repeat_evidence": [
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-jx_ff6gm/udf-repeat.json",
+          "scope": "FS/PG实际转换/编译/加载/接入求解、原封存重试和当前输入新根重跑，旧版本保留；其他模式继续"
+        },
+        {
+          "actions": [
+            "retry",
+            "rerun"
+          ],
+          "path": "../../tmp/live-cli-startup-lgxhl_1e/udf-repeat.json",
+          "scope": "S3/PG实际转换/编译/加载/接入求解、原封存重试和当前输入新根重跑，旧版本保留；其他模式继续"
+        }
+      ],
+      "acceptance_status": "N5_05_policy_verified_full_feature_acceptance_pending",
+      "fully_accepted": false,
+      "N5_05_policy_verified": true
+    }
+  ],
+  "scope_note": "注册接口存在不等于原生验收；未注册续算不等于相关功能已交付；当前没有执行全部历史场景。",
+  "model_scope": "命名运行使用真实DeepSeek回读场景哈希；原生命令及数值断言独立验证。",
+  "shared_policy_evidence": {
+    "path": "../../tmp/mainline-N5-archived-input-recovery-evidence/validation.json",
+    "scope": "S3独立归档输入视图、普通原封存重试、缓存空目录恢复，以及FS严格拒绝/双API唯一执行；不替代各专业处理器验收"
+  },
+  "legacy_reprepare_evidence": {
+    "path": "../../tmp/mainline-N5-engineering-and-legacy-evidence/validation.json",
+    "scope": "FS/S3几何和LaTeX：实际固定argv一次、当前输入明确新根、归属与停止/封存拒绝；其余类型矩阵继续"
+  },
+  "configured_tool_parameter_protocol_evidence": {
+    "path": "../../tmp/live-cli-startup-bdd0usjx/legacy-reprepare.json",
+    "scope": "实际配置文件与公开参数归一化；不作为CalculiX/SU2/ParaView原生重试证据",
+    "native_repeat_proof": false
+  },
+  "shared_timeline_and_udf_rerun_evidence": {
+    "path": "../../tmp/mainline-N5-flotherm-udf-repeat-evidence/validation.json",
+    "scope": "有效平台追加的冻结前缀、原生历史保护、旧delta不得掩盖历史、显式UDF相同条目复用与冲突拒绝"
+  },
+  "publication_graph_repeat_evidence": {
+    "path": "../../tmp/mainline-N5-post-report-repeat-evidence/validation.json",
+    "scope": "FS/S3真实依赖图每节点一次来源检查、后续真实初始场变化拒绝；报告准备保留门禁并复用已解析来源；G1/G2/G3原条件继续"
+  },
+  "N5_05_policy_complete": true,
+  "N5_05_policy_scope": "原N5-05重试/重跑/续算机制及适用操作；各处理器最终物理模式与295项整体交付另按原完整目标验收，fully_accepted标记不改为完成",
+  "N5_05_policy_evidence": "../../tmp/mainline-N5-repeat-policy-closure-evidence/original-requirements-audit.json"
+}

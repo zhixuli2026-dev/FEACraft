@@ -1,0 +1,24 @@
+.case-meta-editor { color: var(--vf-text); margin: 12px 0; min-width: 0; overflow-wrap: anywhere; }
+.case-meta-editor > summary { font-size: 15px; font-weight: 600; }
+.case-meta-editor summary { cursor: pointer; padding: 8px 0; }
+.case-meta-editor fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.case-meta-editor label { display: grid; gap: 4px; margin: 6px 0; min-width: 0; }
+.case-meta-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap: 0 8px; }
+.case-meta-editor input, .case-meta-editor textarea, .case-meta-editor select { width: 100%; }
+.case-meta-editor button, .case-meta-editor input, .case-meta-editor textarea, .case-meta-editor select {
+  min-height: 36px; max-width: 100%; padding: 5px 8px; font: inherit; color: var(--vf-text);
+  border: 1px solid var(--vf-border); border-radius: 5px; background: var(--vf-bg);
+}
+.case-meta-editor textarea { resize: vertical; }
+.case-meta-editor button:not(:disabled) { cursor: pointer; }
+.case-meta-editor button:hover:not(:disabled) { background: var(--vf-active); }
+.case-meta-editor button:disabled { color: var(--vf-muted); }
+.case-meta-editor button[type="submit"]:not(:disabled) { border-color: var(--vf-accent); }
+.case-meta-editor :focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.case-meta-editor p, .case-meta-editor ul { margin: 8px 0; }
+.case-meta-editor ul { padding-inline-start: 18px; }
+.case-meta-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .case-meta-editor button, .case-meta-editor input, .case-meta-editor textarea, .case-meta-editor select { min-height: 44px; }
+  .case-meta-editor input, .case-meta-editor textarea, .case-meta-editor select { font-size: 16px; }
+}

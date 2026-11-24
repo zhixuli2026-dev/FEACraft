@@ -1,0 +1,11 @@
+.remote-jobs { flex: 1; min-height: 0; overflow: auto; padding: 12px 14px 18px; scrollbar-gutter: stable; }
+.remote-jobs h2 { font-size: 16px; margin: 0 0 8px; }
+.remote-jobs h3 { margin: 0 0 4px; font-size: 14px; overflow-wrap: anywhere; }
+.remote-hpc-form { padding-bottom: 12px; max-width: 720px; }
+.remote-hpc-form form > button { margin-top: 12px; }
+.remote-hpc-history { display: grid; gap: 4px; max-width: 720px; }
+.remote-hpc-history button { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; text-align: left; overflow-wrap: anywhere; }
+.remote-hpc-history button span:last-child { flex-shrink: 0; color: var(--vf-muted); }
+.remote-hpc-history button[aria-pressed='true'] { border-color: var(--vf-accent); background: var(--vf-active); }
+.remote-hpc-result { border-top: 1px solid var(--vf-border); margin-top: 16px; padding-top: 12px; }
+.remote-hpc-result > button { margin: 4px 8px 4px 0; overflow-wrap: anywhere; }

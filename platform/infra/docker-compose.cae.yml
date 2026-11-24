@@ -1,0 +1,22 @@
+# Optional overlay after building the base API image; see toolchain-deployment.md.
+services:
+  api:
+    image: ${VIBEFLOW_CAE_IMAGE:-vibeflow/api:cae}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.cae
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}
+        OPENFOAM_SERIES: ${OPENFOAM_SERIES:-2406}
+        OPENFOAM_VERSION: ${OPENFOAM_VERSION:-2406.260127-2}
+        GMSH_VERSION: ${GMSH_VERSION:-4.13.1+ds1-6}
+  arq-worker:
+    image: ${VIBEFLOW_CAE_IMAGE:-vibeflow/api:cae}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.cae
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}
+        OPENFOAM_SERIES: ${OPENFOAM_SERIES:-2406}
+        OPENFOAM_VERSION: ${OPENFOAM_VERSION:-2406.260127-2}
+        GMSH_VERSION: ${GMSH_VERSION:-4.13.1+ds1-6}

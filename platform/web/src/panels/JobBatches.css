@@ -1,0 +1,22 @@
+.job-batches { display: flex; flex: 1; min-height: 0; min-width: 0; overflow: hidden; background: var(--vf-panel); color: var(--vf-text); font-size: 14px; line-height: 1.6; }
+.job-batches p { margin: 8px 0; overflow-wrap: anywhere; }
+.job-batches button { min-height: 44px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--vf-border); border-radius: 4px; color: var(--vf-text); background: var(--vf-bg); font: inherit; cursor: pointer; touch-action: manipulation; }
+.job-batches button:hover:not(:disabled), .job-batches button[aria-pressed="true"] { background: var(--vf-active); }
+.job-batches button[aria-pressed="true"] { border-color: var(--vf-accent); }
+.job-batches :focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.job-batches button:disabled { color: var(--vf-muted); cursor: not-allowed; }
+.job-batch-list { width: 260px; max-width: 35%; flex-shrink: 0; overflow: auto; border-right: 1px solid var(--vf-border); }
+.job-batch-list > p { padding: 12px; }
+.job-batch-list > button { display: grid; gap: 6px; text-align: left; width: 100%; border-width: 0 0 1px; border-radius: 0; overflow-wrap: anywhere; }
+.job-batch-detail { flex: 1; min-width: 0; padding: 12px; overflow: auto; scrollbar-gutter: stable; }
+.job-batch-detail header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.job-batch-detail h3 { font-size: 16px; margin: 0; }
+.job-batch-detail ol { padding-left: 24px; }
+.job-batch-detail li { padding: 12px 0; border-top: 1px solid var(--vf-border); }
+.job-batch-command { font-family: ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+.jobs-section-tabs { flex-wrap: wrap; }
+@container jobs (max-width: 600px) {
+  .job-batches { flex-direction: column; overflow: auto; }
+  .job-batch-list { width: 100%; max-width: none; max-height: 180px; border-right: 0; border-bottom: 1px solid var(--vf-border); }
+  .job-batch-detail { overflow: visible; flex: 1 0 auto; }
+}

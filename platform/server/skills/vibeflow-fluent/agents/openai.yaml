@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeFlow Fluent"
+  short_description: "Fluent CFD reference for licensed installations"
+  default_prompt: "Use $vibeflow-fluent to prepare this case and verify the Fluent installation and license before execution."

@@ -1,0 +1,20 @@
+.vf-viz-sharing {
+  padding: 8px;
+  border-bottom: 1px solid var(--vf-border);
+  color: var(--vf-text);
+}
+.vf-viz-sharing summary { width: fit-content; cursor: pointer; font-weight: 600; }
+.vf-viz-sharing-body p { margin: 6px 0; overflow-wrap: anywhere; }
+.vf-viz-sharing-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.vf-viz-sharing-actions button {
+  min-height: 36px;
+  padding: 5px 9px;
+  color: var(--vf-text);
+  background: var(--vf-panel);
+  border: 1px solid var(--vf-border);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.vf-viz-sharing-actions button:disabled { opacity: .55; cursor: default; }
+.vf-viz-sharing :focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.vf-viz-sharing-body img { display: block; width: min(100%, 960px); height: auto; margin-top: 8px; }

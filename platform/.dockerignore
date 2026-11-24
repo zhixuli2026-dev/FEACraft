@@ -1,0 +1,31 @@
+# Docker 构建上下文：不包含秘密、开发依赖、用户数据或大型本地产物。
+.git
+.claude
+**/__pycache__
+**/*.py[cod]
+**/.env
+**/.vault_key
+**/*.key
+**/*.pem
+infra/secrets
+
+server/.venv
+server/data/*
+!server/data/completion
+!server/data/completion/**
+server/*.log
+server/*.db
+
+web/node_modules
+web/dist
+web/tmp
+web/web.log
+web/web.err
+
+# 运行时镜像不需要测试工具、文档截图或本机基础设施产物。
+tools
+docs
+infra/wsl-vibeflow-linux
+infra/minio-data
+infra/seaweedfs
+infra/s3data

@@ -1,0 +1,17 @@
+.project-access { padding: 8px; margin-block: 8px; border: 1px solid var(--vf-border); border-radius: 5px; min-width: 0; overflow-wrap: anywhere; }
+.project-access form { display: grid; gap: 8px; margin-block: 8px 0; }
+.project-access label, .project-access li { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.project-access ul { margin: 0; padding: 0; display: grid; gap: 6px; }
+.project-access :is(button,input:not([type=checkbox]),select) {
+  max-width: 100%; min-width: 0; padding: 5px 8px; font: inherit;
+  background: var(--vf-panel); color: var(--vf-text); border: 1px solid var(--vf-border); border-radius: 4px;
+}
+.project-access :is(input:not([type=checkbox]),select) { flex: 1 1 100px; }
+.project-access button { cursor: pointer; }
+.project-access :is(button,input,select):focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.project-access button:is(:hover,:focus-visible):enabled, .project-access button[aria-pressed=true] { background: var(--vf-active); }
+.project-access button:disabled { opacity: .55; cursor: default; }
+.project-access p { margin: 6px 0 0; }
+@media (max-width: 760px) {
+  .project-access :is(button,input:not([type=checkbox]),select) { min-height: 44px; }
+}

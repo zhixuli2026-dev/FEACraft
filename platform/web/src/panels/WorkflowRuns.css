@@ -1,0 +1,44 @@
+.jobs-section-tabs { display: flex; gap: 4px; flex-shrink: 0; padding: 4px 8px; border-bottom: 1px solid var(--vf-border); background: var(--vf-panel); }
+.jobs-section-tabs button, .workflow-runs button, .workflow-runs select {
+  min-height: 44px; min-width: 44px; max-width: 100%; border: 1px solid var(--vf-border); border-radius: 4px;
+  padding: 8px 12px; background: var(--vf-bg); color: var(--vf-text); font: inherit; cursor: pointer; touch-action: manipulation;
+}
+.jobs-section-tabs button:hover:not(:disabled), .workflow-runs button:hover:not(:disabled) { background: var(--vf-active); }
+.jobs-section-tabs button:active:not(:disabled), .workflow-runs button:active:not(:disabled) { border-color: var(--vf-accent); }
+.jobs-section-tabs button[aria-pressed="true"], .workflow-runs button[aria-pressed="true"] { background: var(--vf-active); border-color: var(--vf-accent); }
+.jobs-section-tabs :focus-visible, .workflow-runs :focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.workflow-runs button:disabled, .jobs-section-tabs button:disabled { color: var(--vf-muted); cursor: not-allowed; }
+.workflow-runs { display: flex; flex: 1; min-height: 0; min-width: 0; color: var(--vf-text); background: var(--vf-panel); font-size: 14px; line-height: 1.55; overflow: hidden; }
+.workflow-run-list { width: 280px; max-width: 35%; flex-shrink: 0; overflow: auto; border-right: 1px solid var(--vf-border); }
+.workflow-list-tools { padding: 12px; display: grid; gap: 8px; }
+.workflow-list-tools label { display: grid; gap: 6px; }
+.workflow-run-list .workflow-run-select { display: grid; gap: 6px; width: 100%; text-align: left; border-radius: 0; border: 0; border-bottom: 1px solid var(--vf-border); padding: 12px; overflow-wrap: anywhere; }
+.workflow-run-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-weight: 600; }
+.workflow-state { font-size: 13px; font-weight: 600; }
+.workflow-run-list .workflow-more { margin: 12px; max-width: calc(100% - 24px); }
+.workflow-run-detail { flex: 1; min-width: 0; overflow: auto; padding: 16px; scrollbar-gutter: stable; overflow-wrap: anywhere; }
+.workflow-detail-heading, .workflow-step-heading { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.workflow-detail-heading h3 { font-size: 16px; line-height: 1.5; margin: 0; }
+.workflow-run-detail p { max-width: 74ch; margin: 8px 0; }
+.workflow-muted { color: var(--vf-muted); }
+.workflow-id { font-family: ui-monospace, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+.workflow-empty { padding: 16px; margin: 0; }
+.workflow-feedback { padding: 0 12px; overflow-wrap: anywhere; }
+.workflow-run-detail > .workflow-feedback { padding: 0; }
+.workflow-feedback:empty { margin: 0; padding: 0; }
+.workflow-step-list { list-style: decimal; padding-left: 24px; margin: 24px 0 0; }
+.workflow-step-list > li { padding: 16px 0; border-top: 1px solid var(--vf-border); }
+.workflow-step-heading h4 { font-size: 14px; line-height: 1.5; margin: 0; }
+.workflow-attempt { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 8px; }
+.workflow-attempt > .workflow-id { flex-basis: 100%; }
+.workflow-runs .workflow-link { color: var(--vf-accent); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.workflow-run-recovery { margin-top: 24px; max-height: none; overflow: visible; border-top: 1px solid var(--vf-border); }
+.workflow-runs summary { min-height: 44px; padding: 10px 0; cursor: pointer; }
+.workflow-runs ::selection { color: var(--vf-text); background: var(--vf-active); }
+@container jobs (max-width: 600px) {
+  .workflow-runs { flex-direction: column; overflow: auto; }
+  .workflow-run-list { width: 100%; max-width: none; max-height: 220px; flex-shrink: 0; border-right: 0; border-bottom: 1px solid var(--vf-border); }
+  .workflow-list-tools { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
+  .workflow-run-detail { overflow: visible; flex: 1 0 auto; padding: 12px; }
+  .workflow-run-title { justify-content: space-between; }
+}

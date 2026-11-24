@@ -1,0 +1,18 @@
+.vf-tikz { margin-top: 10px; color: var(--vf-text); }
+.vf-tikz summary { width: fit-content; cursor: pointer; font-weight: 600; }
+.vf-tikz-body { display: grid; gap: 8px; margin-top: 8px; }
+.vf-tikz-body canvas {
+  display: block; width: 100%; max-width: 760px; height: auto; border: 1px solid var(--vf-border);
+  border-radius: 6px; background: var(--vf-panel); touch-action: none;
+}
+.vf-tikz-actions { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 7px; }
+.vf-tikz label { display: grid; gap: 4px; min-width: 0; }
+.vf-tikz :is(input,select,button,textarea) {
+  min-width: 0; max-width: 100%; min-height: 34px; box-sizing: border-box; color: var(--vf-text);
+  background: var(--vf-panel); border: 1px solid var(--vf-border); border-radius: 5px; font: inherit; padding: 4px 7px;
+}
+.vf-tikz input[type="number"] { width: 83px; }
+.vf-tikz textarea { resize: vertical; font-family: ui-monospace, Consolas, monospace; }
+.vf-tikz button:not(:disabled) { cursor: pointer; }
+.vf-tikz button:disabled { opacity: .56; }
+.vf-tikz p { margin: 0; overflow-wrap: anywhere; }

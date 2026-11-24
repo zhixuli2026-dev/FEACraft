@@ -1,0 +1,21 @@
+.vf-file-actions button:disabled { opacity: 0.5; cursor: not-allowed !important; }
+.vf-file-actions { min-width: 0; max-width: 100%; }
+.vf-file-actions button, .vf-file-actions input:not([type="file"]) { min-height: 44px; }
+.vf-file-actions button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.vf-file-actions button:not(:disabled):hover { filter: brightness(1.15); }
+.vf-file-actions button:focus-visible, .vf-file-actions input:focus-visible {
+  outline: 2px solid var(--vf-accent);
+  outline-offset: 2px;
+}
+.vf-file-actions progress { accent-color: var(--vf-accent); width: 100%; }
+.vf-file-actions .vf-file-primary { background: #2563eb !important; color: #fff !important; }
+.vf-file-actions .vf-file-danger { background: #7f1d1d !important; color: #fff !important; }
+.vf-file-actions .vf-file-error { color: #fca5a5 !important; }
+[data-theme="light"] .vf-file-actions .vf-file-error { color: #991b1b !important; }
+.vf-file-actions [role="status"] { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.vf-file-actions-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.vf-file-actions-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.vf-upload-owner { padding-block: 8px; border-block: 1px solid var(--vf-border); margin-block-end: 8px; }
+.vf-upload-owner-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.vf-upload-owner-list li + li { margin-block-start: 16px; }
+.vf-upload-owner-path { font-size: 13px; font-weight: 600; line-height: 1.5; margin: 0; overflow-wrap: anywhere; }

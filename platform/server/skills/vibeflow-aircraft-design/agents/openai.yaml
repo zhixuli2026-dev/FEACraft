@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeFlow Aircraft Design"
+  short_description: "Aircraft design reference for OpenVSP and VSPAERO installations"
+  default_prompt: "Use $vibeflow-aircraft-design to plan this aircraft analysis and verify OpenVSP and VSPAERO before execution."

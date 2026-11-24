@@ -1,0 +1,31 @@
+import assert from "node:assert/strict";
+import { parsePathReferences, sliceTextByReference, formatAttachment, formatPath } from "../web/src/utils/pathRefs.ts";
+
+const text = "L1\nL2\nL3\nL4\nL5";
+let [ref] = parsePathReferences("hello @D-post/a.txt:2-3");
+assert.equal(ref.path, "D-post/a.txt");
+assert.equal(ref.startLine, 2);
+assert.equal(ref.endLine, 3);
+assert.equal(sliceTextByReference(text, ref), "L2\nL3");
+assert.ok(formatAttachment(text, ref).includes("[附件 D-post/a.txt:2-3]"));
+
+[ref] = parsePathReferences("@D-post/a.txt:2");
+assert.equal(sliceTextByReference(text, ref), "L2");
+[ref] = parsePathReferences("@D-post/a.txt:2-3:2-4");
+assert.equal(sliceTextByReference("L1\nx234y\nx567y\nL4", ref), "234\n567");
+assert.throws(() => sliceTextByReference("L1\nx234y\nL3", ref), /列号越界（第 3 行/);
+[ref] = parsePathReferences("@C-run/case-1/0/alpha.water:1-2");
+assert.equal(ref.path, "C-run/case-1/0/alpha.water");
+assert.equal(sliceTextByReference(text, ref), "L1\nL2");
+[ref] = parsePathReferences("@D-post/a.txt");
+assert.equal(sliceTextByReference(text, ref), text);
+assert.equal(parsePathReferences("@D-post/a.txt:3-1")[0].error !== undefined, true);
+assert.equal(parsePathReferences("@D-post/a.txt:2-3:0-2")[0].error !== undefined, true);
+assert.throws(() => sliceTextByReference(text, parsePathReferences("@D-post/a.txt:4-9")[0]), /越界/);
+assert.deepEqual(parsePathReferences("@D-post/a.txt:abc"), [{path:"D-post/a.txt",error:"行列范围格式无效"}]);
+assert.equal(parsePathReferences("@D-post/a.txt:2:1-")[0].error, "行列范围格式无效");
+assert.equal(formatPath("D-post/a.txt", "windows"), "D-post\\a.txt");
+assert.equal(formatPath("D-post/a.txt", "linux"), "D-post/a.txt");
+assert.equal(formatPath("workspaces/1/cases/1/D-post/a.txt", "windows"), "workspaces\\1\\cases\\1\\D-post\\a.txt");
+assert.equal(formatPath("D-post\\already.txt", "linux"), "D-post/already.txt");
+console.log("路径范围引用解析、行列切片和错误边界 [OK]");

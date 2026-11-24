@@ -1,0 +1,11 @@
+Tesseract fast language data (English and Simplified Chinese)
+
+Upstream: https://github.com/tesseract-ocr/tessdata_fast/releases/tag/4.1.0
+Ubuntu package sources: tesseract-ocr-eng and tesseract-ocr-chi-sim, 1:4.1.0-2
+Copyright 1988–1995 Hewlett Packard Company
+Copyright 2006–2022 Google Inc.
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+These package data files were compressed with gzip without timestamps.
+eng.traineddata.gz SHA-256 2a66ec904bc0e7657b27e200a874c01e1bc8a58b756cbbaa9afbae736fa50edc
+chi_sim.traineddata.gz SHA-256 4283fa5b14125acc2622823f2f96bb57e1d1374fa53a26164bc183d1d563df84

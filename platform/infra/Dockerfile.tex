@@ -1,0 +1,15 @@
+# Optional document toolchain; API_IMAGE may already contain the CAE toolchain.
+ARG API_IMAGE=vibeflow/api:dev
+FROM ${API_IMAGE}
+ARG LATEXMK_VERSION=1:4.86~ds-1
+ARG TEXLIVE_VERSION=2024.20250309-1
+ARG TEXLIVE_EXTRA_VERSION=2024.20250309-2
+ARG BIBER_VERSION=2.20-2
+ARG NOTO_CJK_VERSION=1:20240730+repack1-1
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    "latexmk=${LATEXMK_VERSION}" "texlive-xetex=${TEXLIVE_VERSION}" "texlive-luatex=${TEXLIVE_VERSION}" \
+    "texlive-latex-extra=${TEXLIVE_EXTRA_VERSION}" "texlive-bibtex-extra=${TEXLIVE_EXTRA_VERSION}" \
+    "biber=${BIBER_VERSION}" "fonts-noto-cjk=${NOTO_CJK_VERSION}" fontconfig strace \
+    && fc-cache --force \
+    && luaotfload-tool --update --force \
+    && rm -rf /var/lib/apt/lists/*

@@ -1,0 +1,12 @@
+services:
+  api:
+    environment:
+      VIBEFLOW_PROVIDER_KMS_ADDRESS: ${PROVIDER_KMS_ADDRESS:?Set the HTTPS OpenBao origin}
+      VIBEFLOW_PROVIDER_KMS_KEY_PREFIX: ${PROVIDER_KMS_KEY_PREFIX:?Set a unique deployment key prefix}
+      VIBEFLOW_PROVIDER_KMS_MOUNT: ${PROVIDER_KMS_MOUNT:-transit}
+      VIBEFLOW_PROVIDER_KMS_TOKEN_FILE: /run/secrets/provider_kms_token
+    secrets: [provider_kms_token]
+
+secrets:
+  provider_kms_token:
+    file: ${PROVIDER_KMS_TOKEN_FILE:?Set the path to the scoped OpenBao token file}

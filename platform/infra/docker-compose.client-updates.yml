@@ -1,0 +1,6 @@
+services:
+  web:
+    volumes:
+      - ./nginx-web.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./client-updates:/etc/nginx/vibeflow-client:ro
+      - ${VIBEFLOW_CLIENT_RELEASE_ROOT:?Set the browser client release root}:/opt/vibeflow-client:ro

@@ -1,0 +1,4781 @@
+{
+  "schema": "vibeflow.execution-inventory.v1",
+  "scope": "server/app/**/*.py",
+  "review_matrix": "execution-entry-matrix.md",
+  "source_sha256": {
+    "server/app/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "server/app/auth_models.py": "622a165fe464b3230ecc7d1525ff8cb62b1edf13b152432861f566b1bdc8bbb4",
+    "server/app/config.py": "44e7a77255fb5d21c75e2a6fc48f088b817b91ad80e46da0809f3eb4e309a570",
+    "server/app/db.py": "cc4133d7d0248c2a7a23b9cf1ccbcda68eec04b591e31a61ecda668adb1a7cfa",
+    "server/app/deps.py": "6fddd8d91f6815962184c14c5b8871df595773f3be6045e1c13cfab4c8a18111",
+    "server/app/main.py": "9583555e6887548552b98ec2fd0e310ca4e854b262932e3dd3778e5a1e3bae08",
+    "server/app/models.py": "5f500f84a3035156a0eb57e19691c961db49c307d9f16d291c634354a0a64f81",
+    "server/app/routers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "server/app/routers/agent.py": "2c777f26153dca825b6f56c131eb296b12c0f26b9217d94958b70bfaca1b36b8",
+    "server/app/routers/auth.py": "b2b02452355ea8620942fe5672cb4a9adbd5906e081c24fe38a51925accaebaf",
+    "server/app/routers/cadscene.py": "4ca1110c49d28cf2c38e10b61985a07197fa9b334f5e1e3015f3b9f595e3d837",
+    "server/app/routers/calculix.py": "7430b4fc4bbfcc991b820e72bc30b7f3d21c01daff558176fca0997cc8e6f732",
+    "server/app/routers/cite.py": "4c42678880ebc9d09e0b7c33905c67caf9555cbfb34f92bf64933d2fb5784a01",
+    "server/app/routers/codex.py": "101997a86e9ae71a86f280a0bdf0d7fb2cb74e8eb0225f97245bdac2c6b52183",
+    "server/app/routers/completion.py": "f764dc2567d31a59fc6571b44611e29b4a862f4f4df03e37dd59297f97e2fde0",
+    "server/app/routers/events.py": "849d5942747cfc8fc74d3469dbe64af1074da7f485465cdc520bbd42c2f096d1",
+    "server/app/routers/files.py": "11310031563c0b93afc1de1f3b9923e3933fb352491ac684d78ba635ca831c1f",
+    "server/app/routers/flotherm.py": "2fbeb9efa5c8cfeacfe307a2d5894dd8a4f87cb8c7fc16ed5340b856b4cf019f",
+    "server/app/routers/geometry.py": "b0b264cddcbfa9ebf28492d86bcfc831313329c8e627ed10f9d082ae4a4b28ad",
+    "server/app/routers/index.py": "dcc5455ebabd44ad08809eb944a57b2b3bf154c7bad45e989bc11f6205b80044",
+    "server/app/routers/jobs.py": "1e9155c927bfda935d87e1e5b483d72cbf8b4586a0755dc033b914d21c912d45",
+    "server/app/routers/llm.py": "5ebe53bd827d197e3b0ba1586ef3e74ad8277b95fd322990dafed6125bd88f62",
+    "server/app/routers/logs.py": "0ebd275f75715e7f045174472c2d47077b3416c0e3fa9d1247b2f3c093d191a6",
+    "server/app/routers/mesh.py": "d98109cf0ecaef3cc0a6d1b93ba133f06a4944f74e78fcafa626d28740becd35",
+    "server/app/routers/mpi.py": "6ae7359654f91d6cb3186db9b82fe217080e41b4675eeaf352e67bf6e74b3c6a",
+    "server/app/routers/opencode_cfg.py": "9570eea55f72589621c1cda3c99bb7e5d4e9793d8d309ba5d9ecebcd81c15e1e",
+    "server/app/routers/org.py": "6baa4927e7272ab2838fb3328ed02069ba08872768c5e424869b0e05429ebe6c",
+    "server/app/routers/paraview.py": "8010832e3519b26bb048fef91bdc818bdb6de8e8b7b9f8d3afbd7eceea495ff5",
+    "server/app/routers/postprocess.py": "f798508a09c225e587a69b3ede9cfd873be3039483b727e70cbae2a9268d9196",
+    "server/app/routers/remote.py": "2ac8dcd85a8d2bbe81e7e8a69ba4bb8c3f57537d25732ec309a58f27b08759b6",
+    "server/app/routers/reports.py": "98c3d5cfb95eb351af4ab3496911d91b9200dc5f45b2bcff9fa79241a1295448",
+    "server/app/routers/runtime.py": "6d46dce16d2e46935d204f5338ade5222a8b0639eac95e3052239cba9819a149",
+    "server/app/routers/scnet.py": "125ffd4d09201077799f8a4e9c6c184e83a8c498aa3bed96c42fe03d7b793df5",
+    "server/app/routers/skills.py": "c1a3d5e6fc278aaf54d3a35b0f8d5b956d66aa6216e3a0cfb4f80b2090977a6f",
+    "server/app/routers/solve.py": "b4612eb9ab6dfdcc4cd954ba9d88cd4301fe250daac9e3c7d24fc023eed39907",
+    "server/app/routers/su2.py": "488942202fcaa525ddec5fd1c9eef5ad3446ef3cdf7c51e76178b29c39f65022",
+    "server/app/routers/terminal.py": "adc379af46ac9e522316a1c97fb227e0172a27c42e4aafa4af1b95f002aaf129",
+    "server/app/routers/udf.py": "10948f5a382979f5081ebeafffc5fddad1f0304ba532170b797baa547dd8f11a",
+    "server/app/routers/viz.py": "d05ff0fba99ba8d9c89043367c49847e6eb422d745e7612eabf4e2e43f6706a7",
+    "server/app/routers/vizproxy.py": "6ec2140c534a8d8ba22b869a5a8682472d38c38f105240703fb671d457616a42",
+    "server/app/routers/website_auth.py": "80edf604b7fb40bc0da8d4dd66fb1044c9423443b55f6215f7ba6dd0411e20de",
+    "server/app/routers/workflows.py": "44dd4ee8cf64a85c47ea6af9f52bf22c2c649c155950caf5b0a5fe772114efce",
+    "server/app/routers/workspaces.py": "e353b4ae60db340d76d0c00d0196d5fe9beca33fe3e5b88e0b511bcc19910205",
+    "server/app/security.py": "ca0c4492bdd7b139e85c041690d178ba5d5ff44840a7d35877aaa91bbcfbe7f3",
+    "server/app/services/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "server/app/services/agent_shell.py": "c66875b7e02517a8350ed0d6646449e6d74c475e9e4e0bee231ea78bb619707e",
+    "server/app/services/agent_shell_native.py": "4d36672b341fd18be6f2792adba5fa11b242b9420361042996c27b450218f05d",
+    "server/app/services/agent_storage_capacity.py": "4566fe81598c5f97b21d0f5d68edf098f57ed94729ed50268ea730baae2d06d3",
+    "server/app/services/alias_invalidation.py": "f4d2d3805053fc2eda89cacde64f8c09738f8fc276d6b3c8eb70df7e1bed0205",
+    "server/app/services/animation.py": "82389355d692e5580217640490a15f15c18165985da8748bc0af64933ea3363c",
+    "server/app/services/artifact_publication.py": "a1b86ce6dbdf97cfbd9ae37ef34199a6cb7a7f02fd6eadadd5a14b34b8d6f6ed",
+    "server/app/services/async_ops.py": "31d4629af33882ec6f2ae093c5a0d44f5fa790626717e81d0bf71d672aefecdf",
+    "server/app/services/attempt_objects.py": "d62eec9ccbe3b40a549d5085b1f98c9a668a8eeeb9d23b099bd4c4d0c0b68b79",
+    "server/app/services/attempt_plan_writes.py": "02467cfe87ec02749df25f273cc59db3cdef9c40219e1f42e2d166e06b5cb836",
+    "server/app/services/attempt_seal_journal.py": "29bcf976705bf8c6a59ae7167592a3eaa88bc2b7cfea40ab4d35a033aa08c629",
+    "server/app/services/attempt_toolchain.py": "b6f5e0c125b7b11adf48579bff2f86b5d65639d2370ef9a6f0688535dab7f69a",
+    "server/app/services/attempt_workspace.py": "64420930e11637ecd37ac7b3c70b233efb8fdfa1c9bf2360f15d76a2841051ba",
+    "server/app/services/audit.py": "a62349e5c2faaa0fe21dcc542ed5f7111b9dc8cca25bf2fd2c7363b99ae984b3",
+    "server/app/services/backup.py": "e3e4a33e60c98af8f22c5283e7a2bc1117fceb6a4feef9f51ba1819b8073ea3a",
+    "server/app/services/backup_manifest.py": "8a64433df544d1dd19556de80b7fdbfbada26e0cc55ac11ddb4e11e9330e6caa",
+    "server/app/services/batch_jobs.py": "ed1f9a3add918fbecadd88d89e0e3383872edae1003ea7f808a93725043c0dce",
+    "server/app/services/boundary_profiles.py": "1077ce83cd9a783037c817494c7769401aadea3773ff502f4dfa04c223fa0249",
+    "server/app/services/calculix.py": "90037c950c2e032a15416f73e9e2318e8cf1f4d3b853e02c83d21c5ef6a5db18",
+    "server/app/services/calculix_artifacts.py": "b27182afc301ff906b8c8f62fb3e1d47d51a7b803be457300936906e3ef7877c",
+    "server/app/services/calculix_handler.py": "37ddd80284424921dc3112d640166419025d32402744d298e9e9a5f033426519",
+    "server/app/services/calculix_worker.py": "a22df7118fbcc7b3aeb651e0164f1668ffd2b950a2e3640c7343540d3f524dbf",
+    "server/app/services/case_admin.py": "76961c0a2658776017ca42a3152b675321240f80001c7b039cde9a9bbea9011a",
+    "server/app/services/case_command_handler.py": "0695644ab50f163311c66e2d45cec8e5fbfee29609fc61bb78363b9f7cf2b9c0",
+    "server/app/services/case_events.py": "43d6367095401a89335d837acf7e4b1d6fafb02ab965c70e7cb7bba3a7db9969",
+    "server/app/services/case_evidence.py": "a413154e45f8ae6948cc2e753f2ac5b97031a476b93a71ca8d6f62913742c198",
+    "server/app/services/case_file_delta.py": "f50990fb435428f83c9deaa84442bb0ef2eb805a9c5269cfe56b8b3acb849adf",
+    "server/app/services/case_import.py": "fd496c8ef16d45e19114733941b79f717e4f4d40806a7b078c6862313663672c",
+    "server/app/services/case_provision.py": "bc1f0c4a9e607cbaec6fd8580c306c57bb4e6f52415f8115185b8f487188c434",
+    "server/app/services/case_read_capacity.py": "29c1f535cc08c2b4e3cc8994badaf33842206605307ec2983ed60080de16b00b",
+    "server/app/services/case_read_view.py": "551303486b1dccbef815b7bf8f1533b90a9032d1f8752ddd8def509e989a00ad",
+    "server/app/services/case_source.py": "585de74b51f7a611a1f233d86b58497f8b9f5982f09cde7ccff0052189017a4f",
+    "server/app/services/case_validation.py": "9b5b1ca877fadc5c440c96d966dd334e5b6ab6a1717495cc6a7e04d8752b3ce4",
+    "server/app/services/case_write.py": "3db57c87d1bc697c147d83992fec83d9d0b0d09b7db7bf869ad0ce4bae1df0a9",
+    "server/app/services/case_write_capacity.py": "c523d60089df74a392cb1960eada5e11b52b445941c5816cecc32c2717a2695d",
+    "server/app/services/casedict.py": "6415c3e9c536f84019b4c1695b1de267dea69aa97ed2aaebac0a53d6815683ce",
+    "server/app/services/casedict_schema.py": "1be4db9d6c7ea697e43cfa74d9e02215ef4567732e1808ca3b7fa3f1a9caad72",
+    "server/app/services/child_launch_registration.py": "4792489bf429a314b5ff5bdca82f478d81ba749dd5c1e7ecd50483abe15ea246",
+    "server/app/services/cli_discovery.py": "9938b81b0d4ee5b339d37c232c2422665255ed94742eb6200347908ac643b4dd",
+    "server/app/services/cli_profiles.py": "db0350004680aea65840d2388e88a8f87796529d3dc1272754e7ff6216dd1723",
+    "server/app/services/client_errors.py": "dcb96929e56fb1d0420eb7c358df26cbaba5b1053ed4f3a6d3f97db2fb2bf9eb",
+    "server/app/services/codex_account.py": "70a23a26d24c41bfcca63b5e8090b66b650e7b656fe9ba2412da27820806691e",
+    "server/app/services/codex_approval.py": "5017c65cbe7e9cd613bb7bfc9660b0189624cab817d690c2013b0618d046ddae",
+    "server/app/services/codex_capacity.py": "284c2c789a892de166c83cedff1b5ef3b3f0ec5eb097c39ae6baab4be528913d",
+    "server/app/services/codex_conversations.py": "44390ca749820f3e14ffb7c59a7dd7ab54c5a46fe25ec8a552039086664df4e8",
+    "server/app/services/codex_credentials.py": "7a8ec426eaced3cba8a3854ceb2260e71a6674cd84aec5779f5450278d856189",
+    "server/app/services/codex_environment.py": "66edf69641578422862461bef1dad07b71a47389e87d704fba275f7e9a6cf39c",
+    "server/app/services/codex_forks.py": "0b73fff3a744ad199afd5feaf3166bb3646f9f79456ae9fe1a998a1986cf6f77",
+    "server/app/services/codex_history.py": "fe49c6ce4db01036b5af7cdd7d9dce38331bd116b71c97e4d0924000917f6d3b",
+    "server/app/services/codex_images.py": "31f6ebba3212b486d82d6dae6425eaae7a68648e7485f105ce99b5b2f4803733",
+    "server/app/services/codex_model_options.py": "030023cb5991dc1f665307d8ac29a54ac8d7c9d3ae07c676655d263c274a6e9b",
+    "server/app/services/codex_projection.py": "670a6afe5705311a55e2c4d21a3703cd4b03f157f0edb869a41b6ed6e6c0c0a6",
+    "server/app/services/codex_records.py": "dd091331d7b2a0be553084a6dfde3987fe83b77dcea362761c5554a01cfe8c14",
+    "server/app/services/codex_sandbox.py": "473433644dbaf5204d531a6546473cda922c6ba197b436f8a14a90dcc8b04f46",
+    "server/app/services/codex_session_requests.py": "fa542bc1b449a7aeca5614f8e9944932a26bd88a9850331e845500855a464117",
+    "server/app/services/codex_sessions.py": "8532c7e3ea9e3288d3e20f60657d9e1ccb7d08becd50ce362c1a229287e3363f",
+    "server/app/services/codex_stdio.py": "8554c860011d5db4b7804f5fe1d339dc57e5da916bf0f62a916c83223ff3cbed",
+    "server/app/services/codex_turn.py": "10ce8af1935c0ae09d472fdff8523729cfb940edc7f095a0f8a59121a3badcf0",
+    "server/app/services/codex_turn_records.py": "7987a10f26bda45deeb04cdf47d041ef82978f654c7e4290797a3f3c82da413b",
+    "server/app/services/codex_turns.py": "5b7317ebe5fc93fe069dc5248f7399139cc44810a408fd9d523e1d78c8b0c190",
+    "server/app/services/codex_usage.py": "afc7193a16af5f919f73457d610c13a61a90d8f08dde465e5e9bee85c6b61248",
+    "server/app/services/codex_wsl_state.py": "cfb735e3aba431d6423c658a5c5d8e1de8d79d44b9e7c9f9853f2082410a170b",
+    "server/app/services/colormap.py": "eecead51e1b681fcdb43db4e7c61576a2a21cfbfa1a8e9121403005e27493f0a",
+    "server/app/services/command_safety.py": "240d898a274783d8140cb52ccecfea5b947fb61b1d9f760e8e14532dfd62c91e",
+    "server/app/services/completion.py": "3ad571364b0cec86f8fbab82feb86f2d39402035bb8dd66aea12e2330af33c3a",
+    "server/app/services/completion_builder.py": "8cd2e8b54b9d5dc7be6e810a5424a090b0f3a257c36571c7bf9308428366c783",
+    "server/app/services/completion_merge.py": "2a072fbb46db9406c9237b63464f86c4a179ab6811d69d442b80b374110092e9",
+    "server/app/services/compose_artifacts.py": "626f31d278a1098bfb5f7a3ae4cfb30b6812c0394127aa739788667d8173a212",
+    "server/app/services/compose_handler.py": "0b1d026b56ab575a1acf136f96093c51bfe5ee6573c24dbb3880d0c231aa923d",
+    "server/app/services/compose_publication.py": "d836354e93934355e2f14b4ee2c53638bac5e8f5d422c02cd1eef9126d9a2806",
+    "server/app/services/control_identity.py": "5ad72f283a67ea0a3f285e8198df50213350198186c9b8e9e69e1f072b016dd8",
+    "server/app/services/control_identity_reader.py": "b3dc22352a65de3e68e59334cc9ecc5f20eaa4128fd4a15f512cd4372ec1e758",
+    "server/app/services/conversation_execution.py": "e4b941c7eb4967537c5cb5e45cdcc52c8a2d886cb0be80a8210cd2068e98e731",
+    "server/app/services/conversation_import.py": "feaf3725f6e530c7189ea5bcb486533827891b8cb7e9f22040970852799241de",
+    "server/app/services/dependency_status.py": "bff4b8af83b14d005ee6bbb61aa424561f7170bc2ed407266373429bc8459f4a",
+    "server/app/services/distributed_queue.py": "d4b0a037a02a7f07a6475a081124929ce31b69f3aea12fd99c722d77ab6a1bf7",
+    "server/app/services/distributed_worker.py": "846c311984e32a42e29194dce0744ea6e50902a77cfa7731a06115612f465386",
+    "server/app/services/document_admission.py": "0ca70c21a46ca7130ec7348133797444cdd1884511ec3bbe8b629e448b12cfe0",
+    "server/app/services/durable_events.py": "52c0949b9adb2fe80e5a2d7ebe448f5fd389f6b5cabbe483f70fde0d2e2bb981",
+    "server/app/services/early_finalization_recovery.py": "da69aca79d3231ef5ecd331ef245018e06ee45b1962928086fb727de5c528b61",
+    "server/app/services/engineering_stage.py": "ea5e6be5d94842610e68112cb1d0d961c65d1830b0547f82b7ebfa4e4b830e0c",
+    "server/app/services/event_consumers.py": "941acfd2a2c38dbcd005db46696564473ad3c35cbdd99c72cfe0f864391eebad",
+    "server/app/services/event_replay.py": "a888db40c8eeeccbc3e99db20374ba1fbc225f5ea107112f53a4eb514b20baeb",
+    "server/app/services/eventbus.py": "aebf82016567139d7274900797623f3a93491e26f9a9024ece9f269dde0f53d5",
+    "server/app/services/execution_budget.py": "d371785ce4d78921df292106241b90f03df6882d14d105a1a6ab94613b91ba7d",
+    "server/app/services/execution_output_checkpoint.py": "55e3f11141080d3ddda29ab5b43fe5216e552f669088bdcc12526ec3649f7cd1",
+    "server/app/services/execution_storage.py": "2fe23e2c38fc2d255477f2bd88165f12856fe997d5532a801bbe1887c7ee6b9e",
+    "server/app/services/file_preparation_inventory.py": "e40f978331eafa840ff2c9259b8b9dfa8048406440bef38808bfbc7efafb38ce",
+    "server/app/services/file_read.py": "7f043706e94afbf753ec76b78d74610d05fe11f68bb0e1b9a931df944ef9202a",
+    "server/app/services/file_transactions.py": "e56f3610656588b9f852aaab3bbda8f567bebd9f4b2a437159e96e8010be3522",
+    "server/app/services/flotherm_case.py": "172034e23b47d2a37cd2675da7ffa76e0e238407e47bfd8de7274fa04a121e9d",
+    "server/app/services/flotherm_components.py": "f48473fd27a3d255404f0dc22431b291b70886d624fe8c7b087388ea0c0240c2",
+    "server/app/services/flotherm_convert_artifacts.py": "bb1889ccd96141d44941921147470ef4320fb1019f56478ee800573196ac00e6",
+    "server/app/services/flotherm_convert_handler.py": "d5b6c7083cb647425f57af370a8b1fb0b8cbfa6f893ebd77a2e4b38366f67f03",
+    "server/app/services/flotherm_convert_job.py": "09ec5e91fa084bd14b73d99abd7e82580fb9f92aa2ebc7185a246a39f87fa78d",
+    "server/app/services/flotherm_convert_worker.py": "e2ac73b586de740c6702b00799c44dc639d1d983ad5038fcb006ef70dcf9312e",
+    "server/app/services/flotherm_coverage.py": "53e9a30979c8d4773f46078b1d5f4e1cc355e662a65b75cce70f846b963eaf65",
+    "server/app/services/flotherm_inputs.py": "a59f176f9f9804cb7bae23d1cd3c1da86782afa319e6d05beabf973611241036",
+    "server/app/services/flotherm_ir.py": "7312227f5efa254c5ed6a6871870794bc5c41fbe269849452b58a0e839fc6edd",
+    "server/app/services/flotherm_library_artifacts.py": "5b650ad032be63d3fc20631627d0e5cc3053abc9caf92797cf36fa214643b1ff",
+    "server/app/services/flotherm_library_handler.py": "de671c3ee3a406c7ebb3f52f8345f3e0010e77cbf3ea4763cd1e6d9a27c9fc92",
+    "server/app/services/flotherm_library_native.py": "9f39486428c1b34d71e6af6a632d01afbbf4abd9eafd0c236bb41b0b22585ac0",
+    "server/app/services/flotherm_library_worker.py": "b327d6edf91f3849389e2d3fa5564c5bdf27b9f93225934c343684bbcf596262",
+    "server/app/services/flotherm_output.py": "0f2c8595adbdda6a6acf7a9f44c4e2a728218131a47767c348e915e9c7902aa3",
+    "server/app/services/flotherm_settings.py": "d34e0d81545355c071968b67b28746b6ced705ced22706e41fab3c988663e0b0",
+    "server/app/services/fs_directory.py": "25b2a54ca136b2398d57fa30c41a7d86cd7abbf4b10902cc8adcd8711a1ab5e9",
+    "server/app/services/geo_repair.py": "6fdf8bad78744b7b87ff2fc90684d9738cf090d88fe82495a6e90a8fe09140cc",
+    "server/app/services/geo_script.py": "3299b1432d9f65b4c3428f18704c6ce1d675b934b3e5d40772962328d0f5bce1",
+    "server/app/services/geo_validation.py": "ee362682675b516ada0662e109c53a7d67541e37ae8f98bc076489b988faec70",
+    "server/app/services/geometry_handler.py": "bb5b87cedae28c6ac5ee8052a9503d4917fad509227ea13cf48cd72f6dfc5d25",
+    "server/app/services/geometry_publication.py": "c57908e0de2c1a76ca252ab35ded8d13fca6421d5be85972c1e68cdafb659fb8",
+    "server/app/services/indexsvc.py": "d609b39a403703eaf460b30c1767980667b7345266f724a3aa9e3e6f0415e0b5",
+    "server/app/services/job_delivery.py": "8d03c63a725cc2488e4e47eb89562f704bf29d50b18e959edfd0bbd799fd2cae",
+    "server/app/services/job_drain_recovery.py": "3411d43a92ba52d719fc0ca13df13fdc5ef7b14723b74cf4a3c9bdb5d6cc7bf1",
+    "server/app/services/job_execution.py": "6ac44d114583248aa67e787d149ea3a659e7202d2eaf43bba6b861d8f04d2e62",
+    "server/app/services/job_launch_lease.py": "d43f8384dbecd08d0ae44f3f5564596e29f4d709eb0057fb5f56ccbf6063a942",
+    "server/app/services/job_launch_registration.py": "0b767ee598e6f4c1f9baeacbcfb971692e9dafb0bf5d11d6c425d18846942e3f",
+    "server/app/services/job_log_storage.py": "4983c90db3f62073a192011005347f5c45fa1487e3cfaef451d3f7c83e31b9dd",
+    "server/app/services/job_recovery.py": "322c55e911bb337bbcd338a29710a9a43c60553a99ecbe99ea6c3b35fc885e57",
+    "server/app/services/job_recovery_notice.py": "d8c46c92c46e8ebddf6a2667723cbe67a97c771cfad8b186139df5aae769840c",
+    "server/app/services/job_registration_recovery.py": "68df33c3f4e5d76a3e40170c0694feb3a8f48ae17023612943ee1dbcadfa3711",
+    "server/app/services/job_worker_identity.py": "452ebcee81fb753c2c2657e801ef04c258b1e39d7df7728846902b5c11a31886",
+    "server/app/services/job_write_checkpoint.py": "7cc135c4c764b6ea1f02aa4c89eab7e3b160c1333ddd76dbd12276d4f445fed5",
+    "server/app/services/jobrunner.py": "887a33eb4ba1634fd15a5fcefa5e1cb7296b18a2ea24412f6194fd2466c49551",
+    "server/app/services/latex_artifacts.py": "36b76e862968f202b2ee6ebff077bee63cfd5917ee2f5af1ed6aeb8eee20efde",
+    "server/app/services/latex_build.py": "0c9983fb6a3a21232dc66077bef4e9e57302c0e72a614d6cf615f4a121f562a1",
+    "server/app/services/latex_errors.py": "2e00dee563a00efe87c0c4841a0eb1ff0dae918489f5d2a82b42c215f2c28f16",
+    "server/app/services/latex_handler.py": "dd07aec3b8db2d7e093ab7367f362bcaef2844796fa14ab5f738774b151ec9be",
+    "server/app/services/latex_native.py": "90a63c927448b0bbc459500b726e8c1ae7cebd1e4314891c10f4b7d2c653fc67",
+    "server/app/services/latex_publication.py": "aa94161fd5fc90c19c350fd2c90658bad8483eb5e3a0e1e40153742816e6ff7b",
+    "server/app/services/latex_table.py": "8fd994950dba1ac8750040828101e2428d969a850413b4f81f3c8d28c8926196",
+    "server/app/services/legacy_job_admission.py": "fa750f012e5d824ef44005e6c75466e070dc262aa57a205a38375b95be6a868f",
+    "server/app/services/legacy_postprocess_handler.py": "ffc873186b78f54886a70c166328ee32b57ed1f25a267303cfbed062bb5a3a4a",
+    "server/app/services/llm.py": "37ee4959dfd5404f95cecb802ab1db7e9339c42bfcfcdc4005d0c40e2daec8ab",
+    "server/app/services/local_file_budget.py": "1cedcd9b9c0df82d5edb693109fa2a5e4d405465e659b389f0b3ff9ca08a7600",
+    "server/app/services/local_provision_budget.py": "7c378bcd158ac7d8269c84bf5f68c7980630bec2766a5df2d255bf967afab5f7",
+    "server/app/services/logparse.py": "fc00b2d261d2cd8caf733da93f9f1901ab388ffaebae5dc25959b9df47252415",
+    "server/app/services/memory.py": "486113a6a3db0211418a7e14c808fe5e4166ee6730ba287de0100f8f6cc7d91a",
+    "server/app/services/mesh_artifacts.py": "38c616275398bf5e681a46350544791cb984ae7a2e22eca2496c44740ac28aee",
+    "server/app/services/mesh_handler.py": "a51265bdc9df54dcd59a0cdefff46bf6ba7ee1dea410c608041f9180c12c4c85",
+    "server/app/services/mesh_publication.py": "0b5edf93966006ae4e90ff42a6671f402862432b3f39a01be444da587abc6041",
+    "server/app/services/mesh_quality.py": "f744a262c48571c7c162ec20a09d7e770295c5dc23c3da073d268f92411b39ac",
+    "server/app/services/mesh_worker.py": "643d71633730f7b2534a5e4e7d7d9ccfa5eaded03350ecea56acecee1b56d143",
+    "server/app/services/mpi_artifacts.py": "494d094d3aea734b40e76b056689179588dfbb391d52915529ab34b90423bcba",
+    "server/app/services/mpi_copy.py": "82d8ef963533957769de5696746c6360ad4a7f419485eab4b516cde15de796f9",
+    "server/app/services/mpi_handler.py": "fab310ad5c68d7b6fe725f190ba8b9330748ab0bc2fcd8a0f81433d52cd8e00d",
+    "server/app/services/mpi_native.py": "8dbaf8b8739a184d087451d5d5003b6251ece535e21e5239932085cf15fa013b",
+    "server/app/services/mpi_worker.py": "e7ef1f75b7cf0ea6c71a440be1fd715d7bb7d26eab67ff4487553c8a19c5b82d",
+    "server/app/services/native_child_records.py": "1bfe9a68d3d7588fc3cd0b4bdf03d49ebf7cb1a8710ba8b82a0bbd252d968e71",
+    "server/app/services/native_diagnostics.py": "ec21df6198190acf5b34894a14c7bd2cf6505b907c50039a4eab9ff073b207ab",
+    "server/app/services/native_execution.py": "150b155d6645a6feafaae8dfbf2c8f1debc469c53d19346ed23fdd1b668c561c",
+    "server/app/services/native_execution_client.py": "ada93bc4b24a66e66e922e4d278d629bccd09a99f07b9aaf9c9658d7fab8d153",
+    "server/app/services/native_process_preflight.py": "cfa6156e2f364732c0a1e44f753e1bcbae1f364690665a1e321671292456079a",
+    "server/app/services/native_request_execution.py": "cf0d3179effea550fd4bf9370f57ff570ade2e722d96eb44b10564609cd16f5f",
+    "server/app/services/native_request_records.py": "0d7262f66db3828ca8cf3d386872431ce3d24ea2d8cbcaadd5314856b220d04a",
+    "server/app/services/native_scope_control.py": "905fcb0c64d293d0f96dc96485e28f70c999a9b2d955db22b2a0499150ef01c8",
+    "server/app/services/native_scope_controller.py": "f45b6e7f9927952e8ec893ae7bbfc781be6baf19b9ab0f3db41f9bc26bfcf3bb",
+    "server/app/services/node_storage_budget.py": "3cbaa4b79e6f196d904f190b2db3a51bfff638f323653563eb01e7cb67ddc4b7",
+    "server/app/services/oidc.py": "1691f7361a34d6529215a71ed609b5dc6f1e0b1e722b76f14aa891af3b829146",
+    "server/app/services/output_archive_storage.py": "7c2fce6dfe1ff416cb3ebe9a90ef5cdd6ef300e5a0fb1be0810cb1baf8b305bb",
+    "server/app/services/owned_process.py": "607bee2fd137634a7e24d778e1ba1fba81f532bd46b5186c0bef075f67b51e37",
+    "server/app/services/owned_stdio.py": "3f86cfa1b59c46a387b8d84e05c505b7d97490805a6711dca1a328b1925f2d7e",
+    "server/app/services/owned_terminal.py": "5a4382a4f593a143192563fc69ec44c2e64397a871c75ac226c564eed277f4d7",
+    "server/app/services/owner_storage_budget.py": "c317d5f002d34cd9068f66f7bd7dc70f55d70c9d36926801bb83bd06875d336a",
+    "server/app/services/pandoc_execution.py": "d6485bd7b4ae2917a4a7346e6a2e3d5278e4b889948c743fb3e094ced1cbb2f0",
+    "server/app/services/pandoc_native.py": "927a6357a8541841b3d75be661abeaf110abba711ba9c0ef7383883a7d9e425f",
+    "server/app/services/paraview.py": "b5930870846fd201110c661632c4f45f08235b2f66852a9bd4829d7f3561b23b",
+    "server/app/services/paraview_artifacts.py": "5015870a6f412821c38729e8fb6a51bfabc43459fc05a003b103f6b8677c27cd",
+    "server/app/services/paraview_handler.py": "9b63a9962bc37836c1fca91eacc837ee3f9c41d207c5bb89ad97d78ef4ef54de",
+    "server/app/services/paraview_worker.py": "962a16c17224f1640c6a422072d7d26436e1869b5ebdfcabe4cfb101aef7c4f1",
+    "server/app/services/pdf_number_handler.py": "020fdda5d237a77c6d575ea3c92230eab339363bd238a7479f8a73eefd89f294",
+    "server/app/services/pdf_number_worker.py": "ee49e77cf1d4554f25bf243a02cf573a1824897d5df223fdf6d00bb4605494bb",
+    "server/app/services/pdf_pages.py": "c77bf8b2eafc4b2b3c0f21bd983b8bb1abd70fa53515f8357d224597c6307206",
+    "server/app/services/postprocess_artifacts.py": "1db048c21266e39ea5adc1f4dd83e037be4094100f82d430d17e28a6aafa7ce2",
+    "server/app/services/postprocess_executor.py": "66b82e68ae2d1294bd1bd414a6d68795ea5d25e072bb2417041f98971a3d239b",
+    "server/app/services/postprocess_gate.py": "9facf4aa462b2636738d63fc2ffda9a695ff7d9cc53b9ab5a1f614fc4368ca1d",
+    "server/app/services/postprocess_handler.py": "fb88c708786642aa4c2033247f79ce7d9a10f7206b4def75847a9f81ec3dd97f",
+    "server/app/services/postprocess_publication.py": "126bc40d1693e5391e80e7b7256cd0c7f0c2d2e8b2aee19012790e0bd066b280",
+    "server/app/services/postprocess_worker.py": "41cd2fddb8aa8fc751c0d1f94ee307a7fffc63eaabb97f7d0b579b26c99960a4",
+    "server/app/services/ppt_builder.py": "61fbfbd1ac91866f9f70bc5cf00788bb355a90fe4e60af6d68924e98720b856c",
+    "server/app/services/ppt_handler.py": "4d1fdac83ab7972027fd2a66d33f093855368e660a5ed69ffc15300e1211efc8",
+    "server/app/services/ppt_worker.py": "5c287aa131d03297a2c91b2c94ec33fafba19ac523bedfe96381ff3f8a2e6a0a",
+    "server/app/services/private_cache.py": "c0ea6be164bfff6a62b0dd120674a60247d1d9055f13fe939e3f88e407960212",
+    "server/app/services/process_cgroup_native.py": "a45a894d8ce5d7306b748e169a9484139b7a7f5127ad373abfc13dec76fa7711",
+    "server/app/services/process_gate.py": "ac6bb0e73fcd46c2ac808c09d72bf1f2e9db0e37a4c8861c5437f76ec00610f8",
+    "server/app/services/process_identity_native.py": "75767e49031e7886b4e75c62936f4e6392a3d247e96a0e855014f3bf5d1e05c2",
+    "server/app/services/process_preparation.py": "b31e02d42c7932841779980c99c5aa330ffe4e56f681932295c4fd03126628d1",
+    "server/app/services/process_record.py": "8b69f7b2be42f8e4634c24b65f45bb1f633cada8110dfabec3ebfa26070806ee",
+    "server/app/services/process_stop.py": "21b86888f73d73d8123a0595cf317d29b87f9a2b572d893f709fef4e73721e5f",
+    "server/app/services/profile_sharing.py": "f47bdff007557ea3ae5efa1be8edb499f40e680acf7a4f2a622b578a82c9d17f",
+    "server/app/services/provenance.py": "34f536cdc2a7d82bb7adf7eddf44c92eb4b1af4887c9956e7515f2bb61b49f4d",
+    "server/app/services/publication_alias_journal.py": "f31b4e640203717e0b37ada8869cbb3b26ab63da1dd3ebe955453575faa9c8ca",
+    "server/app/services/publication_alias_objects.py": "b3276363fd531a4b79b18ecf4a56d97599eef86455a092f044f421f73af3d30b",
+    "server/app/services/publication_alias_recovery.py": "da58c2832324449e453e2ec632930139a551fb49b68bb83b77014f4b43ce55e5",
+    "server/app/services/publication_finalizing.py": "21ccc4a31387fa03b9a7b48fb3a20471260a548554b662a5a94336d79a267dcd",
+    "server/app/services/publication_inputs.py": "d1457f14a5469d4d2fc01142099bb4cc42c28513f33381266ab6928a7c797f66",
+    "server/app/services/publication_journal.py": "99e95ac256cf8680fff292743fa096d80a895c53fc7b609f1cb74a5d5d27d2ef",
+    "server/app/services/publication_objects.py": "fdf6fed23b630531a95b67c135afc8483c0b1afe02b6d50b7464e591466b7824",
+    "server/app/services/publication_preparation_recovery.py": "1f066bf057e55e0f7f0450b9b3f46d47b1ada907a2de6535b8d3139cce010b8f",
+    "server/app/services/publication_read_set.py": "3efd2ba1af710c594f368b8eb49a69d41d27c02bc6e34b0780b700bf9d6e8276",
+    "server/app/services/publication_source_validation.py": "bed9f5de818f67ec92327dfd35ee330391c2e3419732316ac94a08bb7a191108",
+    "server/app/services/publication_storage.py": "5f3fcaeafc24090e14a6c12dc1dab3c56eff38cd745e50dd59969e19a5bce7c3",
+    "server/app/services/quota.py": "fe22591fe0f4e459c511426fc415ab09f7cbb961829961de6115f93fc492ac88",
+    "server/app/services/rate_limit.py": "c057294b79838c2954a1cb8c7dde7706da88fa27c529ba227e24b2e80ef640b9",
+    "server/app/services/redaction.py": "f687a9404ac8ae87d5b61e2efba0c9d345992df669b7b366933e25b628123b57",
+    "server/app/services/registered_compose_worker.py": "82baaa75b8931b776673f03fd98504f824a3d5bea91fda6a7f289c6952325923",
+    "server/app/services/registered_latex_worker.py": "bb4bc610a718a62b9ba0914195d242b4d6c2d3e3a1db9f4f1c9083ea9f013b5f",
+    "server/app/services/registered_report_worker.py": "719777dd226bbd91786abf788efa6aa92a36c7d8337781f11d366af95ca97f25",
+    "server/app/services/remote_exec.py": "81c4a2f78e8e4650740e7d1460ca995c5d07c51c6451c77a3f21eb8ced2d7140",
+    "server/app/services/remote_write_budget.py": "919200032a86d58732929b4f8aec739cf5eb6a18aa5e866d78f49dae847f1b68",
+    "server/app/services/report_artifacts.py": "17807d320c039d0d1813cac9055965dda0829baf8f725b0af4f71194a4b322fd",
+    "server/app/services/report_build.py": "f9ba135e9186bedadeb94dff6f656c7bce1e477e058b9d5ef23ad568ef0c5387",
+    "server/app/services/report_builder.py": "be5df3f360059c08a0f278fcff618434eb1b189106f271dc30a34b2df55d9e01",
+    "server/app/services/report_handler.py": "f444c33f08308cfbde057a5584a4a6077ccee5f990026ba1950661f7d71a5f67",
+    "server/app/services/report_history.py": "fe774182215dbb9daf788de62f2fa7db524846a198eac1de82ec059fde4a493e",
+    "server/app/services/report_publication.py": "acda1230967d2f2fe9321858a5e99ad10cd93a78fde5201e66171553ff633017",
+    "server/app/services/report_worker.py": "6fc2f3576d46f391f9bd90a5424442ba1562d0562165ec013dc6cbfb4a959fe8",
+    "server/app/services/request_lifecycle.py": "914675812ee91a2fb18da535ee094e37f42e74650e0d82362923e4acb1331f16",
+    "server/app/services/result_readers.py": "1f965efe3bf9401c48f32d5869465ab093c1ec2cfa21f67fea51020dfe7a772b",
+    "server/app/services/run_derive.py": "38f39bec5e866e8535de4b3e752c1d0370589346a44872482ed3007f0b083701",
+    "server/app/services/runtime_config.py": "117facaf6b817d90aa899d1f6e49647fcb756b318df6f6e9cd34e24babdae1db",
+    "server/app/services/runtime_native.py": "0011dbb6323dff864f111ce906f17eb68efb4b5fa13b2f97287ce016ce2a605c",
+    "server/app/services/runtime_probe_execution.py": "990b455424a104c285a31799d7336472ad4924e563b55b8aec641258c074d4aa",
+    "server/app/services/runtime_registry.py": "345712deb10bf21aa9872a38eb10eda318c4db045932f2d0dac3fd162240fd06",
+    "server/app/services/s3_case_files.py": "ddae954f5ec312b9cece727282a08b35d00966c47b459e5b886539ee94d5c8d4",
+    "server/app/services/s3_file_transactions.py": "32d16f836be199b4992c1d7db6858fcbbb21bf7c790e5106c75b7232d6fa9828",
+    "server/app/services/s3_live_store.py": "e5aec84526df647434f818558573f352bc37c98b9dd19fe72ac857ab18eea606",
+    "server/app/services/s3_staging_transactions.py": "fb1d98ee95723013bd60dbee89ff70b5c864097ca146dabd5e89f607519d82c8",
+    "server/app/services/s3_storage_recovery.py": "86fd6e6e59c189188e86a1b36605b9332532cd212e9a3b6a6716fe94bcbe20af",
+    "server/app/services/s3_streams.py": "c064e232e01d54b1fda2e38a36856c71272c8715bf6d97735665648f6ff954b1",
+    "server/app/services/s3_uploads.py": "d4fb7ccec384e3d6efeeb73b173fa125628cdb1ab54f576cfd35e149900188de",
+    "server/app/services/sandbox_disk_native.py": "8dedf60aecb1418950e13587f630c7452282241e7af6946668082d0b8fc8a71b",
+    "server/app/services/sandbox_export_execution.py": "8e7529e9adcfe63e41e98838b0a2c5a050c4c5d6642e6365d750e993b3f9c672",
+    "server/app/services/sandbox_export_native.py": "50b0df628d5f6dea4b40a382efb9956eb173044019e64da3cb85f7053da32aca",
+    "server/app/services/sandbox_export_publication.py": "00006172c52bc1f138a63bf16e2b1497986ccda3b6bc2ff97750dfe9a9d645b7",
+    "server/app/services/sandbox_image_cleanup.py": "81380b40dad274b2a1f7b64cdfe4dc32a4670d5451ccb087b2e196c7710ff7e5",
+    "server/app/services/sandbox_image_cleanup_native.py": "ba0b4dceebb24bebbcbf813e9a4231ea9bafb63376949c15910781fb8b05ad91",
+    "server/app/services/sandbox_image_guardian.py": "f67a243193134d52b859d87e67c4a796f18499ca5473fc68dd10834db9853470",
+    "server/app/services/sandbox_image_launch.py": "41cdcf9d7f04a1e59b274956fed00a518f62e532a66608af6a4925ef69a9078a",
+    "server/app/services/sandbox_image_reconciliation.py": "80fc6a80ed063de33a8c58c2a8bbebaff89e46a2090da5ee5cd4d230a4f310a4",
+    "server/app/services/sandbox_image_scope.py": "7f13c4391968d256b86c9f272b36d3e0d7edbdca1e850439cca4fc6392be78d8",
+    "server/app/services/sandbox_recovery_execution.py": "f261e8ed4bd26569daeea1a679cfc53035f20bf887ffb7836a07464ba80aa446",
+    "server/app/services/sandbox_recovery_inspection.py": "7ae4c5a3adc3c7794393b4b553643289ff03fc49a0ab1e68d95c0b10603e2c10",
+    "server/app/services/sandbox_recovery_native.py": "19cc3b5437af9022a97a64e588afdc4cfa9b980ded178f1b7da97d20057659bb",
+    "server/app/services/sandbox_recovery_restore.py": "23a4eb9410e2befea62dd8c72a19374be53c7bee0084d59aeb19670a5131dcc2",
+    "server/app/services/sandbox_retirement.py": "fd27f87d7582eda31076e208ee01dc15baf05b712035e61c11466efdb0325bd7",
+    "server/app/services/sandbox_staging_cleanup.py": "3701240aac64596e800d34789164e1e7046461de62758ea0ede1e4c6968e1dfa",
+    "server/app/services/sandbox_volume.py": "b170f1a6e2f0d56a88de5ff686b31207be259b833aa6dc1cfc37813dd2c5132b",
+    "server/app/services/sanitizer.py": "855afc4008cb963530c0fe4ef5b549c3f5af57f3a4d32f0931a58a98b128fb0d",
+    "server/app/services/scnet.py": "58aac8f4e97e9baca6a0998f0edfe1e7ae1431ad7194f42eba9809de2fd22351",
+    "server/app/services/scnet_client.py": "9036c19db288fc5cf71c2d721f97652b087e2e831d67a584d49daceb674b6991",
+    "server/app/services/scnet_detail.py": "02830c20bc97fe36c5bd2dfef3d65e452a77dc5fbcaefe7b89a7d2d9d393f04b",
+    "server/app/services/seal_storage_budget.py": "d0bae4c7f9603f4d4fad6884862b9ee96ff56b8593e6d544b528ad10ed2dbf8b",
+    "server/app/services/sharing.py": "46d959e6e8e145f5e5331802a3b3f388e1ee99eea1e524184113514b79aa622c",
+    "server/app/services/siwc_protocol.py": "d19872b833b53cccbe17fbbe3aa4dd7aac1bcc3452a847b92675262f55f48fbd",
+    "server/app/services/skill_store.py": "ad387f94042dab0adf03fa5c9d8307b57c42a305653e1b9ad9fd41e4f1aa41d1",
+    "server/app/services/skills.py": "babca1da8c4e2a91156abc2d35d41cdb71512d1b3b8775aa6972859b9d248139",
+    "server/app/services/solve_artifacts.py": "a0de35a16f4345fbf72ca55869b9207bd8ae206b8fb6d9ec7447692ac74312b3",
+    "server/app/services/solve_handler.py": "2c6edf6343f310235aeabf0da1eca0f21a8701faf3588b7825ee6a9011840d14",
+    "server/app/services/solve_publication.py": "3d1b2d4128ed164948f7a0f4c20d041448adf7686cb9511fbea4e90f896ab223",
+    "server/app/services/solve_worker.py": "d140f1a62e77f85f902d6df2e1faca9fd951662873888be1c891a26ffc8dee98",
+    "server/app/services/staging_download.py": "911a85f85ca0570851aa7095e80284fb083d9442ec4f714d6c1800fbe93bb934",
+    "server/app/services/staging_sync.py": "633c6630ffce7097286c01262d2b76c708c9a2642d2d717e912f7d9d434f7728",
+    "server/app/services/stdio_bridge.py": "3413db883bddc7928eddd83e0ada8c29c5cc12db57d98af592b7b66385cfa73a",
+    "server/app/services/step_handlers.py": "521c85dae36f7dd495ec600847476f184e644b146a0f5409ba0802fada31293d",
+    "server/app/services/storage_admission.py": "aa2f6ddccb8d1f9bc9029c8f7a94350132841387c8931c4c8383e7c5b06d767b",
+    "server/app/services/storage_maintenance.py": "1a1ea34fbb63cb455858bd264adef90c8dcd112d55282f9671cc8bf43af98185",
+    "server/app/services/storage_operations.py": "9eac50607448d1d3b723037dac27f1293e9e8c561a38b3e933e79eaec6b0697c",
+    "server/app/services/storage_usage.py": "c4a03ebf6c4e11fa03f0d30d8a4e00010bda0df6175e63dadb96cb3dd73e55b1",
+    "server/app/services/su2.py": "0540c1a44fb1684087a64e1b04b623dc1a5359264c647e63cec5b74a1d1487e2",
+    "server/app/services/su2_artifacts.py": "886689fcdd851c5c295996c1f6425a335f2ef36b63d8508d32658a3a3b039905",
+    "server/app/services/su2_handler.py": "a03769d5e41a8bb2f5a9d2076bfeca5fc5ca7fe4db1e7d2a4a436586a57c007b",
+    "server/app/services/su2_worker.py": "de3db0b375d865de0ca0804d814985efcf04aab8a4f1ba06a4fc9bbfb1bd5022",
+    "server/app/services/supervisor.py": "babc52b7a6d79fa131949dc3bf322c9f90f79dea414fa408b7a9f3d669fe934e",
+    "server/app/services/synctex_execution.py": "17062eb9ff1b82c4399ec3058ad4a7616f0addae2c0d3eb1d5b7b069bc8c3f23",
+    "server/app/services/synctex_native.py": "91a6952ecb6300571d01f48eb973245f71ad89fcc9a4b4061c9093a3a5cc3085",
+    "server/app/services/synctex_queries.py": "6f41fe2a47cceb47a7de7ddeaf6701bd48fd1ee30b39e1dc00c692464a102ad5",
+    "server/app/services/synctex_service.py": "2c1fdb2e0563ef4cb85f3d564bcf296681d3f0976663652753159a3f32b6f741",
+    "server/app/services/terminal_bridge.py": "3a97e52e3d38d583f6fcc03f4412b2550f98e478b0652fc6925e98286e346dde",
+    "server/app/services/terminal_identity_probe.py": "972ce6127b10de7a8082189557468ab333470b1674c7bff4fc79614e15be0e29",
+    "server/app/services/terminal_protocol.py": "5f0936ef4345c2a13582e28acad19d8e79a596ce062382f8bf7a33a4b8803423",
+    "server/app/services/terminal_pty_gate.py": "73326abbc18f886c3863331992ef3ec45609932d84f91f31c1bc1c8a39edcfa9",
+    "server/app/services/terminal_records.py": "ed0fb8312f6663a23d009d8c8156c161408a821b25c80d9fe21bfb6a24662741",
+    "server/app/services/terminal_sessions.py": "338e77ee8fca47686d9d35fc56d82ecce805a348c8f94225621aa322efc30c06",
+    "server/app/services/tools.py": "4649202bbc6071960c526dc7468598282d9cbc88583b55da7a26665a0129232d",
+    "server/app/services/trash.py": "3c9da00743fc8c5b3f5e8fed6409a795652f460f657fb6f9fb9a466e2213b2f0",
+    "server/app/services/udf_artifacts.py": "47127d14583fe8e1a5adf65d3093967f1a696ff0efd7de4fc5cf4dbe8b38ccde",
+    "server/app/services/udf_control.py": "6b3f27acf376102dd0e9150328821b28f25830726cd42723a78865a30eae3c64",
+    "server/app/services/udf_handler.py": "0a44dbda20d543d2a6e0e91cfaf93c751cf80bfab93337fcbc1d7b79de7fdf98",
+    "server/app/services/udf_native.py": "e2973d16af3cb0446dfdcf45bbe389a8fed6ca50a71741327534c92c36aed5f8",
+    "server/app/services/udf_worker.py": "0403864fb2a8528ee84bf2bae7799aa67c9969294dd64274d2cef98b7ae2f437",
+    "server/app/services/units.py": "53440ff4079cee03220949be49be7ef99ce1fb6d9815e7e6b768bd92f8b9762a",
+    "server/app/services/upload_chunk_credit.py": "6dede56c60d3c113f04296c1c35ae02ecdd1be3d2afe925908e153814a56946d",
+    "server/app/services/upload_storage.py": "0d79292693f0d5e6d47b6d70c2e648b6684280fe21a041b051a625d09bfcd37f",
+    "server/app/services/uploads.py": "57f4b7c02ed1ec921b217497844f1f6c4b2485393b295e3142f106086cb72c62",
+    "server/app/services/viz_kernel.py": "64ac646e9ed39a6d2e408f722f25bd99bdf0ea22b17d9c0f778da7a27f6b5d51",
+    "server/app/services/viz_ports.py": "deda8a15b0c19b0565eebc0dfd60683ce07ac0495fd512be3fb02e949c401ebc",
+    "server/app/services/viz_records.py": "450ac9e7ff64f283584244162828f547896669a8b278715eea355a4a3675db3e",
+    "server/app/services/viz_sessions.py": "e84d400fcef24cc589c5938b9e52944c1adab29ce32feb5d3e534f2037d7fe19",
+    "server/app/services/webfetch.py": "43bb443f9ef24ae8972cd9b05d71286206d3c29fd4a1b0f1f75c6facac7ca1a5",
+    "server/app/services/websearch.py": "78ad0ed3b5c91b6e6f2a2cd2f420a0a27df3f275b9ba848ee29156686499611c",
+    "server/app/services/website_auth.py": "949ab15f6783d88613826a33706fcdb25ebaafe7377ca31a245d4d0c0a60e7d1",
+    "server/app/services/windows_process_create.py": "2a3cbc0bd5f874ec54d6382b7375e675715e01c6029e719c98d83ed2634780ea",
+    "server/app/services/windows_process_lifetime.py": "39644c270e6b388f722a2c25cb40f6b1066fd6178dc0658a95f2e6b5883512c2",
+    "server/app/services/windows_process_scope.py": "abc6950c17def9e86e73c7de14f7790f397beb36b1908ac59744b99c7ddea1e6",
+    "server/app/services/windows_scope_guard.py": "6e7f324c40499baa43f827a88d56a0601bb6605916e653e01d3c30e99798a20f",
+    "server/app/services/windows_scope_guardian.py": "75ad978e8e9f85d575f79fb1bf98303581113d5a4370a9f4a0190e7441760bac",
+    "server/app/services/workflow_evidence.py": "460a4a660ce5812aaf6d2773ef367be345017d9f2ecbe8ef1d1d2866c99eb77f",
+    "server/app/services/workflow_execution.py": "5e9f76357522d9b9a15bf4ac8823a42be4a66f5cae63cc8971edb29ef2cdf9eb",
+    "server/app/services/workflow_fallback.py": "c314699e4ca461ddcab3e6c376d651495291ba1325728d0353bf02c2162c1a80",
+    "server/app/services/workflow_recompute.py": "7ea9f8006694de52e4629c327face495718dfea2d66efa6421f3646bd111938d",
+    "server/app/services/workflow_scheduler.py": "aa4411cc1fafb7238294ca8d90435c6dbc367657b94a7cb635b8a41c3e8666e5",
+    "server/app/services/workflow_state.py": "cdcf7ff7b1470b3207dd989196eac71cdfe3dc73c8d827a68f620143a52b1530",
+    "server/app/services/workspace_write.py": "6cd399d7dc1f1c067e22f16b2f0aab69fdde28569eec763629a76850c980a10a",
+    "server/app/storage.py": "22194157ed2bf1341542d667896a41521ad99abd3430d7f537388d59a0ecc07a",
+    "server/app/storage_models.py": "595c94d3a035afbc1ffa793bc334b3c332cee17ad971a0c874a513b997f7fb43",
+    "server/app/workflow_models.py": "21e3f15f0abe62cd9d2b1632fce540f040cd123cf8ebcc434caca44344082c28"
+  },
+  "routes": [
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "create_conversation",
+      "line": 111,
+      "method": "post",
+      "path": "/conversations"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "list_conversations",
+      "line": 127,
+      "method": "get",
+      "path": "/conversations"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "get_conversation",
+      "line": 207,
+      "method": "get",
+      "path": "/conversations/{cid}"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "import_conversation",
+      "line": 246,
+      "method": "post",
+      "path": "/conversations:import"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "export_conversation",
+      "line": 292,
+      "method": "get",
+      "path": "/conversations/{cid}/export"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "rename_conversation",
+      "line": 348,
+      "method": "patch",
+      "path": "/conversations/{cid}"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "change_conversation_permission",
+      "line": 368,
+      "method": "patch",
+      "path": "/conversations/{cid}/permission"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "delete_conversation",
+      "line": 388,
+      "method": "delete",
+      "path": "/conversations/{cid}"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "fork_conversation",
+      "line": 470,
+      "method": "post",
+      "path": "/conversations/{cid}/fork"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "compress_conversation",
+      "line": 517,
+      "method": "post",
+      "path": "/conversations/{cid}/compress"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "handoff_conversation",
+      "line": 582,
+      "method": "post",
+      "path": "/conversations/{cid}/handoff"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "post_message",
+      "line": 1359,
+      "method": "post",
+      "path": "/conversations/{cid}/messages"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "cancel_message",
+      "line": 1394,
+      "method": "post",
+      "path": "/conversations/{cid}/messages:cancel"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "run_goal",
+      "line": 1549,
+      "method": "post",
+      "path": "/conversations/{cid}/goal:run"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "get_tool_execution",
+      "line": 1589,
+      "method": "get",
+      "path": "/conversations/{cid}/tool-calls/{tid}/execution"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "approve_tool",
+      "line": 1605,
+      "method": "post",
+      "path": "/conversations/{cid}/tool-calls/{tid}:approve"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "reject_tool",
+      "line": 1703,
+      "method": "post",
+      "path": "/conversations/{cid}/tool-calls/{tid}:reject"
+    },
+    {
+      "file": "server/app/routers/auth.py",
+      "function": "oidc_providers",
+      "line": 35,
+      "method": "get",
+      "path": "/oidc/providers"
+    },
+    {
+      "file": "server/app/routers/auth.py",
+      "function": "oidc_start",
+      "line": 40,
+      "method": "post",
+      "path": "/oidc/default/start"
+    },
+    {
+      "file": "server/app/routers/auth.py",
+      "function": "oidc_callback",
+      "line": 50,
+      "method": "post",
+      "path": "/oidc/default/callback"
+    },
+    {
+      "file": "server/app/routers/auth.py",
+      "function": "register",
+      "line": 75,
+      "method": "post",
+      "path": "/register"
+    },
+    {
+      "file": "server/app/routers/auth.py",
+      "function": "login",
+      "line": 92,
+      "method": "post",
+      "path": "/login"
+    },
+    {
+      "file": "server/app/routers/auth.py",
+      "function": "me",
+      "line": 100,
+      "method": "get",
+      "path": "/me"
+    },
+    {
+      "file": "server/app/routers/cadscene.py",
+      "function": "cadscene",
+      "line": 120,
+      "method": "websocket",
+      "path": "/ws/cadscene"
+    },
+    {
+      "file": "server/app/routers/calculix.py",
+      "function": "solve",
+      "line": 27,
+      "method": "post",
+      "path": ":solve"
+    },
+    {
+      "file": "server/app/routers/cite.py",
+      "function": "cite_search",
+      "line": 95,
+      "method": "get",
+      "path": "/search"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "fork_conversation",
+      "line": 32,
+      "method": "post",
+      "path": "/conversations/{cid}/fork"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "conversation_forks",
+      "line": 38,
+      "method": "get",
+      "path": "/conversations/{cid}/forks"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "get_fork",
+      "line": 44,
+      "method": "get",
+      "path": "/forks/{identifier}"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "cancel_fork",
+      "line": 50,
+      "method": "post",
+      "path": "/forks/{identifier}:cancel"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "conversation_turns",
+      "line": 56,
+      "method": "get",
+      "path": "/conversations/{cid}/turns"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "conversation_activity",
+      "line": 62,
+      "method": "get",
+      "path": "/conversations/{cid}/activity"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "conversation_settings",
+      "line": 74,
+      "method": "patch",
+      "path": "/conversations/{cid}/settings"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "create_session_request",
+      "line": 119,
+      "method": "post",
+      "path": "/conversations/{cid}/session-requests"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "session_requests",
+      "line": 126,
+      "method": "get",
+      "path": "/conversations/{cid}/session-requests"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "session_request",
+      "line": 134,
+      "method": "get",
+      "path": "/session-requests/{identifier}"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "cancel_session_request",
+      "line": 140,
+      "method": "post",
+      "path": "/session-requests/{identifier}:cancel"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "create",
+      "line": 189,
+      "method": "post",
+      "path": "/sessions"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "listing",
+      "line": 209,
+      "method": "get",
+      "path": "/sessions"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "get",
+      "line": 217,
+      "method": "get",
+      "path": "/sessions/{identifier}"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "close",
+      "line": 222,
+      "method": "delete",
+      "path": "/sessions/{identifier}"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "account",
+      "line": 243,
+      "method": "get",
+      "path": "/sessions/{identifier}/account"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "models",
+      "line": 259,
+      "method": "get",
+      "path": "/sessions/{identifier}/models"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "sandbox",
+      "line": 271,
+      "method": "get",
+      "path": "/sessions/{identifier}/sandbox"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "thread",
+      "line": 282,
+      "method": "post",
+      "path": "/sessions/{identifier}/thread"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "create_turn",
+      "line": 327,
+      "method": "post",
+      "path": "/sessions/{identifier}/turns"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "create_turn_stream",
+      "line": 335,
+      "method": "post",
+      "path": "/sessions/{identifier}/turns:stream"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "get_turn",
+      "line": 345,
+      "method": "get",
+      "path": "/turns/{identifier}"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "watch_turn",
+      "line": 350,
+      "method": "get",
+      "path": "/turns/{identifier}/events"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "cancel_turn",
+      "line": 368,
+      "method": "post",
+      "path": "/turns/{identifier}:cancel"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "approvals",
+      "line": 373,
+      "method": "get",
+      "path": "/turns/{identifier}/approvals"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "answer",
+      "line": 382,
+      "method": "post",
+      "path": "/turns/{identifier}/approvals/{approval_id}:respond"
+    },
+    {
+      "file": "server/app/routers/completion.py",
+      "function": "complete_openfoam",
+      "line": 12,
+      "method": "get",
+      "path": "/openfoam"
+    },
+    {
+      "file": "server/app/routers/events.py",
+      "function": "case_events",
+      "line": 120,
+      "method": "websocket",
+      "path": "/ws/events"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "file_transaction_status",
+      "line": 55,
+      "method": "get",
+      "path": "/file-transactions"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "recover_file_transactions",
+      "line": 86,
+      "method": "post",
+      "path": "/file-transactions:recover"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "tree",
+      "line": 108,
+      "method": "get",
+      "path": "/tree"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "read_file",
+      "line": 116,
+      "method": "get",
+      "path": "/file"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "file_version",
+      "line": 139,
+      "method": "get",
+      "path": "/file:version"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "write_file",
+      "line": 171,
+      "method": "put",
+      "path": "/file"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "upload_file",
+      "line": 202,
+      "method": "post",
+      "path": "/upload"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "create_upload_session",
+      "line": 236,
+      "method": "post",
+      "path": "/uploads"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "list_upload_sessions",
+      "line": 266,
+      "method": "get",
+      "path": "/uploads"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "upload_session_status",
+      "line": 282,
+      "method": "get",
+      "path": "/uploads/{upload_id}"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "write_upload_chunk",
+      "line": 298,
+      "method": "put",
+      "path": "/uploads/{upload_id}"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "complete_upload_session",
+      "line": 334,
+      "method": "post",
+      "path": "/uploads/{upload_id}:complete"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "cancel_upload_session",
+      "line": 365,
+      "method": "delete",
+      "path": "/uploads/{upload_id}"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "delete_file",
+      "line": 390,
+      "method": "delete",
+      "path": "/file"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "raw_file",
+      "line": 482,
+      "method": "get",
+      "path": "/raw"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "raw_file",
+      "line": 482,
+      "method": "head",
+      "path": "/raw"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "read_dict",
+      "line": 540,
+      "method": "get",
+      "path": "/caseDict"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "write_dict",
+      "line": 578,
+      "method": "put",
+      "path": "/caseDict"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "advance_workflow",
+      "line": 611,
+      "method": "post",
+      "path": "/caseDict:advance"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "put_extension",
+      "line": 667,
+      "method": "put",
+      "path": "/caseDict/extensions/{namespace}"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "delete_extension",
+      "line": 693,
+      "method": "delete",
+      "path": "/caseDict/extensions/{namespace}"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "update_error_entry",
+      "line": 730,
+      "method": "patch",
+      "path": "/caseDict/errors/{error_id}"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "write_dict_block",
+      "line": 769,
+      "method": "put",
+      "path": "/caseDict/block"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "convert_case_units",
+      "line": 803,
+      "method": "post",
+      "path": "/caseDict/units:convert"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "validate_dict",
+      "line": 816,
+      "method": "post",
+      "path": "/caseDict/validate"
+    },
+    {
+      "file": "server/app/routers/flotherm.py",
+      "function": "build_library",
+      "line": 44,
+      "method": "post",
+      "path": ":build-library"
+    },
+    {
+      "file": "server/app/routers/flotherm.py",
+      "function": "inspect",
+      "line": 53,
+      "method": "post",
+      "path": ":inspect"
+    },
+    {
+      "file": "server/app/routers/flotherm.py",
+      "function": "convert",
+      "line": 68,
+      "method": "post",
+      "path": ":convert"
+    },
+    {
+      "file": "server/app/routers/geometry.py",
+      "function": "preview",
+      "line": 61,
+      "method": "post",
+      "path": ":preview"
+    },
+    {
+      "file": "server/app/routers/geometry.py",
+      "function": "export",
+      "line": 69,
+      "method": "post",
+      "path": ":export"
+    },
+    {
+      "file": "server/app/routers/geometry.py",
+      "function": "repair_geometry",
+      "line": 77,
+      "method": "post",
+      "path": "/repair"
+    },
+    {
+      "file": "server/app/routers/geometry.py",
+      "function": "preview_gmsh",
+      "line": 140,
+      "method": "post",
+      "path": "/msh-preview"
+    },
+    {
+      "file": "server/app/routers/geometry.py",
+      "function": "import_step_scene",
+      "line": 219,
+      "method": "get",
+      "path": "/import-scene"
+    },
+    {
+      "file": "server/app/routers/geometry.py",
+      "function": "get_validation",
+      "line": 255,
+      "method": "get",
+      "path": "/validation"
+    },
+    {
+      "file": "server/app/routers/geometry.py",
+      "function": "get_scene",
+      "line": 261,
+      "method": "get",
+      "path": "/scene"
+    },
+    {
+      "file": "server/app/routers/geometry.py",
+      "function": "publications",
+      "line": 299,
+      "method": "get",
+      "path": "/publications"
+    },
+    {
+      "file": "server/app/routers/index.py",
+      "function": "rebuild_index",
+      "line": 17,
+      "method": "post",
+      "path": "/index:rebuild"
+    },
+    {
+      "file": "server/app/routers/index.py",
+      "function": "index_status",
+      "line": 26,
+      "method": "get",
+      "path": "/index/status"
+    },
+    {
+      "file": "server/app/routers/index.py",
+      "function": "search_case",
+      "line": 33,
+      "method": "get",
+      "path": "/search"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "submit_job",
+      "line": 111,
+      "method": "post",
+      "path": "/cases/{case_id}/jobs"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "list_jobs",
+      "line": 210,
+      "method": "get",
+      "path": "/cases/{case_id}/jobs"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "get_job",
+      "line": 227,
+      "method": "get",
+      "path": "/jobs/{job_id}"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "job_publication_recovery",
+      "line": 267,
+      "method": "get",
+      "path": "/jobs/{job_id}/publication-recovery"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "job_process_identity",
+      "line": 277,
+      "method": "get",
+      "path": "/jobs/{job_id}/process"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "job_log",
+      "line": 288,
+      "method": "get",
+      "path": "/jobs/{job_id}/log"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "job_log_stream",
+      "line": 314,
+      "method": "get",
+      "path": "/jobs/{job_id}/log-stream"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "cancel_job",
+      "line": 418,
+      "method": "post",
+      "path": "/jobs/{job_id}:cancel"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "submit_batch",
+      "line": 516,
+      "method": "post",
+      "path": "/cases/{case_id}/jobs:batch"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "get_batch",
+      "line": 590,
+      "method": "get",
+      "path": "/cases/{case_id}/job-batches/{batch_id}"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "list_batches",
+      "line": 601,
+      "method": "get",
+      "path": "/cases/{case_id}/job-batches"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "cancel_batch",
+      "line": 618,
+      "method": "post",
+      "path": "/cases/{case_id}/job-batches/{batch_id}:cancel"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "derive_run",
+      "line": 649,
+      "method": "post",
+      "path": "/cases/{case_id}/runs:derive"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "list_providers",
+      "line": 22,
+      "method": "get",
+      "path": "/llm/providers"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "list_profiles",
+      "line": 103,
+      "method": "get",
+      "path": "/provider-profiles"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "create_profile",
+      "line": 114,
+      "method": "post",
+      "path": "/provider-profiles"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "share_profile",
+      "line": 132,
+      "method": "put",
+      "path": "/org/{org_id}/provider-profiles/{pid}"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "revoke_profile_share",
+      "line": 144,
+      "method": "delete",
+      "path": "/org/{org_id}/provider-profiles/{pid}"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "update_profile",
+      "line": 164,
+      "method": "patch",
+      "path": "/provider-profiles/{pid}"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "list_models",
+      "line": 185,
+      "method": "get",
+      "path": "/llm/models"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "test_profile",
+      "line": 204,
+      "method": "post",
+      "path": "/provider-profiles/{pid}:test"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "delete_profile",
+      "line": 224,
+      "method": "delete",
+      "path": "/provider-profiles/{pid}"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "translate",
+      "line": 242,
+      "method": "post",
+      "path": "/llm/translate"
+    },
+    {
+      "file": "server/app/routers/logs.py",
+      "function": "parse_log",
+      "line": 16,
+      "method": "get",
+      "path": "/cases/{case_id}/logs/parse"
+    },
+    {
+      "file": "server/app/routers/mesh.py",
+      "function": "evaluate",
+      "line": 35,
+      "method": "post",
+      "path": "/cases/{case_id}/mesh:evaluate"
+    },
+    {
+      "file": "server/app/routers/mesh.py",
+      "function": "results",
+      "line": 82,
+      "method": "get",
+      "path": "/cases/{case_id}/mesh/results"
+    },
+    {
+      "file": "server/app/routers/mesh.py",
+      "function": "publications",
+      "line": 110,
+      "method": "get",
+      "path": "/cases/{case_id}/mesh/publications"
+    },
+    {
+      "file": "server/app/routers/mpi.py",
+      "function": "run_mpi",
+      "line": 46,
+      "method": "post",
+      "path": "/cases/{case_id}/mpi:run"
+    },
+    {
+      "file": "server/app/routers/mpi.py",
+      "function": "mpi_status",
+      "line": 89,
+      "method": "get",
+      "path": "/cases/{case_id}/mpi:status"
+    },
+    {
+      "file": "server/app/routers/opencode_cfg.py",
+      "function": "apply_opencode_prompts",
+      "line": 35,
+      "method": "post",
+      "path": "/opencode:apply-prompts"
+    },
+    {
+      "file": "server/app/routers/opencode_cfg.py",
+      "function": "opencode_status",
+      "line": 49,
+      "method": "get",
+      "path": "/opencode:status"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "my_org",
+      "line": 145,
+      "method": "get",
+      "path": "/mine"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "plan_catalog",
+      "line": 169,
+      "method": "get",
+      "path": "/plans"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "billing_status",
+      "line": 179,
+      "method": "get",
+      "path": "/{org_id}/billing"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "mock_checkout",
+      "line": 197,
+      "method": "post",
+      "path": "/{org_id}/billing:mock-checkout"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "renew_subscription",
+      "line": 232,
+      "method": "post",
+      "path": "/{org_id}/billing:renew"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "cancel_subscription",
+      "line": 256,
+      "method": "post",
+      "path": "/{org_id}/billing:cancel"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "invitations",
+      "line": 272,
+      "method": "get",
+      "path": "/invitations"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "organization_audit",
+      "line": 283,
+      "method": "get",
+      "path": "/{org_id}/audit"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "list_members",
+      "line": 294,
+      "method": "get",
+      "path": "/{org_id}/members"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "invite_member",
+      "line": 305,
+      "method": "post",
+      "path": "/{org_id}/members"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "accept_invitation",
+      "line": 338,
+      "method": "post",
+      "path": "/{org_id}/invitation:accept"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "decline_invitation",
+      "line": 356,
+      "method": "post",
+      "path": "/{org_id}/invitation:decline"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "revoke_invitation",
+      "line": 370,
+      "method": "delete",
+      "path": "/{org_id}/members/{member_id}"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "change_member_role",
+      "line": 388,
+      "method": "patch",
+      "path": "/{org_id}/members/{member_id}"
+    },
+    {
+      "file": "server/app/routers/paraview.py",
+      "function": "run_paraview",
+      "line": 26,
+      "method": "post",
+      "path": ":run"
+    },
+    {
+      "file": "server/app/routers/postprocess.py",
+      "function": "run_postprocess",
+      "line": 29,
+      "method": "post",
+      "path": "/cases/{case_id}/postprocess:run"
+    },
+    {
+      "file": "server/app/routers/postprocess.py",
+      "function": "postprocess_results",
+      "line": 81,
+      "method": "get",
+      "path": "/cases/{case_id}/postprocess/results"
+    },
+    {
+      "file": "server/app/routers/postprocess.py",
+      "function": "publications",
+      "line": 152,
+      "method": "get",
+      "path": "/cases/{case_id}/postprocess/publications"
+    },
+    {
+      "file": "server/app/routers/remote.py",
+      "function": "execute",
+      "line": 28,
+      "method": "post",
+      "path": ":execute"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "compose",
+      "line": 45,
+      "method": "post",
+      "path": "/report:compose"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "compose_result",
+      "line": 142,
+      "method": "get",
+      "path": "/report/compose-result"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "compositions",
+      "line": 152,
+      "method": "get",
+      "path": "/report/compositions"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "derivative_history",
+      "line": 162,
+      "method": "get",
+      "path": "/report/derivatives"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "derivative_result",
+      "line": 172,
+      "method": "get",
+      "path": "/report/derivative"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "derivative_artifact",
+      "line": 182,
+      "method": "api_route",
+      "path": "/report/derivative-artifact"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "compose_artifact",
+      "line": 205,
+      "method": "get",
+      "path": "/report/compose-artifact"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "build_report",
+      "line": 219,
+      "method": "post",
+      "path": "/report:build"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "report_results",
+      "line": 300,
+      "method": "get",
+      "path": "/report/results"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "report_publications",
+      "line": 310,
+      "method": "get",
+      "path": "/report/publications"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "report_artifact",
+      "line": 327,
+      "method": "get",
+      "path": "/report/artifact"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "list_outputs",
+      "line": 343,
+      "method": "get",
+      "path": "/report/outputs"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "build_ppt",
+      "line": 358,
+      "method": "post",
+      "path": "/ppt:build"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "number_pdf",
+      "line": 402,
+      "method": "post",
+      "path": "/pdf:number"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "synctex_query",
+      "line": 449,
+      "method": "post",
+      "path": "/synctex:query"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "make_latex_table",
+      "line": 499,
+      "method": "post",
+      "path": "/latex:table"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "latex_errors",
+      "line": 510,
+      "method": "get",
+      "path": "/latex/errors"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "build_latex",
+      "line": 546,
+      "method": "post",
+      "path": "/latex:build"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "latex_results",
+      "line": 598,
+      "method": "get",
+      "path": "/latex/results"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "latex_publications",
+      "line": 608,
+      "method": "get",
+      "path": "/latex/publications"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "latex_artifact",
+      "line": 637,
+      "method": "api_route",
+      "path": "/latex/artifact"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "latex_source",
+      "line": 662,
+      "method": "get",
+      "path": "/latex/source"
+    },
+    {
+      "file": "server/app/routers/reports.py",
+      "function": "list_latex_outputs",
+      "line": 676,
+      "method": "get",
+      "path": "/latex/outputs"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "accept_client_error",
+      "line": 80,
+      "method": "post",
+      "path": "/client-error"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "get_client_errors",
+      "line": 89,
+      "method": "get",
+      "path": "/client-errors"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "list_processes",
+      "line": 100,
+      "method": "get",
+      "path": "/processes"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "cancel_processes",
+      "line": 111,
+      "method": "post",
+      "path": "/processes:cancel"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "get_cli_profiles",
+      "line": 124,
+      "method": "get",
+      "path": "/cli-profiles"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "get_setup",
+      "line": 129,
+      "method": "get",
+      "path": "/config"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "update_setup",
+      "line": 134,
+      "method": "patch",
+      "path": "/config"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "runtime_monitor",
+      "line": 181,
+      "method": "get",
+      "path": "/monitor"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "runtime_metrics",
+      "line": 187,
+      "method": "get",
+      "path": "/metrics"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "capabilities",
+      "line": 205,
+      "method": "get",
+      "path": "/capabilities"
+    },
+    {
+      "file": "server/app/routers/scnet.py",
+      "function": "execute",
+      "line": 26,
+      "method": "post",
+      "path": "/{operation}"
+    },
+    {
+      "file": "server/app/routers/skills.py",
+      "function": "list_all",
+      "line": 41,
+      "method": "get",
+      "path": ""
+    },
+    {
+      "file": "server/app/routers/skills.py",
+      "function": "get_one",
+      "line": 47,
+      "method": "get",
+      "path": "/{name}"
+    },
+    {
+      "file": "server/app/routers/skills.py",
+      "function": "create_or_update",
+      "line": 67,
+      "method": "post",
+      "path": ""
+    },
+    {
+      "file": "server/app/routers/skills.py",
+      "function": "package",
+      "line": 85,
+      "method": "post",
+      "path": "/{name}/package"
+    },
+    {
+      "file": "server/app/routers/skills.py",
+      "function": "install",
+      "line": 99,
+      "method": "post",
+      "path": "/install"
+    },
+    {
+      "file": "server/app/routers/solve.py",
+      "function": "results",
+      "line": 21,
+      "method": "get",
+      "path": "/cases/{case_id}/solve/results"
+    },
+    {
+      "file": "server/app/routers/solve.py",
+      "function": "publications",
+      "line": 48,
+      "method": "get",
+      "path": "/cases/{case_id}/solve/publications"
+    },
+    {
+      "file": "server/app/routers/su2.py",
+      "function": "solve",
+      "line": 27,
+      "method": "post",
+      "path": ":solve"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "terminal_ws",
+      "line": 210,
+      "method": "websocket",
+      "path": "/ws/terminal"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "list_sessions",
+      "line": 336,
+      "method": "get",
+      "path": "/api/v1/terminal/sessions"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "get_session",
+      "line": 353,
+      "method": "get",
+      "path": "/api/v1/terminal/sessions/{sid}"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "inspect_recovery",
+      "line": 360,
+      "method": "get",
+      "path": "/api/v1/terminal/sessions/{sid}/recovery-inspection"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "recover_session",
+      "line": 394,
+      "method": "post",
+      "path": "/api/v1/terminal/sessions/{sid}/recoveries"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "get_recovery",
+      "line": 410,
+      "method": "get",
+      "path": "/api/v1/terminal/sessions/{sid}/recoveries/{identifier}"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "sandbox_retirement_status",
+      "line": 428,
+      "method": "get",
+      "path": "/api/v1/terminal/sessions/{sid}/retirement"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "retire_sandbox",
+      "line": 439,
+      "method": "post",
+      "path": "/api/v1/terminal/sessions/{sid}/retirement"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "sandbox_staging_cleanup_status",
+      "line": 453,
+      "method": "get",
+      "path": "/api/v1/terminal/sessions/{sid}/staging-cleanup"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "clean_sandbox_staging",
+      "line": 464,
+      "method": "post",
+      "path": "/api/v1/terminal/sessions/{sid}/staging-cleanup"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "sandbox_image_cleanup_status",
+      "line": 476,
+      "method": "get",
+      "path": "/api/v1/terminal/sessions/{sid}/image-cleanup"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "clean_sandbox_image",
+      "line": 487,
+      "method": "post",
+      "path": "/api/v1/terminal/sessions/{sid}/image-cleanup"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "preview_recovery_files",
+      "line": 512,
+      "method": "post",
+      "path": "/api/v1/terminal/sessions/{sid}/recoveries/{identifier}/restore-plan"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "restore_recovery_files",
+      "line": 524,
+      "method": "post",
+      "path": "/api/v1/terminal/sessions/{sid}/recoveries/{identifier}/restore"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "recovery_restore_status",
+      "line": 536,
+      "method": "get",
+      "path": "/api/v1/terminal/sessions/{sid}/recoveries/{identifier}/restores/{request_id}"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "list_recoveries",
+      "line": 548,
+      "method": "get",
+      "path": "/api/v1/terminal/sessions/{sid}/recoveries"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "download_recovery",
+      "line": 557,
+      "method": "get",
+      "path": "/api/v1/terminal/sessions/{sid}/recoveries/{identifier}/download"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "close_session",
+      "line": 598,
+      "method": "delete",
+      "path": "/api/v1/terminal/sessions/{sid}"
+    },
+    {
+      "file": "server/app/routers/udf.py",
+      "function": "scaffold",
+      "line": 52,
+      "method": "post",
+      "path": "/scaffold"
+    },
+    {
+      "file": "server/app/routers/udf.py",
+      "function": "build",
+      "line": 82,
+      "method": "post",
+      "path": ":build"
+    },
+    {
+      "file": "server/app/routers/udf.py",
+      "function": "integrate",
+      "line": 90,
+      "method": "post",
+      "path": ":integrate"
+    },
+    {
+      "file": "server/app/routers/viz.py",
+      "function": "create_viz_session",
+      "line": 221,
+      "method": "post",
+      "path": "/cases/{case_id}/viz:sessions"
+    },
+    {
+      "file": "server/app/routers/viz.py",
+      "function": "list_viz_sessions",
+      "line": 227,
+      "method": "get",
+      "path": "/cases/{case_id}/viz:sessions"
+    },
+    {
+      "file": "server/app/routers/viz.py",
+      "function": "get_viz_session",
+      "line": 241,
+      "method": "get",
+      "path": "/viz:sessions/{sid}"
+    },
+    {
+      "file": "server/app/routers/viz.py",
+      "function": "kill_viz_session",
+      "line": 245,
+      "method": "delete",
+      "path": "/viz:sessions/{sid}"
+    },
+    {
+      "file": "server/app/routers/vizproxy.py",
+      "function": "http_proxy",
+      "line": 50,
+      "method": "get",
+      "path": "/viz-proxy/{sid}/{path:path}"
+    },
+    {
+      "file": "server/app/routers/vizproxy.py",
+      "function": "ws_tunnel",
+      "line": 88,
+      "method": "websocket",
+      "path": "/viz-proxy/{sid}/ws"
+    },
+    {
+      "file": "server/app/routers/website_auth.py",
+      "function": "status",
+      "line": 41,
+      "method": "get",
+      "path": "/chatgpt/status"
+    },
+    {
+      "file": "server/app/routers/website_auth.py",
+      "function": "start",
+      "line": 51,
+      "method": "post",
+      "path": "/chatgpt/start"
+    },
+    {
+      "file": "server/app/routers/website_auth.py",
+      "function": "cancel",
+      "line": 70,
+      "method": "post",
+      "path": "/chatgpt/cancel"
+    },
+    {
+      "file": "server/app/routers/website_auth.py",
+      "function": "callback",
+      "line": 80,
+      "method": "get",
+      "path": "/chatgpt/callback"
+    },
+    {
+      "file": "server/app/routers/website_auth.py",
+      "function": "logout",
+      "line": 113,
+      "method": "post",
+      "path": "/logout"
+    },
+    {
+      "file": "server/app/routers/website_auth.py",
+      "function": "connections",
+      "line": 136,
+      "method": "get",
+      "path": "/chatgpt/connections"
+    },
+    {
+      "file": "server/app/routers/website_auth.py",
+      "function": "unlink",
+      "line": 146,
+      "method": "delete",
+      "path": "/chatgpt/connections/{identifier}"
+    },
+    {
+      "file": "server/app/routers/workflows.py",
+      "function": "dependencies",
+      "line": 21,
+      "method": "get",
+      "path": "/cases/{case_id}/dependencies"
+    },
+    {
+      "file": "server/app/routers/workflows.py",
+      "function": "create",
+      "line": 100,
+      "method": "post",
+      "path": "/cases/{case_id}/workflow-runs"
+    },
+    {
+      "file": "server/app/routers/workflows.py",
+      "function": "list_runs",
+      "line": 108,
+      "method": "get",
+      "path": "/cases/{case_id}/workflow-runs"
+    },
+    {
+      "file": "server/app/routers/workflows.py",
+      "function": "get_run",
+      "line": 116,
+      "method": "get",
+      "path": "/workflow-runs/{run_id}"
+    },
+    {
+      "file": "server/app/routers/workflows.py",
+      "function": "dispatch",
+      "line": 121,
+      "method": "post",
+      "path": "/workflow-runs/{run_id}:dispatch"
+    },
+    {
+      "file": "server/app/routers/workflows.py",
+      "function": "cancel",
+      "line": 127,
+      "method": "post",
+      "path": "/workflow-runs/{run_id}:cancel"
+    },
+    {
+      "file": "server/app/routers/workflows.py",
+      "function": "recompute",
+      "line": 132,
+      "method": "post",
+      "path": "/workflow-runs/{run_id}:recompute"
+    },
+    {
+      "file": "server/app/routers/workflows.py",
+      "function": "refresh",
+      "line": 141,
+      "method": "post",
+      "path": "/workflow-runs/{run_id}/steps/{step_id}:refresh-confirmation"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "list_workspaces",
+      "line": 29,
+      "method": "get",
+      "path": "/workspaces"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "create_workspace",
+      "line": 50,
+      "method": "post",
+      "path": "/workspaces"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "get_workspace_sharing",
+      "line": 94,
+      "method": "get",
+      "path": "/workspaces/{ws_id}/sharing"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "set_workspace_sharing",
+      "line": 105,
+      "method": "put",
+      "path": "/workspaces/{ws_id}/sharing"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "backup_workspace_route",
+      "line": 116,
+      "method": "get",
+      "path": "/workspaces/{ws_id}/backup"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "restore_workspace_route",
+      "line": 129,
+      "method": "post",
+      "path": "/workspaces:restore"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "list_cases",
+      "line": 143,
+      "method": "get",
+      "path": "/workspaces/{ws_id}/cases"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "search_workspace_route",
+      "line": 155,
+      "method": "get",
+      "path": "/workspaces/{ws_id}/search"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "create_case",
+      "line": 173,
+      "method": "post",
+      "path": "/workspaces/{ws_id}/cases"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "recover_case_provisions",
+      "line": 204,
+      "method": "post",
+      "path": "/case-provisions:recover"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "diagnose_case_storage",
+      "line": 214,
+      "method": "get",
+      "path": "/case-provisions:maintenance"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "maintain_case_storage",
+      "line": 220,
+      "method": "post",
+      "path": "/case-provisions:maintenance"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "import_case",
+      "line": 226,
+      "method": "post",
+      "path": "/workspaces/{ws_id}/cases:import"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "diagnose_attempt_preparations",
+      "line": 241,
+      "method": "get",
+      "path": "/cases/{case_id}/attempt-preparations"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "recover_attempt_preparations",
+      "line": 248,
+      "method": "post",
+      "path": "/cases/{case_id}/attempt-preparations:recover"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "get_case",
+      "line": 289,
+      "method": "get",
+      "path": "/cases/{case_id}"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "list_trash",
+      "line": 301,
+      "method": "get",
+      "path": "/trash"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "delete_case_route",
+      "line": 307,
+      "method": "delete",
+      "path": "/cases/{case_id}"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "restore_case_route",
+      "line": 328,
+      "method": "post",
+      "path": "/cases/{case_id}:restore"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "delete_workspace_route",
+      "line": 348,
+      "method": "delete",
+      "path": "/workspaces/{ws_id}"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "restore_workspace_route",
+      "line": 369,
+      "method": "post",
+      "path": "/workspaces/{ws_id}:restore"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "get_case_events",
+      "line": 390,
+      "method": "get",
+      "path": "/cases/{case_id}/events"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "get_case_provenance",
+      "line": 403,
+      "method": "get",
+      "path": "/cases/{case_id}/provenance"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "get_workflow_events",
+      "line": 416,
+      "method": "get",
+      "path": "/cases/{case_id}/workflow-events"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "rename_workspace_route",
+      "line": 447,
+      "method": "patch",
+      "path": "/workspaces/{ws_id}"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "rename_case_route",
+      "line": 458,
+      "method": "patch",
+      "path": "/cases/{case_id}"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "move_case_route",
+      "line": 469,
+      "method": "post",
+      "path": "/cases/{case_id}:move"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "copy_case_route",
+      "line": 482,
+      "method": "post",
+      "path": "/cases/{case_id}:copy"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "copy_workspace_route",
+      "line": 494,
+      "method": "post",
+      "path": "/workspaces/{ws_id}:copy"
+    }
+  ],
+  "boundaries": [
+    {
+      "file": "server/app/main.py",
+      "function": "shutdown",
+      "line": 124,
+      "category": "cancellation",
+      "callee": "maintenance_task.cancel"
+    },
+    {
+      "file": "server/app/main.py",
+      "function": "shutdown",
+      "line": 132,
+      "category": "cancellation",
+      "callee": "delivery_task.cancel"
+    },
+    {
+      "file": "server/app/main.py",
+      "function": "shutdown",
+      "line": 141,
+      "category": "cancellation",
+      "callee": "reaper.cancel"
+    },
+    {
+      "file": "server/app/main.py",
+      "function": "shutdown",
+      "line": 159,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "_run_loop_inner",
+      "line": 953,
+      "category": "cancellation",
+      "callee": "next_event.cancel"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "_run_loop_inner",
+      "line": 1026,
+      "category": "cancellation",
+      "callee": "next_event.cancel"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "_run_loop_inner",
+      "line": 1032,
+      "category": "cancellation",
+      "callee": "cancel_wait.cancel"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "_run_loop",
+      "line": 1242,
+      "category": "supervision",
+      "callee": "supervisor_register"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "_run_loop",
+      "line": 1296,
+      "category": "cancellation",
+      "callee": "heartbeat.cancel"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "_run_loop",
+      "line": 1308,
+      "category": "supervision",
+      "callee": "supervisor_unregister"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "_goal_run_loop",
+      "line": 1444,
+      "category": "supervision",
+      "callee": "supervisor_register"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "_goal_run_loop",
+      "line": 1526,
+      "category": "cancellation",
+      "callee": "goal_heartbeat.cancel"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "_goal_run_loop",
+      "line": 1534,
+      "category": "supervision",
+      "callee": "supervisor_unregister"
+    },
+    {
+      "file": "server/app/routers/agent.py",
+      "function": "approve_tool",
+      "line": 1677,
+      "category": "cancellation",
+      "callee": "approval_heartbeat.cancel"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "cancel_fork",
+      "line": 52,
+      "category": "cancellation",
+      "callee": "codex_forks.cancel"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "cancel_session_request",
+      "line": 142,
+      "category": "cancellation",
+      "callee": "startups.cancel"
+    },
+    {
+      "file": "server/app/routers/codex.py",
+      "function": "cancel_turn",
+      "line": 369,
+      "category": "cancellation",
+      "callee": "turns.cancel"
+    },
+    {
+      "file": "server/app/routers/events.py",
+      "function": "case_events",
+      "line": 160,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "_norm_path",
+      "line": 34,
+      "category": "publication_or_write",
+      "callee": "path.replace"
+    },
+    {
+      "file": "server/app/routers/files.py",
+      "function": "create_upload_session",
+      "line": 254,
+      "category": "supervision",
+      "callee": "register"
+    },
+    {
+      "file": "server/app/routers/flotherm.py",
+      "function": "_safe",
+      "line": 21,
+      "category": "publication_or_write",
+      "callee": "path.replace"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "submit_job",
+      "line": 190,
+      "category": "submission",
+      "callee": "jobrunner.start_job"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "_stream_completion",
+      "line": 375,
+      "category": "publication_or_write",
+      "callee": "expires.replace"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "cancel_job",
+      "line": 433,
+      "category": "cancellation",
+      "callee": "proc.cancel"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "cancel_job",
+      "line": 436,
+      "category": "cancellation",
+      "callee": "distributed_queue.cancel"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "submit_batch",
+      "line": 581,
+      "category": "submission",
+      "callee": "batch_jobs.start_batch"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "cancel_batch",
+      "line": 627,
+      "category": "cancellation",
+      "callee": "batch_jobs.cancel_active"
+    },
+    {
+      "file": "server/app/routers/jobs.py",
+      "function": "cancel_batch",
+      "line": 632,
+      "category": "cancellation",
+      "callee": "proc.cancel"
+    },
+    {
+      "file": "server/app/routers/llm.py",
+      "function": "redact_error",
+      "line": 53,
+      "category": "publication_or_write",
+      "callee": "text.replace"
+    },
+    {
+      "file": "server/app/routers/mesh.py",
+      "function": "_evaluate_locked",
+      "line": 49,
+      "category": "publication_or_write",
+      "callee": "body.log_path.replace"
+    },
+    {
+      "file": "server/app/routers/mpi.py",
+      "function": "_run_dir",
+      "line": 39,
+      "category": "publication_or_write",
+      "callee": "value.replace"
+    },
+    {
+      "file": "server/app/routers/opencode_cfg.py",
+      "function": "apply_opencode_prompts",
+      "line": 44,
+      "category": "publication_or_write",
+      "callee": "target.write_text"
+    },
+    {
+      "file": "server/app/routers/org.py",
+      "function": "renew_subscription",
+      "line": 244,
+      "category": "publication_or_write",
+      "callee": "expires_at.replace"
+    },
+    {
+      "file": "server/app/routers/remote.py",
+      "function": "execute",
+      "line": 35,
+      "category": "submission",
+      "callee": "run_remote"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "_storage_probe",
+      "line": 60,
+      "category": "publication_or_write",
+      "callee": "path.write_bytes"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "cancel_processes",
+      "line": 118,
+      "category": "cancellation",
+      "callee": "supervisor_cancel_case"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "cancel_processes",
+      "line": 119,
+      "category": "cancellation",
+      "callee": "batch_jobs.cancel_case"
+    },
+    {
+      "file": "server/app/routers/runtime.py",
+      "function": "_collect_capabilities",
+      "line": 229,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "_create_session",
+      "line": 180,
+      "category": "supervision",
+      "callee": "supervisor_unregister"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "_create_session",
+      "line": 186,
+      "category": "supervision",
+      "callee": "supervisor_register"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "_create_session",
+      "line": 187,
+      "category": "supervision",
+      "callee": "supervisor_unregister"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "_stop_terminal",
+      "line": 198,
+      "category": "supervision",
+      "callee": "supervisor_unregister"
+    },
+    {
+      "file": "server/app/routers/terminal.py",
+      "function": "terminal_ws",
+      "line": 329,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/routers/viz.py",
+      "function": "_forget_session",
+      "line": 41,
+      "category": "supervision",
+      "callee": "supervisor_unregister"
+    },
+    {
+      "file": "server/app/routers/viz.py",
+      "function": "_remember_session",
+      "line": 46,
+      "category": "supervision",
+      "callee": "supervisor_register"
+    },
+    {
+      "file": "server/app/routers/viz.py",
+      "function": "_safe_relative",
+      "line": 90,
+      "category": "publication_or_write",
+      "callee": "value.replace"
+    },
+    {
+      "file": "server/app/routers/vizproxy.py",
+      "function": "ws_tunnel",
+      "line": 129,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/routers/website_auth.py",
+      "function": "cancel",
+      "line": 73,
+      "category": "cancellation",
+      "callee": "service.cancel"
+    },
+    {
+      "file": "server/app/routers/website_auth.py",
+      "function": "callback",
+      "line": 102,
+      "category": "cancellation",
+      "callee": "service.cancel"
+    },
+    {
+      "file": "server/app/routers/website_auth.py",
+      "function": "logout",
+      "line": 124,
+      "category": "cancellation",
+      "callee": "service.cancel"
+    },
+    {
+      "file": "server/app/routers/workflows.py",
+      "function": "cancel",
+      "line": 128,
+      "category": "cancellation",
+      "callee": "execution.cancel"
+    },
+    {
+      "file": "server/app/routers/workspaces.py",
+      "function": "import_case",
+      "line": 229,
+      "category": "publication_or_write",
+      "callee": "(file.filename or 'imported-case.zip').replace"
+    },
+    {
+      "file": "server/app/services/agent_shell.py",
+      "function": "Execution.run",
+      "line": 159,
+      "category": "cancellation",
+      "callee": "operation.cancel"
+    },
+    {
+      "file": "server/app/services/agent_shell.py",
+      "function": "Execution.run",
+      "line": 162,
+      "category": "cancellation",
+      "callee": "operation.cancel"
+    },
+    {
+      "file": "server/app/services/agent_shell.py",
+      "function": "Execution.run",
+      "line": 163,
+      "category": "cancellation",
+      "callee": "stopping.cancel"
+    },
+    {
+      "file": "server/app/services/agent_shell.py",
+      "function": "Execution.run",
+      "line": 166,
+      "category": "publication_or_write",
+      "callee": "reply.stdout.decode('utf8', 'replace').replace"
+    },
+    {
+      "file": "server/app/services/agent_shell.py",
+      "function": "execute",
+      "line": 206,
+      "category": "supervision",
+      "callee": "register"
+    },
+    {
+      "file": "server/app/services/agent_shell.py",
+      "function": "execute",
+      "line": 218,
+      "category": "cancellation",
+      "callee": "entry.task.cancel"
+    },
+    {
+      "file": "server/app/services/agent_shell.py",
+      "function": "execute",
+      "line": 219,
+      "category": "cancellation",
+      "callee": "monitor.cancel"
+    },
+    {
+      "file": "server/app/services/agent_shell.py",
+      "function": "execute",
+      "line": 221,
+      "category": "supervision",
+      "callee": "unregister"
+    },
+    {
+      "file": "server/app/services/agent_shell_native.py",
+      "function": "main",
+      "line": 20,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/artifact_publication.py",
+      "function": "_prepare_bundle_new",
+      "line": 114,
+      "category": "publication_or_write",
+      "callee": "str(Path(path).parent).replace"
+    },
+    {
+      "file": "server/app/services/artifact_publication.py",
+      "function": "verify_prepared_bundle",
+      "line": 304,
+      "category": "publication_or_write",
+      "callee": "replace"
+    },
+    {
+      "file": "server/app/services/attempt_objects.py",
+      "function": "ensure_inputs",
+      "line": 224,
+      "category": "publication_or_write",
+      "callee": "(stage / 'manifest.json').write_bytes"
+    },
+    {
+      "file": "server/app/services/attempt_workspace.py",
+      "function": "_reserved",
+      "line": 63,
+      "category": "publication_or_write",
+      "callee": "path.replace"
+    },
+    {
+      "file": "server/app/services/batch_jobs.py",
+      "function": "_start_when_capacity",
+      "line": 57,
+      "category": "submission",
+      "callee": "jobrunner.start_job"
+    },
+    {
+      "file": "server/app/services/batch_jobs.py",
+      "function": "start_batch",
+      "line": 114,
+      "category": "supervision",
+      "callee": "supervisor_register"
+    },
+    {
+      "file": "server/app/services/batch_jobs.py",
+      "function": "start_batch",
+      "line": 114,
+      "category": "cancellation",
+      "callee": "cancel_active"
+    },
+    {
+      "file": "server/app/services/batch_jobs.py",
+      "function": "start_batch.cleanup",
+      "line": 122,
+      "category": "supervision",
+      "callee": "supervisor_unregister"
+    },
+    {
+      "file": "server/app/services/batch_jobs.py",
+      "function": "cancel_active",
+      "line": 140,
+      "category": "cancellation",
+      "callee": "proc.cancel"
+    },
+    {
+      "file": "server/app/services/calculix_artifacts.py",
+      "function": "dependencies.include",
+      "line": 49,
+      "category": "publication_or_write",
+      "callee": "raw.replace(' ', '').replace"
+    },
+    {
+      "file": "server/app/services/calculix_artifacts.py",
+      "function": "dependencies.include",
+      "line": 49,
+      "category": "publication_or_write",
+      "callee": "raw.replace"
+    },
+    {
+      "file": "server/app/services/calculix_worker.py",
+      "function": "main",
+      "line": 50,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/case_events.py",
+      "function": "append_case_event",
+      "line": 46,
+      "category": "publication_or_write",
+      "callee": "storage.put_bytes"
+    },
+    {
+      "file": "server/app/services/case_evidence.py",
+      "function": "safe_run_dir",
+      "line": 32,
+      "category": "publication_or_write",
+      "callee": "value.replace"
+    },
+    {
+      "file": "server/app/services/case_evidence.py",
+      "function": "verify_records",
+      "line": 89,
+      "category": "publication_or_write",
+      "callee": "path.replace"
+    },
+    {
+      "file": "server/app/services/case_import.py",
+      "function": "_entry_path",
+      "line": 66,
+      "category": "publication_or_write",
+      "callee": "info.filename.replace"
+    },
+    {
+      "file": "server/app/services/case_validation.py",
+      "function": "_utc",
+      "line": 47,
+      "category": "publication_or_write",
+      "callee": "value.replace"
+    },
+    {
+      "file": "server/app/services/case_write.py",
+      "function": "normalize_path",
+      "line": 45,
+      "category": "publication_or_write",
+      "callee": "path.replace"
+    },
+    {
+      "file": "server/app/services/casedict.py",
+      "function": "update_case_dict",
+      "line": 436,
+      "category": "publication_or_write",
+      "callee": "storage.put_bytes"
+    },
+    {
+      "file": "server/app/services/codex_capacity.py",
+      "function": "_wait_delay",
+      "line": 44,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/services/codex_environment.py",
+      "function": "create_isolated_codex_environment",
+      "line": 16,
+      "category": "publication_or_write",
+      "callee": "(path / 'config.toml').write_text"
+    },
+    {
+      "file": "server/app/services/codex_forks.py",
+      "function": "public",
+      "line": 92,
+      "category": "publication_or_write",
+      "callee": "execution.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/codex_forks.py",
+      "function": "Execution.stop",
+      "line": 143,
+      "category": "cancellation",
+      "callee": "self.task.cancel"
+    },
+    {
+      "file": "server/app/services/codex_forks.py",
+      "function": "Execution.run.expired",
+      "line": 151,
+      "category": "cancellation",
+      "callee": "self.task.cancel"
+    },
+    {
+      "file": "server/app/services/codex_forks.py",
+      "function": "Execution.run",
+      "line": 228,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/services/codex_forks.py",
+      "function": "Execution.run",
+      "line": 231,
+      "category": "supervision",
+      "callee": "unregister"
+    },
+    {
+      "file": "server/app/services/codex_forks.py",
+      "function": "submit.allocate",
+      "line": 270,
+      "category": "supervision",
+      "callee": "register"
+    },
+    {
+      "file": "server/app/services/codex_images.py",
+      "function": "Publication.write",
+      "line": 54,
+      "category": "publication_or_write",
+      "callee": "storage.put_bytes"
+    },
+    {
+      "file": "server/app/services/codex_projection.py",
+      "function": "Secrets.remember",
+      "line": 72,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/codex_projection.py",
+      "function": "Secrets.clean.clean",
+      "line": 81,
+      "category": "publication_or_write",
+      "callee": "item.replace"
+    },
+    {
+      "file": "server/app/services/codex_records.py",
+      "function": "current",
+      "line": 209,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/codex_records.py",
+      "function": "register_root",
+      "line": 227,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/codex_records.py",
+      "function": "register_bridge",
+      "line": 242,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/codex_records.py",
+      "function": "public",
+      "line": 339,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/codex_session_requests.py",
+      "function": "public",
+      "line": 95,
+      "category": "publication_or_write",
+      "callee": "owner.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/codex_session_requests.py",
+      "function": "Execution.stop",
+      "line": 172,
+      "category": "cancellation",
+      "callee": "self.task.cancel"
+    },
+    {
+      "file": "server/app/services/codex_session_requests.py",
+      "function": "Execution.run.cancelled",
+      "line": 181,
+      "category": "cancellation",
+      "callee": "self.task.cancel"
+    },
+    {
+      "file": "server/app/services/codex_session_requests.py",
+      "function": "Execution.run",
+      "line": 252,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/services/codex_session_requests.py",
+      "function": "Execution.run",
+      "line": 254,
+      "category": "supervision",
+      "callee": "unregister"
+    },
+    {
+      "file": "server/app/services/codex_session_requests.py",
+      "function": "submit.allocate",
+      "line": 294,
+      "category": "supervision",
+      "callee": "register"
+    },
+    {
+      "file": "server/app/services/codex_sessions.py",
+      "function": "private_environment",
+      "line": 108,
+      "category": "publication_or_write",
+      "callee": "(home / 'config.toml').write_text"
+    },
+    {
+      "file": "server/app/services/codex_sessions.py",
+      "function": "Session.prepare",
+      "line": 298,
+      "category": "supervision",
+      "callee": "register"
+    },
+    {
+      "file": "server/app/services/codex_sessions.py",
+      "function": "Session.close_work",
+      "line": 395,
+      "category": "cancellation",
+      "callee": "self.start_task.cancel"
+    },
+    {
+      "file": "server/app/services/codex_sessions.py",
+      "function": "Session.retire_work",
+      "line": 451,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/services/codex_sessions.py",
+      "function": "Session.retire_work",
+      "line": 455,
+      "category": "supervision",
+      "callee": "unregister"
+    },
+    {
+      "file": "server/app/services/codex_stdio.py",
+      "function": "CodexStdioClient.request",
+      "line": 141,
+      "category": "cancellation",
+      "callee": "future.cancel"
+    },
+    {
+      "file": "server/app/services/codex_stdio.py",
+      "function": "CodexStdioClient._close",
+      "line": 390,
+      "category": "cancellation",
+      "callee": "self._reader_task.cancel"
+    },
+    {
+      "file": "server/app/services/codex_turn.py",
+      "function": "run_codex_turn.attempt",
+      "line": 134,
+      "category": "cancellation",
+      "callee": "operation.cancel"
+    },
+    {
+      "file": "server/app/services/codex_turn.py",
+      "function": "run_codex_turn.attempt",
+      "line": 137,
+      "category": "cancellation",
+      "callee": "stopped.cancel"
+    },
+    {
+      "file": "server/app/services/codex_turn.py",
+      "function": "run_codex_turn.attempt",
+      "line": 139,
+      "category": "cancellation",
+      "callee": "operation.cancel"
+    },
+    {
+      "file": "server/app/services/codex_turn_records.py",
+      "function": "public",
+      "line": 165,
+      "category": "publication_or_write",
+      "callee": "execution.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/codex_turns.py",
+      "function": "Execution.run",
+      "line": 212,
+      "category": "cancellation",
+      "callee": "self.heartbeat.cancel"
+    },
+    {
+      "file": "server/app/services/codex_turns.py",
+      "function": "Execution.run",
+      "line": 216,
+      "category": "supervision",
+      "callee": "unregister"
+    },
+    {
+      "file": "server/app/services/codex_turns.py",
+      "function": "submit.allocate",
+      "line": 349,
+      "category": "supervision",
+      "callee": "register"
+    },
+    {
+      "file": "server/app/services/codex_wsl_state.py",
+      "function": "mounted_path",
+      "line": 26,
+      "category": "publication_or_write",
+      "callee": "str(value).replace"
+    },
+    {
+      "file": "server/app/services/codex_wsl_state.py",
+      "function": "windows_home",
+      "line": 65,
+      "category": "publication_or_write",
+      "callee": "home_path(request).replace"
+    },
+    {
+      "file": "server/app/services/completion_builder.py",
+      "function": "",
+      "line": 389,
+      "category": "publication_or_write",
+      "callee": "out_path.write_text"
+    },
+    {
+      "file": "server/app/services/control_identity_reader.py",
+      "function": "invoke",
+      "line": 95,
+      "category": "process",
+      "callee": "asyncio.create_subprocess_exec"
+    },
+    {
+      "file": "server/app/services/control_identity_reader.py",
+      "function": "invoke",
+      "line": 106,
+      "category": "cancellation",
+      "callee": "process.kill"
+    },
+    {
+      "file": "server/app/services/control_identity_reader.py",
+      "function": "invoke",
+      "line": 109,
+      "category": "cancellation",
+      "callee": "reader.cancel"
+    },
+    {
+      "file": "server/app/services/control_identity_reader.py",
+      "function": "host",
+      "line": 121,
+      "category": "publication_or_write",
+      "callee": "str(Path(__file__).resolve()).replace"
+    },
+    {
+      "file": "server/app/services/conversation_execution.py",
+      "function": "assert_idle",
+      "line": 58,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/conversation_execution.py",
+      "function": "current",
+      "line": 122,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/distributed_queue.py",
+      "function": "_cancel_listener",
+      "line": 95,
+      "category": "cancellation",
+      "callee": "proc.cancel"
+    },
+    {
+      "file": "server/app/services/distributed_queue.py",
+      "function": "on_shutdown",
+      "line": 108,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/services/document_admission.py",
+      "function": "pending",
+      "line": 22,
+      "category": "publication_or_write",
+      "callee": "replace"
+    },
+    {
+      "file": "server/app/services/document_admission.py",
+      "function": "ready",
+      "line": 27,
+      "category": "publication_or_write",
+      "callee": "replace"
+    },
+    {
+      "file": "server/app/services/execution_budget.py",
+      "function": "load",
+      "line": 118,
+      "category": "publication_or_write",
+      "callee": "at.replace"
+    },
+    {
+      "file": "server/app/services/execution_storage.py",
+      "function": "recovery",
+      "line": 115,
+      "category": "cancellation",
+      "callee": "monitor.cancel"
+    },
+    {
+      "file": "server/app/services/file_transactions.py",
+      "function": "_apply",
+      "line": 199,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 71,
+      "category": "publication_or_write",
+      "callee": "(output / 'system' / 'blockMeshDict').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 75,
+      "category": "publication_or_write",
+      "callee": "(output / 'system' / 'topoSetDict').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 79,
+      "category": "publication_or_write",
+      "callee": "kind.replace"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 92,
+      "category": "publication_or_write",
+      "callee": "(output / 'system' / 'controlDict').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 94,
+      "category": "publication_or_write",
+      "callee": "(output / 'system' / 'fvSchemes').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 96,
+      "category": "publication_or_write",
+      "callee": "(output / 'system' / 'fvSolution').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 98,
+      "category": "publication_or_write",
+      "callee": "(output / 'constant' / 'transportProperties').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 103,
+      "category": "publication_or_write",
+      "callee": "(output / 'constant' / 'fvOptions').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 104,
+      "category": "publication_or_write",
+      "callee": "(output / '0' / 'T').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 110,
+      "category": "publication_or_write",
+      "callee": "(output / 'case-manifest.json').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 111,
+      "category": "publication_or_write",
+      "callee": "(output / 'required-overrides.json').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 112,
+      "category": "publication_or_write",
+      "callee": "(output / 'power-balance.json').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 115,
+      "category": "publication_or_write",
+      "callee": "(output / 'preflight.json').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "generate_case",
+      "line": 116,
+      "category": "publication_or_write",
+      "callee": "(output / 'mesh_gate.json').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "write_run_scripts",
+      "line": 130,
+      "category": "publication_or_write",
+      "callee": "(output / name).write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "write_run_scripts",
+      "line": 138,
+      "category": "publication_or_write",
+      "callee": "(output / 'Allclean').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_case.py",
+      "function": "record_mesh_gate",
+      "line": 142,
+      "category": "publication_or_write",
+      "callee": "(output / 'mesh_gate.json').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_components.py",
+      "function": "map_component",
+      "line": 22,
+      "category": "publication_or_write",
+      "callee": "str(component.get('type', '')).lower().replace"
+    },
+    {
+      "file": "server/app/services/flotherm_convert_artifacts.py",
+      "function": "artifacts",
+      "line": 71,
+      "category": "publication_or_write",
+      "callee": "dest.write_bytes"
+    },
+    {
+      "file": "server/app/services/flotherm_coverage.py",
+      "function": "write_coverage_report",
+      "line": 44,
+      "category": "publication_or_write",
+      "callee": "path.write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_coverage.py",
+      "function": "write_coverage_report",
+      "line": 54,
+      "category": "publication_or_write",
+      "callee": "(root / 'conversion-coverage.md').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_ir.py",
+      "function": "write_ir",
+      "line": 121,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/flotherm_library_native.py",
+      "function": "invoke",
+      "line": 19,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/flotherm_library_native.py",
+      "function": "invoke",
+      "line": 34,
+      "category": "cancellation",
+      "callee": "child.kill"
+    },
+    {
+      "file": "server/app/services/flotherm_library_native.py",
+      "function": "main",
+      "line": 65,
+      "category": "publication_or_write",
+      "callee": "(proof / 'stage.json').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_library_native.py",
+      "function": "main",
+      "line": 173,
+      "category": "publication_or_write",
+      "callee": "(proof / 'stage.json').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_output.py",
+      "function": "CancellationToken.checkpoint",
+      "line": 25,
+      "category": "publication_or_write",
+      "callee": "(output / 'conversion-cancelled.json').write_text"
+    },
+    {
+      "file": "server/app/services/flotherm_output.py",
+      "function": "write_manifest",
+      "line": 108,
+      "category": "publication_or_write",
+      "callee": "(root / MARKER).write_text"
+    },
+    {
+      "file": "server/app/services/geo_script.py",
+      "function": "main",
+      "line": 220,
+      "category": "publication_or_write",
+      "callee": "(a_geo / 'scene.json').write_text"
+    },
+    {
+      "file": "server/app/services/geo_script.py",
+      "function": "main",
+      "line": 240,
+      "category": "publication_or_write",
+      "callee": "(a_geo / 'geometry_manifest.json').write_text"
+    },
+    {
+      "file": "server/app/services/geo_script.py",
+      "function": "main",
+      "line": 244,
+      "category": "publication_or_write",
+      "callee": "(a_geo / 'toolchain.json').write_text"
+    },
+    {
+      "file": "server/app/services/geo_validation.py",
+      "function": "write_validation",
+      "line": 65,
+      "category": "publication_or_write",
+      "callee": "(a_geo / 'validation.json').write_text"
+    },
+    {
+      "file": "server/app/services/indexsvc.py",
+      "function": "_acquire_build_lock",
+      "line": 62,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/indexsvc.py",
+      "function": "_storage_entries",
+      "line": 75,
+      "category": "publication_or_write",
+      "callee": "item['modified'].replace"
+    },
+    {
+      "file": "server/app/services/indexsvc.py",
+      "function": "touch_file",
+      "line": 167,
+      "category": "publication_or_write",
+      "callee": "modified.replace"
+    },
+    {
+      "file": "server/app/services/job_delivery.py",
+      "function": "deliver",
+      "line": 200,
+      "category": "submission",
+      "callee": "jobrunner.start_job"
+    },
+    {
+      "file": "server/app/services/job_execution.py",
+      "function": "ended_timestamp",
+      "line": 61,
+      "category": "publication_or_write",
+      "callee": "value.replace"
+    },
+    {
+      "file": "server/app/services/job_execution.py",
+      "function": "release_process",
+      "line": 456,
+      "category": "publication_or_write",
+      "callee": "expires.replace"
+    },
+    {
+      "file": "server/app/services/job_launch_lease.py",
+      "function": "LaunchLease.watch",
+      "line": 54,
+      "category": "cancellation",
+      "callee": "self.operation.cancel"
+    },
+    {
+      "file": "server/app/services/job_launch_lease.py",
+      "function": "LaunchLease.run",
+      "line": 62,
+      "category": "cancellation",
+      "callee": "watcher.cancel"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "_write_solve_evidence",
+      "line": 128,
+      "category": "publication_or_write",
+      "callee": "evidence_path.write_text"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "win_to_wsl_path",
+      "line": 164,
+      "category": "publication_or_write",
+      "callee": "str(win_path).replace"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._stop_native",
+      "line": 304,
+      "category": "cancellation",
+      "callee": "self.proc.kill"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._next_log_chunk",
+      "line": 324,
+      "category": "cancellation",
+      "callee": "read.cancel"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._heartbeat",
+      "line": 334,
+      "category": "cancellation",
+      "callee": "self.cancel"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._run",
+      "line": 373,
+      "category": "supervision",
+      "callee": "supervisor_unregister"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._run",
+      "line": 379,
+      "category": "cancellation",
+      "callee": "self._watchdog.cancel"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._run",
+      "line": 381,
+      "category": "cancellation",
+      "callee": "self._heartbeat_task.cancel"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._run",
+      "line": 389,
+      "category": "supervision",
+      "callee": "supervisor_unregister"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._run",
+      "line": 393,
+      "category": "cancellation",
+      "callee": "self._storage_task.cancel"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._run",
+      "line": 404,
+      "category": "cancellation",
+      "callee": "self._root_task.cancel"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._pump",
+      "line": 594,
+      "category": "cancellation",
+      "callee": "self._watchdog.cancel"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._pump",
+      "line": 596,
+      "category": "cancellation",
+      "callee": "self._heartbeat_task.cancel"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "JobProcess._pump",
+      "line": 606,
+      "category": "supervision",
+      "callee": "supervisor_unregister"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "_launch_claimed",
+      "line": 747,
+      "category": "publication_or_write",
+      "callee": "log_path.write_text"
+    },
+    {
+      "file": "server/app/services/jobrunner.py",
+      "function": "_launch_claimed",
+      "line": 770,
+      "category": "supervision",
+      "callee": "supervisor_register"
+    },
+    {
+      "file": "server/app/services/latex_artifacts.py",
+      "function": "compile_document",
+      "line": 158,
+      "category": "publication_or_write",
+      "callee": "config.write_bytes"
+    },
+    {
+      "file": "server/app/services/latex_artifacts.py",
+      "function": "synctex",
+      "line": 229,
+      "category": "publication_or_write",
+      "callee": "os.path.normpath(original).replace"
+    },
+    {
+      "file": "server/app/services/latex_artifacts.py",
+      "function": "normalize_log",
+      "line": 255,
+      "category": "publication_or_write",
+      "callee": "data.replace"
+    },
+    {
+      "file": "server/app/services/latex_build.py",
+      "function": "publish_latex_artifacts",
+      "line": 90,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/latex_native.py",
+      "function": "probe",
+      "line": 42,
+      "category": "process",
+      "callee": "subprocess.run"
+    },
+    {
+      "file": "server/app/services/latex_native.py",
+      "function": "execute",
+      "line": 52,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/latex_native.py",
+      "function": "compile_case",
+      "line": 225,
+      "category": "publication_or_write",
+      "callee": "(config_path.parent / 'native-result.json').write_text"
+    },
+    {
+      "file": "server/app/services/latex_publication.py",
+      "function": "diagnostic_path",
+      "line": 151,
+      "category": "publication_or_write",
+      "callee": "value.replace"
+    },
+    {
+      "file": "server/app/services/llm.py",
+      "function": "_vault",
+      "line": 35,
+      "category": "publication_or_write",
+      "callee": "_VAULT_KEY_PATH.write_bytes"
+    },
+    {
+      "file": "server/app/services/mesh_quality.py",
+      "function": "write_quality_report",
+      "line": 76,
+      "category": "publication_or_write",
+      "callee": "storage.put_text"
+    },
+    {
+      "file": "server/app/services/mesh_worker.py",
+      "function": "execute",
+      "line": 24,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/mesh_worker.py",
+      "function": "execute",
+      "line": 38,
+      "category": "cancellation",
+      "callee": "proc.kill"
+    },
+    {
+      "file": "server/app/services/mpi_native.py",
+      "function": "invoke",
+      "line": 71,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/mpi_native.py",
+      "function": "invoke",
+      "line": 81,
+      "category": "cancellation",
+      "callee": "child.kill"
+    },
+    {
+      "file": "server/app/services/mpi_native.py",
+      "function": "main",
+      "line": 102,
+      "category": "publication_or_write",
+      "callee": "(proof / 'stage.json').write_text"
+    },
+    {
+      "file": "server/app/services/mpi_native.py",
+      "function": "main",
+      "line": 116,
+      "category": "publication_or_write",
+      "callee": "decompose.write_text"
+    },
+    {
+      "file": "server/app/services/mpi_native.py",
+      "function": "main",
+      "line": 124,
+      "category": "process",
+      "callee": "subprocess.run"
+    },
+    {
+      "file": "server/app/services/mpi_native.py",
+      "function": "main",
+      "line": 173,
+      "category": "publication_or_write",
+      "callee": "(proof / 'stage.json').write_text"
+    },
+    {
+      "file": "server/app/services/mpi_worker.py",
+      "function": "main",
+      "line": 37,
+      "category": "publication_or_write",
+      "callee": "(run / 'mpi-evidence.json').write_text"
+    },
+    {
+      "file": "server/app/services/native_child_records.py",
+      "function": "release",
+      "line": 142,
+      "category": "publication_or_write",
+      "callee": "expires.replace"
+    },
+    {
+      "file": "server/app/services/native_execution.py",
+      "function": "NativeExecutor.close",
+      "line": 99,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/services/native_execution.py",
+      "function": "NativeExecutor._command",
+      "line": 117,
+      "category": "publication_or_write",
+      "callee": "key.replace"
+    },
+    {
+      "file": "server/app/services/native_execution.py",
+      "function": "NativeExecutor._command",
+      "line": 134,
+      "category": "publication_or_write",
+      "callee": "key.replace"
+    },
+    {
+      "file": "server/app/services/native_execution.py",
+      "function": "NativeExecutor._command",
+      "line": 151,
+      "category": "publication_or_write",
+      "callee": "key.replace"
+    },
+    {
+      "file": "server/app/services/native_execution.py",
+      "function": "NativeExecutor._handle",
+      "line": 246,
+      "category": "cancellation",
+      "callee": "disconnect.cancel"
+    },
+    {
+      "file": "server/app/services/native_execution.py",
+      "function": "NativeExecutor._execute",
+      "line": 285,
+      "category": "supervision",
+      "callee": "self.records.register"
+    },
+    {
+      "file": "server/app/services/native_execution.py",
+      "function": "NativeExecutor._execute",
+      "line": 356,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/services/native_request_execution.py",
+      "function": "scope",
+      "line": 128,
+      "category": "cancellation",
+      "callee": "heartbeat.cancel"
+    },
+    {
+      "file": "server/app/services/native_request_records.py",
+      "function": "_current",
+      "line": 176,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/native_request_records.py",
+      "function": "register",
+      "line": 222,
+      "category": "publication_or_write",
+      "callee": "request.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/native_request_records.py",
+      "function": "public",
+      "line": 322,
+      "category": "publication_or_write",
+      "callee": "request.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/native_scope_controller.py",
+      "function": "invoke_allocation",
+      "line": 198,
+      "category": "process",
+      "callee": "asyncio.create_subprocess_exec"
+    },
+    {
+      "file": "server/app/services/native_scope_controller.py",
+      "function": "invoke_allocation",
+      "line": 226,
+      "category": "cancellation",
+      "callee": "process.kill"
+    },
+    {
+      "file": "server/app/services/native_scope_controller.py",
+      "function": "invoke_allocation",
+      "line": 229,
+      "category": "cancellation",
+      "callee": "stderr.cancel"
+    },
+    {
+      "file": "server/app/services/native_scope_controller.py",
+      "function": "host",
+      "line": 243,
+      "category": "publication_or_write",
+      "callee": "str(Path(__file__).resolve()).replace"
+    },
+    {
+      "file": "server/app/services/owned_process.py",
+      "function": "wsl_path",
+      "line": 26,
+      "category": "publication_or_write",
+      "callee": "str(path).replace"
+    },
+    {
+      "file": "server/app/services/owned_process.py",
+      "function": "OwnedProcess.prepare.create",
+      "line": 190,
+      "category": "process",
+      "callee": "asyncio.create_subprocess_exec"
+    },
+    {
+      "file": "server/app/services/owned_process.py",
+      "function": "OwnedProcess._stop",
+      "line": 396,
+      "category": "cancellation",
+      "callee": "self.scope.terminate"
+    },
+    {
+      "file": "server/app/services/owned_process.py",
+      "function": "OwnedProcess.abort",
+      "line": 431,
+      "category": "cancellation",
+      "callee": "self.scope.terminate"
+    },
+    {
+      "file": "server/app/services/owned_process.py",
+      "function": "OwnedProcess.abort",
+      "line": 437,
+      "category": "cancellation",
+      "callee": "self.proc.kill"
+    },
+    {
+      "file": "server/app/services/owned_stdio.py",
+      "function": "OwnedStdio.write",
+      "line": 285,
+      "category": "cancellation",
+      "callee": "waiter.cancel"
+    },
+    {
+      "file": "server/app/services/owned_stdio.py",
+      "function": "OwnedStdio._close",
+      "line": 319,
+      "category": "cancellation",
+      "callee": "self.pump.cancel"
+    },
+    {
+      "file": "server/app/services/owned_terminal.py",
+      "function": "OwnedTerminal._acknowledged",
+      "line": 138,
+      "category": "cancellation",
+      "callee": "waiter.cancel"
+    },
+    {
+      "file": "server/app/services/pandoc_execution.py",
+      "function": "run",
+      "line": 25,
+      "category": "publication_or_write",
+      "callee": "(folder / 'input.md').write_bytes"
+    },
+    {
+      "file": "server/app/services/pandoc_execution.py",
+      "function": "run",
+      "line": 27,
+      "category": "publication_or_write",
+      "callee": "config.write_text"
+    },
+    {
+      "file": "server/app/services/pandoc_native.py",
+      "function": "execute",
+      "line": 63,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/pandoc_native.py",
+      "function": "execute.terminate",
+      "line": 67,
+      "category": "cancellation",
+      "callee": "process.kill"
+    },
+    {
+      "file": "server/app/services/pandoc_native.py",
+      "function": "execute.copy",
+      "line": 81,
+      "category": "cancellation",
+      "callee": "terminate"
+    },
+    {
+      "file": "server/app/services/pandoc_native.py",
+      "function": "execute.copy",
+      "line": 84,
+      "category": "cancellation",
+      "callee": "terminate"
+    },
+    {
+      "file": "server/app/services/pandoc_native.py",
+      "function": "execute.feed",
+      "line": 91,
+      "category": "cancellation",
+      "callee": "terminate"
+    },
+    {
+      "file": "server/app/services/pandoc_native.py",
+      "function": "execute",
+      "line": 102,
+      "category": "cancellation",
+      "callee": "terminate"
+    },
+    {
+      "file": "server/app/services/pdf_pages.py",
+      "function": "safe_pdf_relative",
+      "line": 11,
+      "category": "publication_or_write",
+      "callee": "value.strip().replace"
+    },
+    {
+      "file": "server/app/services/postprocess_executor.py",
+      "function": "_safe_rel",
+      "line": 32,
+      "category": "publication_or_write",
+      "callee": "value.replace"
+    },
+    {
+      "file": "server/app/services/postprocess_executor.py",
+      "function": "execute",
+      "line": 1128,
+      "category": "publication_or_write",
+      "callee": "(output_dir / name).write_bytes"
+    },
+    {
+      "file": "server/app/services/postprocess_executor.py",
+      "function": "execute",
+      "line": 1134,
+      "category": "publication_or_write",
+      "callee": "temporary.write_bytes"
+    },
+    {
+      "file": "server/app/services/postprocess_executor.py",
+      "function": "execute",
+      "line": 1135,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/ppt_builder.py",
+      "function": "_relative",
+      "line": 22,
+      "category": "publication_or_write",
+      "callee": "value.strip().replace"
+    },
+    {
+      "file": "server/app/services/ppt_handler.py",
+      "function": "PptHandler.artifacts",
+      "line": 130,
+      "category": "publication_or_write",
+      "callee": "named(slide, 'VibeFlowTitle').text.replace"
+    },
+    {
+      "file": "server/app/services/ppt_handler.py",
+      "function": "PptHandler.artifacts",
+      "line": 135,
+      "category": "publication_or_write",
+      "callee": "named(slide, 'VibeFlowBody').text.replace"
+    },
+    {
+      "file": "server/app/services/ppt_handler.py",
+      "function": "PptHandler.artifacts",
+      "line": 140,
+      "category": "publication_or_write",
+      "callee": "table.cell(i, j).text.replace"
+    },
+    {
+      "file": "server/app/services/process_gate.py",
+      "function": "inner",
+      "line": 190,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/process_gate.py",
+      "function": "execute",
+      "line": 205,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/process_gate.py",
+      "function": "execute",
+      "line": 253,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/process_gate.py",
+      "function": "execute",
+      "line": 276,
+      "category": "cancellation",
+      "callee": "child.kill"
+    },
+    {
+      "file": "server/app/services/process_gate.py",
+      "function": "main",
+      "line": 336,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/profile_sharing.py",
+      "function": "set_share",
+      "line": 41,
+      "category": "publication_or_write",
+      "callee": "storage.put_text"
+    },
+    {
+      "file": "server/app/services/provenance.py",
+      "function": "record_case_revision",
+      "line": 52,
+      "category": "publication_or_write",
+      "callee": "storage.put_bytes"
+    },
+    {
+      "file": "server/app/services/publication_alias_journal.py",
+      "function": "prepare",
+      "line": 88,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/publication_alias_journal.py",
+      "function": "apply",
+      "line": 142,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/publication_finalizing.py",
+      "function": "_prepared",
+      "line": 125,
+      "category": "publication_or_write",
+      "callee": "replace"
+    },
+    {
+      "file": "server/app/services/publication_finalizing.py",
+      "function": "shutdown",
+      "line": 228,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/services/publication_journal.py",
+      "function": "_ready",
+      "line": 123,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/publication_read_set.py",
+      "function": "encoded",
+      "line": 25,
+      "category": "publication_or_write",
+      "callee": "value.replace"
+    },
+    {
+      "file": "server/app/services/publication_source_validation.py",
+      "function": "SourceValidation.stop_renewal",
+      "line": 139,
+      "category": "cancellation",
+      "callee": "self.renewal.cancel"
+    },
+    {
+      "file": "server/app/services/publication_source_validation.py",
+      "function": "SourceValidation.inspect",
+      "line": 179,
+      "category": "publication_or_write",
+      "callee": "replace"
+    },
+    {
+      "file": "server/app/services/redaction.py",
+      "function": "redact_text",
+      "line": 18,
+      "category": "publication_or_write",
+      "callee": "text.replace"
+    },
+    {
+      "file": "server/app/services/report_artifacts.py",
+      "function": "compile_document",
+      "line": 152,
+      "category": "publication_or_write",
+      "callee": "ast.write_bytes"
+    },
+    {
+      "file": "server/app/services/report_build.py",
+      "function": "read_report_document.image_resource",
+      "line": 135,
+      "category": "publication_or_write",
+      "callee": "unquote(parsed.path).replace"
+    },
+    {
+      "file": "server/app/services/report_build.py",
+      "function": "prepare_report_snapshot",
+      "line": 189,
+      "category": "publication_or_write",
+      "callee": "destination.write_bytes"
+    },
+    {
+      "file": "server/app/services/report_build.py",
+      "function": "prepare_report_snapshot",
+      "line": 191,
+      "category": "publication_or_write",
+      "callee": "(work / 'document.json').write_text"
+    },
+    {
+      "file": "server/app/services/report_build.py",
+      "function": "prepare_report_snapshot",
+      "line": 195,
+      "category": "publication_or_write",
+      "callee": "(work / 'snapshot.json').write_text"
+    },
+    {
+      "file": "server/app/services/report_build.py",
+      "function": "publish_report_artifacts",
+      "line": 222,
+      "category": "publication_or_write",
+      "callee": "storage.put_bytes"
+    },
+    {
+      "file": "server/app/services/report_build.py",
+      "function": "publish_report_artifacts",
+      "line": 224,
+      "category": "publication_or_write",
+      "callee": "storage.put_text"
+    },
+    {
+      "file": "server/app/services/report_builder.py",
+      "function": "_inline",
+      "line": 29,
+      "category": "publication_or_write",
+      "callee": "text.replace('|', '\\\\|').replace('\\r', ' ').replace"
+    },
+    {
+      "file": "server/app/services/report_builder.py",
+      "function": "_inline",
+      "line": 29,
+      "category": "publication_or_write",
+      "callee": "text.replace('|', '\\\\|').replace"
+    },
+    {
+      "file": "server/app/services/report_builder.py",
+      "function": "_inline",
+      "line": 29,
+      "category": "publication_or_write",
+      "callee": "text.replace"
+    },
+    {
+      "file": "server/app/services/request_lifecycle.py",
+      "function": "wait",
+      "line": 35,
+      "category": "cancellation",
+      "callee": "operation.cancel"
+    },
+    {
+      "file": "server/app/services/request_lifecycle.py",
+      "function": "wait",
+      "line": 36,
+      "category": "cancellation",
+      "callee": "monitor.cancel"
+    },
+    {
+      "file": "server/app/services/runtime_config.py",
+      "function": "update_runtime_settings",
+      "line": 72,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/runtime_native.py",
+      "function": "wsl_probe",
+      "line": 54,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/runtime_native.py",
+      "function": "wsl_probe.terminate",
+      "line": 58,
+      "category": "cancellation",
+      "callee": "process.kill"
+    },
+    {
+      "file": "server/app/services/runtime_native.py",
+      "function": "wsl_probe.read",
+      "line": 66,
+      "category": "cancellation",
+      "callee": "terminate"
+    },
+    {
+      "file": "server/app/services/runtime_native.py",
+      "function": "wsl_probe.read",
+      "line": 68,
+      "category": "cancellation",
+      "callee": "terminate"
+    },
+    {
+      "file": "server/app/services/runtime_native.py",
+      "function": "wsl_probe",
+      "line": 78,
+      "category": "cancellation",
+      "callee": "terminate"
+    },
+    {
+      "file": "server/app/services/s3_case_files.py",
+      "function": "snapshot",
+      "line": 37,
+      "category": "publication_or_write",
+      "callee": "target.write_bytes"
+    },
+    {
+      "file": "server/app/services/sandbox_disk_native.py",
+      "function": "command",
+      "line": 41,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/sandbox_disk_native.py",
+      "function": "command",
+      "line": 46,
+      "category": "supervision",
+      "callee": "selector.register"
+    },
+    {
+      "file": "server/app/services/sandbox_disk_native.py",
+      "function": "command",
+      "line": 59,
+      "category": "cancellation",
+      "callee": "process.kill"
+    },
+    {
+      "file": "server/app/services/sandbox_export_execution.py",
+      "function": "SandboxExport.abort",
+      "line": 212,
+      "category": "cancellation",
+      "callee": "self.task.cancel"
+    },
+    {
+      "file": "server/app/services/sandbox_retirement.py",
+      "function": "stamp",
+      "line": 32,
+      "category": "publication_or_write",
+      "callee": "value.replace"
+    },
+    {
+      "file": "server/app/services/scnet.py",
+      "function": "redact",
+      "line": 50,
+      "category": "publication_or_write",
+      "callee": "text.replace"
+    },
+    {
+      "file": "server/app/services/scnet.py",
+      "function": "SessionManager.save",
+      "line": 189,
+      "category": "publication_or_write",
+      "callee": "preference.write_text"
+    },
+    {
+      "file": "server/app/services/sharing.py",
+      "function": "set_share",
+      "line": 57,
+      "category": "publication_or_write",
+      "callee": "storage.put_text"
+    },
+    {
+      "file": "server/app/services/skill_store.py",
+      "function": "write_skill",
+      "line": 56,
+      "category": "publication_or_write",
+      "callee": "(target / 'SKILL.md').write_text"
+    },
+    {
+      "file": "server/app/services/skill_store.py",
+      "function": "write_skill",
+      "line": 63,
+      "category": "publication_or_write",
+      "callee": "(target / 'agents' / 'openai.yaml').write_text"
+    },
+    {
+      "file": "server/app/services/skill_store.py",
+      "function": "_entry_name",
+      "line": 84,
+      "category": "publication_or_write",
+      "callee": "info.filename.replace"
+    },
+    {
+      "file": "server/app/services/skill_store.py",
+      "function": "install_skill_zip",
+      "line": 122,
+      "category": "publication_or_write",
+      "callee": "target.write_bytes"
+    },
+    {
+      "file": "server/app/services/skill_store.py",
+      "function": "install_skill_zip",
+      "line": 136,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/skill_store.py",
+      "function": "install_skill_zip",
+      "line": 138,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/skill_store.py",
+      "function": "install_skill_zip",
+      "line": 141,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/staging_download.py",
+      "function": "prepare",
+      "line": 84,
+      "category": "publication_or_write",
+      "callee": "path.write_bytes"
+    },
+    {
+      "file": "server/app/services/stdio_bridge.py",
+      "function": "main",
+      "line": 78,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/supervisor.py",
+      "function": "cancel_case",
+      "line": 45,
+      "category": "supervision",
+      "callee": "unregister"
+    },
+    {
+      "file": "server/app/services/supervisor.py",
+      "function": "cancel_case_wait",
+      "line": 60,
+      "category": "supervision",
+      "callee": "unregister"
+    },
+    {
+      "file": "server/app/services/synctex_execution.py",
+      "function": "prepare",
+      "line": 51,
+      "category": "publication_or_write",
+      "callee": "(root / 'snapshot.pdf').write_bytes"
+    },
+    {
+      "file": "server/app/services/synctex_execution.py",
+      "function": "prepare",
+      "line": 52,
+      "category": "publication_or_write",
+      "callee": "(root / 'snapshot.synctex.gz').write_bytes"
+    },
+    {
+      "file": "server/app/services/synctex_execution.py",
+      "function": "prepare",
+      "line": 56,
+      "category": "publication_or_write",
+      "callee": "(root / 'settings.json').write_text"
+    },
+    {
+      "file": "server/app/services/synctex_native.py",
+      "function": "execute",
+      "line": 53,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/synctex_native.py",
+      "function": "execute.terminate",
+      "line": 56,
+      "category": "cancellation",
+      "callee": "process.kill"
+    },
+    {
+      "file": "server/app/services/synctex_native.py",
+      "function": "execute.read",
+      "line": 64,
+      "category": "cancellation",
+      "callee": "terminate"
+    },
+    {
+      "file": "server/app/services/synctex_native.py",
+      "function": "execute.read",
+      "line": 66,
+      "category": "cancellation",
+      "callee": "terminate"
+    },
+    {
+      "file": "server/app/services/synctex_native.py",
+      "function": "execute",
+      "line": 76,
+      "category": "cancellation",
+      "callee": "terminate"
+    },
+    {
+      "file": "server/app/services/synctex_queries.py",
+      "function": "result",
+      "line": 52,
+      "category": "publication_or_write",
+      "callee": "parsed['input'].replace"
+    },
+    {
+      "file": "server/app/services/synctex_service.py",
+      "function": "map_synctex_input",
+      "line": 32,
+      "category": "publication_or_write",
+      "callee": "raw_input.strip().strip('\"').replace"
+    },
+    {
+      "file": "server/app/services/terminal_bridge.py",
+      "function": "Bridge.prepare",
+      "line": 42,
+      "category": "process",
+      "callee": "PtyProcess.spawn"
+    },
+    {
+      "file": "server/app/services/terminal_bridge.py",
+      "function": "Bridge.prepare",
+      "line": 49,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/terminal_bridge.py",
+      "function": "Bridge.close",
+      "line": 129,
+      "category": "cancellation",
+      "callee": "self.child.kill"
+    },
+    {
+      "file": "server/app/services/terminal_pty_gate.py",
+      "function": "main",
+      "line": 34,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/terminal_pty_gate.py",
+      "function": "main",
+      "line": 37,
+      "category": "cancellation",
+      "callee": "child.kill"
+    },
+    {
+      "file": "server/app/services/terminal_records.py",
+      "function": "current",
+      "line": 120,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/terminal_records.py",
+      "function": "register_root",
+      "line": 141,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/terminal_records.py",
+      "function": "register_gate",
+      "line": 151,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/terminal_records.py",
+      "function": "public",
+      "line": 195,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/terminal_sessions.py",
+      "function": "TerminalSession._close",
+      "line": 158,
+      "category": "cancellation",
+      "callee": "self._input_task.cancel"
+    },
+    {
+      "file": "server/app/services/terminal_sessions.py",
+      "function": "TerminalSession._close",
+      "line": 174,
+      "category": "cancellation",
+      "callee": "self._pump_task.cancel"
+    },
+    {
+      "file": "server/app/services/terminal_sessions.py",
+      "function": "TerminalSession._close",
+      "line": 200,
+      "category": "cancellation",
+      "callee": "self._export_deadline_task.cancel"
+    },
+    {
+      "file": "server/app/services/terminal_sessions.py",
+      "function": "TerminalSession._close",
+      "line": 203,
+      "category": "cancellation",
+      "callee": "self._heartbeat_task.cancel"
+    },
+    {
+      "file": "server/app/services/tools.py",
+      "function": "ToolExecutor._write_text",
+      "line": 175,
+      "category": "publication_or_write",
+      "callee": "path.replace"
+    },
+    {
+      "file": "server/app/services/tools.py",
+      "function": "ToolExecutor._write_text",
+      "line": 191,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/tools.py",
+      "function": "ToolExecutor.apply_proposal",
+      "line": 407,
+      "category": "publication_or_write",
+      "callee": "current.replace"
+    },
+    {
+      "file": "server/app/services/tools.py",
+      "function": "ToolExecutor.apply_proposal",
+      "line": 407,
+      "category": "publication_or_write",
+      "callee": "current.replace"
+    },
+    {
+      "file": "server/app/services/tools.py",
+      "function": "ToolExecutor.apply_text_replacement",
+      "line": 440,
+      "category": "publication_or_write",
+      "callee": "current.replace"
+    },
+    {
+      "file": "server/app/services/tools.py",
+      "function": "ToolExecutor.apply_text_replacement",
+      "line": 441,
+      "category": "publication_or_write",
+      "callee": "current.replace"
+    },
+    {
+      "file": "server/app/services/trash.py",
+      "function": "_save",
+      "line": 109,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/udf_native.py",
+      "function": "invoke",
+      "line": 19,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/udf_native.py",
+      "function": "invoke",
+      "line": 28,
+      "category": "cancellation",
+      "callee": "child.kill"
+    },
+    {
+      "file": "server/app/services/udf_native.py",
+      "function": "main",
+      "line": 48,
+      "category": "publication_or_write",
+      "callee": "(proof / 'stage.json').write_text"
+    },
+    {
+      "file": "server/app/services/udf_native.py",
+      "function": "main",
+      "line": 98,
+      "category": "publication_or_write",
+      "callee": "(run / 'system/controlDict').write_text"
+    },
+    {
+      "file": "server/app/services/udf_native.py",
+      "function": "main",
+      "line": 119,
+      "category": "publication_or_write",
+      "callee": "(proof / 'stage.json').write_text"
+    },
+    {
+      "file": "server/app/services/udf_worker.py",
+      "function": "main",
+      "line": 35,
+      "category": "publication_or_write",
+      "callee": "(run / 'udf-evidence.json').write_text"
+    },
+    {
+      "file": "server/app/services/upload_storage.py",
+      "function": "reconcile",
+      "line": 52,
+      "category": "supervision",
+      "callee": "register"
+    },
+    {
+      "file": "server/app/services/uploads.py",
+      "function": "_write_meta",
+      "line": 69,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/services/uploads.py",
+      "function": "create_session",
+      "line": 84,
+      "category": "publication_or_write",
+      "callee": "path.replace"
+    },
+    {
+      "file": "server/app/services/uploads.py",
+      "function": "create_session",
+      "line": 98,
+      "category": "publication_or_write",
+      "callee": "(directory / 'data.part').write_bytes"
+    },
+    {
+      "file": "server/app/services/viz_kernel.py",
+      "function": "main._on_play",
+      "line": 394,
+      "category": "cancellation",
+      "callee": "_play_task[0].cancel"
+    },
+    {
+      "file": "server/app/services/viz_kernel.py",
+      "function": "main._on_camera_play",
+      "line": 542,
+      "category": "cancellation",
+      "callee": "_camera_task[0].cancel"
+    },
+    {
+      "file": "server/app/services/viz_kernel.py",
+      "function": "main._export_cmap",
+      "line": 820,
+      "category": "publication_or_write",
+      "callee": "path.write_text"
+    },
+    {
+      "file": "server/app/services/viz_records.py",
+      "function": "current",
+      "line": 107,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/viz_records.py",
+      "function": "register_root",
+      "line": 116,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/viz_records.py",
+      "function": "mark_ready",
+      "line": 133,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/viz_records.py",
+      "function": "public",
+      "line": 166,
+      "category": "publication_or_write",
+      "callee": "row.lease_expires_at.replace"
+    },
+    {
+      "file": "server/app/services/viz_records.py",
+      "function": "public",
+      "line": 170,
+      "category": "publication_or_write",
+      "callee": "row.created_at.replace"
+    },
+    {
+      "file": "server/app/services/viz_records.py",
+      "function": "public",
+      "line": 171,
+      "category": "publication_or_write",
+      "callee": "row.last_activity_at.replace"
+    },
+    {
+      "file": "server/app/services/viz_sessions.py",
+      "function": "VizSession._watch",
+      "line": 135,
+      "category": "cancellation",
+      "callee": "root.cancel"
+    },
+    {
+      "file": "server/app/services/viz_sessions.py",
+      "function": "VizSession.close",
+      "line": 143,
+      "category": "cancellation",
+      "callee": "startup.cancel"
+    },
+    {
+      "file": "server/app/services/viz_sessions.py",
+      "function": "VizSession._close",
+      "line": 162,
+      "category": "cancellation",
+      "callee": "self._pump_task.cancel"
+    },
+    {
+      "file": "server/app/services/viz_sessions.py",
+      "function": "VizSession._close",
+      "line": 186,
+      "category": "cancellation",
+      "callee": "self._heartbeat_task.cancel"
+    },
+    {
+      "file": "server/app/services/webfetch.py",
+      "function": "cancellable_web_fetch",
+      "line": 167,
+      "category": "cancellation",
+      "callee": "task.cancel"
+    },
+    {
+      "file": "server/app/services/webfetch.py",
+      "function": "cancellable_web_fetch",
+      "line": 176,
+      "category": "cancellation",
+      "callee": "cancel_wait.cancel"
+    },
+    {
+      "file": "server/app/services/websearch.py",
+      "function": "WikipediaSearchProvider.search",
+      "line": 65,
+      "category": "publication_or_write",
+      "callee": "item.get('title', '').replace"
+    },
+    {
+      "file": "server/app/services/websearch.py",
+      "function": "WebSearchManager.execute",
+      "line": 155,
+      "category": "cancellation",
+      "callee": "provider_task.cancel"
+    },
+    {
+      "file": "server/app/services/websearch.py",
+      "function": "WebSearchManager.execute",
+      "line": 178,
+      "category": "cancellation",
+      "callee": "cancel_wait.cancel"
+    },
+    {
+      "file": "server/app/services/windows_process_scope.py",
+      "function": "WindowsScope.retire",
+      "line": 224,
+      "category": "cancellation",
+      "callee": "self.terminate"
+    },
+    {
+      "file": "server/app/services/windows_process_scope.py",
+      "function": "WindowsScope.retire",
+      "line": 237,
+      "category": "cancellation",
+      "callee": "self.terminate"
+    },
+    {
+      "file": "server/app/services/windows_scope_guard.py",
+      "function": "Guardian.start",
+      "line": 80,
+      "category": "process",
+      "callee": "subprocess.Popen"
+    },
+    {
+      "file": "server/app/services/windows_scope_guard.py",
+      "function": "Guardian.wait",
+      "line": 108,
+      "category": "publication_or_write",
+      "callee": "(self.path.parent / 'failure-stderr.txt').write_text"
+    },
+    {
+      "file": "server/app/services/windows_scope_guard.py",
+      "function": "Guardian.close",
+      "line": 129,
+      "category": "cancellation",
+      "callee": "self.proc.kill"
+    },
+    {
+      "file": "server/app/services/workflow_execution.py",
+      "function": "cancel",
+      "line": 126,
+      "category": "cancellation",
+      "callee": "proc.cancel"
+    },
+    {
+      "file": "server/app/storage.py",
+      "function": "_s3_key",
+      "line": 43,
+      "category": "publication_or_write",
+      "callee": "path.replace"
+    },
+    {
+      "file": "server/app/storage.py",
+      "function": "_s3_list",
+      "line": 85,
+      "category": "publication_or_write",
+      "callee": "subdir.replace"
+    },
+    {
+      "file": "server/app/storage.py",
+      "function": "_fs_path",
+      "line": 119,
+      "category": "publication_or_write",
+      "callee": "path.replace"
+    },
+    {
+      "file": "server/app/storage.py",
+      "function": "_fs_put",
+      "line": 142,
+      "category": "publication_or_write",
+      "callee": "os.replace"
+    },
+    {
+      "file": "server/app/storage.py",
+      "function": "put_text",
+      "line": 208,
+      "category": "publication_or_write",
+      "callee": "put_bytes"
+    },
+    {
+      "file": "server/app/storage.py",
+      "function": "list_tree",
+      "line": 239,
+      "category": "publication_or_write",
+      "callee": "subdir.replace"
+    },
+    {
+      "file": "server/app/storage.py",
+      "function": "copy_prefix",
+      "line": 258,
+      "category": "publication_or_write",
+      "callee": "put_bytes"
+    },
+    {
+      "file": "server/app/storage.py",
+      "function": "_check_stage_prefix",
+      "line": 277,
+      "category": "publication_or_write",
+      "callee": "stage_prefix.replace"
+    }
+  ],
+  "limitations": [
+    "Router paths are local; prepend each router prefix",
+    "Native/WSL/MPI child processes and user shell code require runtime inspection",
+    "Cancellation call sites include asyncio tasks; reviewed matrix distinguishes them",
+    "Write boundaries include staging/checkpoints, not only active publication"
+  ]
+}

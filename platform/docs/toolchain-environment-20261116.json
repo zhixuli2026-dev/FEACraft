@@ -1,0 +1,234 @@
+{
+  "observed_at": "2026-11-16T15:50:12.913885+00:00",
+  "evidence": "tmp/live-gmsh-deployment-3whs6juk/capabilities.json",
+  "python": {
+    "version": "3.11.7",
+    "packages": {
+      "cadquery": "2.8.0",
+      "fastapi": "0.148.0",
+      "httpx": "0.28.1",
+      "matplotlib": "3.11.2",
+      "meshio": "5.3.5",
+      "numpy": "2.4.6",
+      "sqlalchemy": "2.1.5",
+      "trame": "ok",
+      "vtk": "9.6.2",
+      "wslink": "2.6.0"
+    },
+    "reachable": true
+  },
+  "wsl": {
+    "distro": "vibeflow-linux",
+    "gmsh": true,
+    "latexmk": true,
+    "openfoam": true,
+    "openfoam_bashrc_loaded": true,
+    "openfoam_path": "/usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/blockMesh",
+    "openfoam_version": "v2406",
+    "reachable": true,
+    "wmake": true,
+    "wmake_path": "/usr/lib/openfoam/openfoam2406/wmake/wmake"
+  },
+  "gmsh": {
+    "package": "4.12.1+ds1-1.1build2",
+    "version": "4.12.1",
+    "binary": "/usr/bin/gmsh",
+    "actual_pipeline_verified": true
+  },
+  "binaries_discovery_only": [
+    {
+      "tool": "python",
+      "env": "VIBEFLOW_PYTHON",
+      "value": "D:\\vibeflow_reverse\\platform\\server\\.venv\\Scripts\\python.exe",
+      "source": "fallback",
+      "available": true
+    },
+    {
+      "tool": "node",
+      "env": "VIBEFLOW_NODE",
+      "value": "C:\\Program Files\\nodejs\\node.exe",
+      "source": "fallback",
+      "available": true
+    },
+    {
+      "tool": "npm",
+      "env": "VIBEFLOW_NPM",
+      "value": "C:\\Program Files\\nodejs\\npm.cmd",
+      "source": "fallback",
+      "available": true
+    },
+    {
+      "tool": "pandoc",
+      "env": "VIBEFLOW_PANDOC",
+      "value": "D:\\vibeflow_reverse\\extracted\\share\\vibeflow\\tools\\pandoc\\pandoc.exe",
+      "source": "fallback",
+      "available": true
+    },
+    {
+      "tool": "calculix",
+      "env": "VIBEFLOW_CALCULIX",
+      "value": "D:\\vibeflow_reverse\\third_party\\calculix-2.23-bin\\calculix_2.23_4win\\ccx_static.exe",
+      "source": "fallback",
+      "available": true
+    },
+    {
+      "tool": "su2",
+      "env": "VIBEFLOW_SU2",
+      "value": "D:\\vibeflow_reverse\\third_party\\su2-8.5.0-omp-runtime2\\bin\\SU2_CFD.exe",
+      "source": "fallback",
+      "available": true
+    },
+    {
+      "tool": "pvpython",
+      "env": "VIBEFLOW_PVPYTHON",
+      "value": "D:\\vibeflow_reverse\\extracted\\bin\\pvpython.exe",
+      "source": "fallback",
+      "available": true
+    },
+    {
+      "tool": "pvbatch",
+      "env": "VIBEFLOW_PVBATCH",
+      "value": "D:\\vibeflow_reverse\\extracted\\bin\\pvbatch.exe",
+      "source": "fallback",
+      "available": true
+    },
+    {
+      "tool": "wsl_distro",
+      "env": "VIBEFLOW_WSL_DISTRO",
+      "value": "vibeflow-linux",
+      "source": "fallback",
+      "available": true
+    },
+    {
+      "tool": "openfoam_bashrc",
+      "env": "VIBEFLOW_OPENFOAM_BASHRC",
+      "value": "/usr/lib/openfoam/openfoam2406/etc/bashrc",
+      "source": "fallback",
+      "available": true
+    },
+    {
+      "tool": "claude",
+      "env": "VIBEFLOW_CLAUDE",
+      "value": "C:\\Users\\Administrator\\AppData\\Roaming\\npm\\claude.cmd",
+      "source": "path",
+      "available": true
+    },
+    {
+      "tool": "codex",
+      "env": "VIBEFLOW_CODEX",
+      "value": "c:\\Users\\Administrator\\.vscode\\extensions\\openai.chatgpt-26.1106.51428-win32-x64\\bin\\windows-x86_64\\codex.exe",
+      "source": "path",
+      "available": true
+    },
+    {
+      "tool": "opencode",
+      "env": "VIBEFLOW_OPENCODE",
+      "value": "C:\\Users\\Administrator\\AppData\\Roaming\\npm\\opencode.cmd",
+      "source": "path",
+      "available": true
+    },
+    {
+      "tool": "kimi",
+      "env": "VIBEFLOW_KIMI",
+      "value": null,
+      "source": "missing",
+      "available": false
+    }
+  ],
+  "minimum_stage_checks": {
+    "A": {
+      "stage": "A",
+      "ok": true,
+      "missing": [],
+      "checks": [
+        {
+          "check": "geometry/CadQuery",
+          "ok": true
+        }
+      ]
+    },
+    "B": {
+      "stage": "B",
+      "ok": true,
+      "missing": [],
+      "checks": [
+        {
+          "check": "mesh/OpenFOAM",
+          "ok": true
+        }
+      ]
+    },
+    "C": {
+      "stage": "C",
+      "ok": true,
+      "missing": [],
+      "checks": [
+        {
+          "check": "solve/OpenFOAM",
+          "ok": true
+        },
+        {
+          "check": "UDF/wmake",
+          "ok": true
+        }
+      ]
+    },
+    "D": {
+      "stage": "D",
+      "ok": true,
+      "missing": [],
+      "checks": [
+        {
+          "check": "post/VTK",
+          "ok": true
+        },
+        {
+          "check": "post/numpy",
+          "ok": true
+        },
+        {
+          "check": "plot/matplotlib",
+          "ok": true
+        },
+        {
+          "check": "report/pandoc",
+          "ok": true
+        }
+      ]
+    },
+    "E": {
+      "stage": "E",
+      "ok": true,
+      "missing": [],
+      "checks": [
+        {
+          "check": "report/pandoc",
+          "ok": true
+        },
+        {
+          "check": "LaTeX/latexmk",
+          "ok": true
+        }
+      ]
+    },
+    "V": {
+      "stage": "V",
+      "ok": true,
+      "missing": [],
+      "checks": [
+        {
+          "check": "dev/node",
+          "ok": true
+        },
+        {
+          "check": "dev/npm",
+          "ok": true
+        }
+      ]
+    }
+  },
+  "missing_discovery": [
+    "kimi"
+  ],
+  "scope": "Local Windows/WSL snapshot; discovery/minimum checks are not all-feature or container deployment acceptance"
+}

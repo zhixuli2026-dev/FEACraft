@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeFlow Skill Creator"
+  short_description: "Create and validate reusable VibeFlow skills"
+  default_prompt: "Use $vibeflow-skill-creator to design, package, and validate this reusable skill."

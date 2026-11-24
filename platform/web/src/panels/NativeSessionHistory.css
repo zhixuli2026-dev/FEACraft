@@ -1,0 +1,31 @@
+.native-session-history {
+  flex: 0 0 auto; min-width: 0; max-height: min(28rem, 55dvh); overflow: auto;
+  border-bottom: 1px solid var(--vf-border); background: var(--vf-panel); color: var(--vf-text);
+  font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; scrollbar-gutter: stable;
+}
+.native-session-history summary { min-height: 44px; padding: 10px 12px; cursor: pointer; box-sizing: border-box; font-weight: 600; }
+.native-session-history-content { padding: 0 12px 12px; }
+.native-session-history h3 { font-size: 16px; line-height: 1.5; margin: 12px 0 8px; }
+.native-session-history h4 { font-size: 14px; margin: 20px 0 8px; }
+.native-session-history p { margin: 8px 0; max-width: 74ch; }
+.native-session-history-muted, .native-session-history-id { color: var(--vf-muted); }
+.native-session-history-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 12px 0; }
+.native-session-history-controls h4 { margin: 0; }
+.native-session-history label { display: grid; gap: 6px; margin: 8px 0; min-width: 0; }
+.native-session-history button, .native-session-history select, .native-session-history textarea {
+  min-height: 44px; min-width: 44px; max-width: 100%; padding: 8px 12px; box-sizing: border-box;
+  background: var(--vf-bg); color: var(--vf-text); border: 1px solid var(--vf-border); border-radius: 4px;
+  font: inherit; touch-action: manipulation;
+}
+.native-session-history button, .native-session-history select { cursor: pointer; }
+.native-session-history textarea { width: 100%; resize: vertical; caret-color: var(--vf-accent); }
+.native-session-history button:hover:not(:disabled) { background: var(--vf-active); }
+.native-session-history button:active:not(:disabled) { border-color: var(--vf-accent); }
+.native-session-history :disabled { color: var(--vf-muted); cursor: not-allowed; }
+.native-session-history :focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.native-session-history ::selection { color: var(--vf-text); background: var(--vf-active); }
+.native-session-history-detail { margin-top: 20px; padding-top: 4px; border-top: 1px solid var(--vf-border); }
+.native-session-history-detail form { margin: 20px 0; }
+.native-session-history-detail li { padding: 8px 0; }
+.native-session-history-tail { max-height: 14rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.6 ui-monospace, Consolas, monospace; }
+.native-session-link { margin-top: 20px; padding-top: 4px; border-top: 1px solid var(--vf-border); }

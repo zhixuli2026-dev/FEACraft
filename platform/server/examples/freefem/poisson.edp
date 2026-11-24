@@ -1,0 +1,20 @@
+// Manufactured Poisson problem on the unit square with zero Dirichlet data.
+mesh domain = square(32, 32);
+fespace Space(domain, P2);
+Space u, v;
+func exact = sin(pi*x) * sin(pi*y);
+solve poisson(u, v) =
+    int2d(domain)(dx(u)*dx(v) + dy(u)*dy(v))
+    - int2d(domain)(2*pi*pi*exact*v)
+    + on(1, 2, 3, 4, u=0);
+real errorL2 = sqrt(int2d(domain, qforder=8)((u-exact)^2));
+ofstream summary("poisson.csv");
+summary << "triangles,l2_error,center_value" << endl;
+summary << domain.nt << "," << errorL2 << "," << u(0.5,0.5) << endl;
+ofstream section("poisson-section.csv");
+section << "x,numerical,exact" << endl;
+for (int sample = 0; sample <= 32; ++sample) {
+    real xValue = sample / 32.0;
+    section << xValue << "," << u(xValue,0.5) << "," << sin(pi*xValue) << endl;
+}
+savemesh(domain, "poisson.mesh");

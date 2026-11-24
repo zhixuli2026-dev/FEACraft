@@ -1,0 +1,16 @@
+.upload-recovery { border-block: 1px solid var(--vf-border); padding-block: 12px; margin-block: 12px; min-width: 0; }
+.upload-recovery summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: 14px; font-weight: 600; }
+.upload-recovery section { min-width: 0; font-size: 13px; line-height: 1.6; }
+.upload-recovery p { margin: 10px 0; overflow-wrap: anywhere; }
+.upload-recovery h4 { font-size: 14px; line-height: 1.5; margin: 20px 0 8px; }
+.upload-recovery ul { padding: 0; margin: 12px 0; list-style: none; }
+.upload-recovery li + li { border-block-start: 1px solid var(--vf-border); margin-block-start: 16px; padding-block-start: 12px; }
+.upload-recovery label { display: grid; gap: 6px; margin-block: 12px; }
+.upload-recovery input, .upload-recovery textarea { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; min-height: 44px; border: 1px solid var(--vf-border); border-radius: 4px; padding: 10px; color: var(--vf-text); background: var(--vf-bg); font: inherit; }
+.upload-recovery textarea { resize: vertical; }
+.upload-recovery button { min-height: 44px; padding: 10px 12px; border: 1px solid var(--vf-border); border-radius: 4px; font: inherit; color: var(--vf-text); background: var(--vf-bg); cursor: pointer; }
+.upload-recovery button:disabled { cursor: not-allowed; }
+.upload-recovery :is(button, input, textarea, summary):focus-visible { outline: 2px solid var(--vf-focus, var(--vf-accent)); outline-offset: 2px; }
+.upload-recovery-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.upload-recovery-selected, .upload-recovery-confirm { border-block: 1px solid var(--vf-border); padding-block: 8px; margin-block: 16px; }
+.upload-recovery-time { color: var(--vf-muted); font-variant-numeric: tabular-nums; }

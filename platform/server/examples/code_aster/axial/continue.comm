@@ -1,0 +1,22 @@
+from code_aster.Commands import AFFE_CHAR_MECA, FIN, IMPR_RESU, MECA_STATIQUE, POST_RELEVE_T, POURSUITE
+from code_aster.Cata.Syntax import _F
+
+POURSUITE(LANG='EN')
+
+new_load = AFFE_CHAR_MECA(
+    MODELE=model,
+    DDL_IMPO=(
+        _F(GROUP_NO='FIXED', DX=0.0, DY=0.0, DZ=0.0),
+        _F(GROUP_NO='LOADED', DY=0.0, DZ=0.0),
+    ),
+    FORCE_NODALE=_F(GROUP_NO='LOADED', FX=4.2e6),
+)
+resumed = MECA_STATIQUE(MODELE=model, CHAM_MATER=materials, CARA_ELEM=section, EXCIT=_F(CHARGE=new_load))
+readout = POST_RELEVE_T(ACTION=_F(
+    INTITULE='RESTORED', OPERATION='EXTRACTION', RESULTAT=resumed,
+    NOM_CHAM='DEPL', GROUP_NO='LOADED', NOM_CMP='DX',
+))
+print('VIBEFLOW_ASTER_RESTORED_TIP_M={:.17g}'.format(readout.EXTR_TABLE().values()['DX'][0]))
+IMPR_RESU(FORMAT='MED', UNITE=80, RESU=_F(RESULTAT=resumed, NOM_CHAM='DEPL'))
+
+FIN()

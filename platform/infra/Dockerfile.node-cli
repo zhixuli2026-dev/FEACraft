@@ -1,0 +1,14 @@
+# Prepare the official archive with tools/fetch_node.py first. Linux x64 only.
+ARG API_IMAGE=vibeflow/api:dev
+FROM ${API_IMAGE} AS node
+USER root
+COPY .build-inputs/node-v24.22.3-linux-x64.tar.xz /tmp/node.tar.xz
+RUN python -c "import hashlib,tarfile; from pathlib import Path; p=Path('/tmp/node.tar.xz'); assert hashlib.sha256(p.read_bytes()).hexdigest()=='4f2b175a6d53a5c617a80dba2676238a0688cef28c6da4eba35c7d844e66fcfb'; tarfile.open(p).extractall('/opt',filter='data')" && rm /tmp/node.tar.xz
+ENV PATH="/opt/node-v24.22.3-linux-x64/bin:${PATH}"
+RUN node --version && npm --version
+
+FROM node
+COPY infra/cli-toolchain/package.json infra/cli-toolchain/package-lock.json /opt/vibeflow-cli/
+RUN npm ci --prefix /opt/vibeflow-cli --omit=dev --no-audit --no-fund && npm cache clean --force
+ENV PATH="/opt/vibeflow-cli/node_modules/.bin:${PATH}"
+RUN codex --version && opencode --version && kimi --version

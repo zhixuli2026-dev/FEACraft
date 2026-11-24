@@ -1,0 +1,41 @@
+from code_aster.Commands import (
+    AFFE_CARA_ELEM, AFFE_CHAR_MECA, AFFE_MATERIAU, AFFE_MODELE,
+    DEBUT, DEFI_MATERIAU, FIN, IMPR_RESU, LIRE_MAILLAGE, MECA_STATIQUE, POST_RELEVE_T,
+)
+from code_aster.Cata.Syntax import _F
+
+DEBUT(LANG='EN')
+
+mesh = LIRE_MAILLAGE(FORMAT='ASTER', UNITE=20)
+model = AFFE_MODELE(
+    MAILLAGE=mesh,
+    AFFE=_F(TOUT='OUI', PHENOMENE='MECANIQUE', MODELISATION='BARRE'),
+)
+steel = DEFI_MATERIAU(ELAS=_F(E=210e9, NU=0.3))
+materials = AFFE_MATERIAU(MAILLAGE=mesh, AFFE=_F(TOUT='OUI', MATER=steel))
+section = AFFE_CARA_ELEM(
+    MODELE=model,
+    BARRE=_F(GROUP_MA='BAR', SECTION='GENERALE', CARA='A', VALE=0.01),
+)
+load = AFFE_CHAR_MECA(
+    MODELE=model,
+    DDL_IMPO=(
+        _F(GROUP_NO='FIXED', DX=0.0, DY=0.0, DZ=0.0),
+        _F(GROUP_NO='LOADED', DY=0.0, DZ=0.0),
+    ),
+    FORCE_NODALE=_F(GROUP_NO='LOADED', FX=2.1e6),
+)
+solution = MECA_STATIQUE(
+    MODELE=model,
+    CHAM_MATER=materials,
+    CARA_ELEM=section,
+    EXCIT=_F(CHARGE=load),
+)
+tip = POST_RELEVE_T(ACTION=_F(
+    INTITULE='AXIAL', OPERATION='EXTRACTION', RESULTAT=solution,
+    NOM_CHAM='DEPL', GROUP_NO='LOADED', NOM_CMP='DX',
+))
+print('VIBEFLOW_AXIAL_TIP_M={:.17g}'.format(tip.EXTR_TABLE().values()['DX'][0]))
+IMPR_RESU(FORMAT='MED', UNITE=80, RESU=_F(RESULTAT=solution, NOM_CHAM='DEPL'))
+
+FIN()

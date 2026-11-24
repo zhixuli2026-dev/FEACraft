@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeFlow STAR-CCM+"
+  short_description: "STAR-CCM+ workflow reference for licensed installations"
+  default_prompt: "Use $vibeflow-starccm to prepare this case and verify the STAR-CCM+ installation and license before execution."

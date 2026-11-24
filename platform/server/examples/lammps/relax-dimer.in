@@ -1,0 +1,19 @@
+# Lennard-Jones reduced units. A harmonic bond relaxes from length 1.4 to 1.
+units lj
+atom_style bond
+boundary f f f
+region cell block 0 6 0 6 0 6
+create_box 1 cell bond/types 1 extra/bond/per/atom 2 extra/special/per/atom 4
+create_atoms 1 single 2.0 3.0 3.0
+create_atoms 1 single 3.4 3.0 3.0
+mass 1 1.0
+pair_style zero 2.5
+pair_coeff * *
+bond_style harmonic
+bond_coeff 1 50.0 1.0
+create_bonds single/bond 1 1 2
+thermo 1
+thermo_style custom step atoms ebond pe fmax
+min_style cg
+minimize 1.0e-12 1.0e-10 200 2000
+write_dump all custom relaxed.lammpstrj id type x y z modify sort id

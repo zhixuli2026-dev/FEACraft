@@ -1,0 +1,16 @@
+# VibeFlow 前端镜像（vite build → nginx 静态+反代）
+# 构建：docker build -f infra/Dockerfile.web -t vibeflow/web:dev .
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS build
+WORKDIR /app
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+RUN npm run build
+
+FROM nginx:1.30.8-alpine@sha256:8eb2b5540eae779603cc3db84b3986a15ecb5308b54303146eee9837c137b51a
+RUN apk add --no-cache 'zlib=1.4-r0'
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY infra/nginx-web.conf /etc/nginx/conf.d/default.conf
+COPY infra/nginx-upstream-default/api.conf /etc/nginx/vibeflow-upstreams/api.conf
+# texo 模型（108MB WASM）随构建进镜像（public/ 已在 dist 里）
+EXPOSE 80

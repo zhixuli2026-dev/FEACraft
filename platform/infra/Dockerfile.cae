@@ -1,0 +1,16 @@
+# Optional OpenCFD OpenFOAM toolchain, layered on the built platform API image.
+ARG API_IMAGE=vibeflow/api:dev
+FROM ${API_IMAGE}
+ARG OPENFOAM_SERIES=2406
+ARG OPENFOAM_VERSION=2406.260127-2
+ARG GMSH_VERSION=4.13.1+ds1-6
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
+    && curl --fail --location https://dl.openfoam.com/pubkey.gpg -o /tmp/openfoam-key.asc \
+    && gpg --dearmor --output /usr/share/keyrings/openfoam.gpg /tmp/openfoam-key.asc \
+    && . /etc/os-release \
+    && echo "deb [signed-by=/usr/share/keyrings/openfoam.gpg] https://dl.openfoam.com/repos/deb ${VERSION_CODENAME} main" > /etc/apt/sources.list.d/openfoam.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends "openfoam${OPENFOAM_SERIES}-dev=${OPENFOAM_VERSION}" "gmsh=${GMSH_VERSION}" strace \
+    && rm -f /tmp/openfoam-key.asc \
+    && rm -rf /var/lib/apt/lists/*
+ENV VIBEFLOW_OPENFOAM_BASHRC=/usr/lib/openfoam/openfoam${OPENFOAM_SERIES}/etc/bashrc

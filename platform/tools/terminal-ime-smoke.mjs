@@ -1,0 +1,22 @@
+import assert from "node:assert/strict";
+import { ImePunctuationGate, isCjkPunctuation } from "../web/src/utils/ime.ts";
+
+const gate = new ImePunctuationGate();
+const sent = [];
+const before = (text, time) => gate.handle("beforeinput", text, time, value => sent.push(value));
+const end = (text, time) => gate.handle("compositionend", text, time, value => sent.push(value));
+assert.equal(before("，", 100), true);
+assert.equal(end("，", 179), true);
+assert.equal(before("，", 180), true);
+assert.equal(before("，", 181), true);
+assert.equal(end("。", 182), true);
+assert.equal(before("。", 183), true);
+assert.equal(before("，", 184), true);
+assert.equal(end("，", 264), true);
+assert.equal(before("中文", 265), false);
+assert.equal(before(",", 266), false);
+assert.deepEqual(sent, ["，", "，", "，", "。", "，", "，"]);
+assert.equal(isCjkPunctuation("！？；"), true);
+assert.equal(isCjkPunctuation("，A"), false);
+assert.equal(isCjkPunctuation("Ａｶ１"), false);
+console.log("IME CJK punctuation forwarding and 80ms dedup: OK");

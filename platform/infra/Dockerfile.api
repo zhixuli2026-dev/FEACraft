@@ -1,0 +1,35 @@
+# VibeFlow 后端镜像（FastAPI+uvicorn；生产容器形态）
+# 构建：docker build -f infra/Dockerfile.api -t vibeflow/api:dev .
+FROM python:3.11-slim@sha256:07d4824036af339fa1b6ef769cc99d9c10a141769538b52b3b597c84f7a7b535
+
+# vtk/cadquery/trame 的系统依赖（libGL 族）
+RUN sed -i -e 's|http://deb.debian.org/debian-security|https://snapshot.debian.org/archive/debian-security/20261123T120000Z/|' \
+    -e 's|http://deb.debian.org/debian|https://snapshot.debian.org/archive/debian/20261123T120000Z/|' \
+    -e '/^Signed-By:/a Check-Valid-Until: no' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+    libgl1 libglib2.0-0 libxrender1 libxext6 libgomp1 pandoc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY server/requirements-linux-amd64-cp311.lock ./requirements.lock
+RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r requirements.lock \
+    && pip check
+# The base supplies setuptools for builds. Runtime installs verified binary wheels only.
+RUN pip uninstall --yes setuptools && pip check
+# VTK sessions launch without an X display in production. Mesa provides surfaceless EGL.
+RUN apt-get update && apt-get install -y --no-install-recommends libegl1 libegl-mesa0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY server/app ./app
+COPY server/skills ./skills
+COPY server/examples ./examples
+COPY server/data/completion ./data/completion
+COPY server/alembic.ini ./alembic.ini
+COPY server/migrations ./migrations
+COPY scripts/maintain-s3-versions.py ./maintain-s3-versions.py
+COPY scripts/maintain-s3-publication-cache.py ./maintain-s3-publication-cache.py
+RUN mkdir -p /app/data
+
+ENV VIBEFLOW_HOST=0.0.0.0 VIBEFLOW_PORT=8000
+EXPOSE 8000
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

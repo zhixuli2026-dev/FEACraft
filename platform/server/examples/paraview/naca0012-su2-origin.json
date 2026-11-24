@@ -1,0 +1,9 @@
+{
+  "source": "tmp/linux-su2-20261118/linux-v1/flow-1.vtu",
+  "sha256": "2c67452f72f926dce0bfce8f234bf6296ce300830a1e858eb891ef084d9a1ce0",
+  "solver": "SU2 8.5.0",
+  "case": "NACA0012 Euler Mach 0.8, AOA 1.25, 5233 points, 10216 cells",
+  "validation": "tmp/mainline-linux-su2-evidence/validation.json",
+  "model_calls": 0,
+  "mock_llm_calls": 0
+}

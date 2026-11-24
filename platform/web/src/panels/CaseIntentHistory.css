@@ -1,0 +1,170 @@
+:is(.case-intent-history, .case-artifact-trace) {
+  margin: 8px 0 12px;
+  border-top: 1px solid #2a2f3a;
+  border-bottom: 1px solid #2a2f3a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+:is(.case-intent-history, .case-artifact-trace) summary {
+  padding: 7px 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.case-intent-history-body {
+  display: grid;
+  gap: 8px;
+  padding: 2px 6px 8px;
+  overflow-wrap: anywhere;
+  color: #aebbd0;
+}
+
+.case-intent-history dl,
+.case-intent-revisions,
+.case-intent-revisions ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case-intent-history dl > div,
+.case-intent-revisions ul > li {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+
+.case-intent-history dd {
+  margin: 0;
+  color: #dde5f2;
+}
+
+.case-intent-revisions > li {
+  padding: 6px 0;
+  border-top: 1px solid #2a2f3a;
+}
+
+.case-intent-revisions strong {
+  color: #dde5f2;
+  font-variant-numeric: tabular-nums;
+}
+
+:is(.case-intent-history, .case-artifact-trace) nav,
+.case-intent-history-retry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+:is(.case-intent-history, .case-artifact-trace) button {
+  padding: 3px 8px;
+  background: #1a1e27;
+  color: #cfd6e4;
+  border: 1px solid #2a2f3a;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+:is(.case-intent-history, .case-artifact-trace) button:disabled {
+  color: #8692a6;
+  cursor: default;
+}
+
+:is(.case-intent-history, .case-artifact-trace) summary:hover,
+:is(.case-intent-history, .case-artifact-trace) button:not(:disabled):hover {
+  background: #232b39;
+}
+
+:is(.case-intent-history, .case-artifact-trace) :is(summary, button):focus-visible {
+  outline: 2px solid #89adff;
+  outline-offset: -1px;
+}
+
+:is(.case-intent-history, .case-artifact-trace) [role="alert"] {
+  color: #fca5a5;
+}
+
+.case-artifact-choices,
+.case-artifact-paths {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case-artifact-choices button {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 8px;
+  width: 100%;
+  margin-bottom: 3px;
+  text-align: left;
+}
+
+.case-artifact-choices button[aria-pressed="true"] {
+  border-color: #89adff;
+  background: #232b39;
+}
+
+.case-artifact-details {
+  display: grid;
+  gap: 6px;
+  padding: 8px 0;
+  border-top: 1px solid #2a2f3a;
+  color: #dde5f2;
+}
+
+.case-artifact-details dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 8px;
+  margin: 0;
+}
+
+.case-artifact-details dd {
+  margin: 0;
+}
+
+.case-artifact-upstream {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.case-initial-evidence,
+.case-solve-evidence {
+  container-type: inline-size;
+  display: grid;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.case-initial-evidence dd,
+.case-solve-evidence dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.case-initial-evidence button {
+  min-height: 44px;
+}
+
+.case-overset-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+.case-overset-counts span {
+  white-space: nowrap;
+}
+
+@container (max-width: 260px) {
+  .case-initial-evidence dl,
+  .case-solve-evidence dl { grid-template-columns: minmax(0, 1fr); }
+}

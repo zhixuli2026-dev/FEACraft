@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeFlow Abaqus"
+  short_description: "Abaqus workflow reference for licensed installations"
+  default_prompt: "Use $vibeflow-abaqus to prepare this workflow and verify the Abaqus installation and license before execution."

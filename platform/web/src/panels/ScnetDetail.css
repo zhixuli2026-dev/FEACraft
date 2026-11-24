@@ -1,0 +1,151 @@
+.scnet-workbench button:disabled {
+  opacity: 0.55;
+}
+
+.scnet-account-grid,
+.scnet-account-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
+  gap: 12px;
+}
+
+.scnet-manual {
+  margin-block-start: 14px;
+  padding-block-start: 12px;
+  border-block-start: 1px solid #2a2f3a;
+}
+
+.scnet-account-grid label,
+.scnet-region-status {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.scnet-account-summary {
+  margin: 0 0 14px;
+}
+
+.scnet-account-summary dt,
+.scnet-region-status {
+  color: #a7b2c8;
+}
+
+.scnet-account-summary dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.scnet-workbench :is(button, input, select):focus-visible {
+  outline: 2px solid #7db4ff;
+  outline-offset: 2px;
+}
+
+.scnet-detail {
+  container-type: inline-size;
+  margin-block-start: 12px;
+  padding: 12px;
+  border: 1px solid #2a2f3a;
+  border-radius: 6px;
+  background: #10141c;
+  overflow-wrap: anywhere;
+}
+
+.scnet-detail-header,
+.scnet-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.scnet-detail-header {
+  justify-content: space-between;
+  margin-block-end: 10px;
+}
+
+.scnet-detail-header h3 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.scnet-detail-search {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.scnet-detail-group h4 {
+  margin: 12px 0 2px;
+}
+
+.scnet-detail-group h4 button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  border-block-end: 1px solid #2a2f3a;
+  background: transparent;
+  color: #d7dce5;
+  padding: 5px 0;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.scnet-detail-group h4 button:disabled {
+  cursor: default;
+}
+
+.scnet-detail-group h4 span,
+.scnet-detail-note {
+  color: #a7b2c8;
+  font-weight: normal;
+}
+
+.scnet-detail-group dl {
+  margin: 0;
+}
+
+.scnet-detail-field {
+  display: grid;
+  grid-template-columns: minmax(75px, 30%) minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  padding: 6px 0;
+  border-block-end: 1px solid #232936;
+}
+
+.scnet-detail-field dt {
+  color: #a7b2c8;
+}
+
+.scnet-detail-field dd {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.scnet-detail-note:not(:empty) {
+  margin-block: 8px 0;
+}
+
+@container (max-width: 340px) {
+  .scnet-detail-field {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 2px;
+  }
+
+  .scnet-detail-field dt {
+    grid-column: 1;
+  }
+
+  .scnet-detail-field dd {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .scnet-detail-field button {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}

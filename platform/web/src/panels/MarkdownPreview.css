@@ -1,0 +1,26 @@
+.md-preview .math-block,
+.md-preview mjx-container[display="true"] {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.md-preview mjx-container[display="true"] { text-align: center; margin-block: .8em; }
+.md-preview mjx-container svg { display: inline-block; }
+.md-preview mjx-assistive-mml {
+  position: absolute;
+  clip: rect(1px, 1px, 1px, 1px);
+  padding: 1px 0 0;
+  border: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.md-preview .markdown-math-status {
+  color: var(--vf-text);
+  margin: 0 0 8px;
+}
+
+.md-preview .markdown-math-status button { margin-inline-start: 8px; }

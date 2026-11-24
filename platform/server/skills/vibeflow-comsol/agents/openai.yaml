@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeFlow COMSOL"
+  short_description: "COMSOL model reference for licensed installations"
+  default_prompt: "Use $vibeflow-comsol to prepare this model and verify the COMSOL installation and license before execution."

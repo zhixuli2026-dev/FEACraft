@@ -1,0 +1,20 @@
+# Linux 沙箱镜像（生产形态里替代 WSL 发行版的求解器容器；对标方案 §Linux 沙箱 vibeflow/sandbox）
+# 构建：docker build -f infra/Dockerfile.sandbox -t vibeflow/sandbox:v0.1 .
+# 注意：镜像很大（OpenFOAM+TeX Live ~6-8GB），首次构建很慢。
+FROM ubuntu:24.04@sha256:562111b88caa79c71391c0c4d3c2114a7d5c35915c20561fd893cb1e07929e6b
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openfoam gmsh \
+    python3 python3-pip python3-venv \
+    latexmk texlive-xetex texlive-lang-chinese texlive-latex-extra texlive-bibtex-extra biber \
+    curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安全形态（方案 §Linux 沙箱）：非 root 用户、工作区挂载点
+RUN useradd -m -u 10001 vf
+USER vf
+WORKDIR /work
+
+# 入口：常驻（作业经 docker exec 派生）
+CMD ["sleep", "infinity"]

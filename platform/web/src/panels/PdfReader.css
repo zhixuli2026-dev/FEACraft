@@ -1,0 +1,8 @@
+.pdf-reading-toolbar { flex-wrap: wrap; }
+.pdf-go-to-page, .pdf-search-progress { display: flex; align-items: center; gap: 5px; }
+.pdf-go-to-page input { width: 5.4em; }
+.pdf-search-progress { color: var(--vf-text); font-size: 12px; justify-content: space-between; margin-block-end: 6px; }
+.pdf-reading-sidebar { width: clamp(136px, 33%, 220px); flex-shrink: 0; overflow: auto; border-inline-end: 1px solid #2a2f3a; padding: 6px; }
+.pdf-reading-sidebar [aria-current="page"] { outline: 1px solid #84b1ff; outline-offset: -1px; }
+.pdf-search-overlay { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.pdf-search-hit { position: absolute; background: rgb(255 194 51 / .5); }

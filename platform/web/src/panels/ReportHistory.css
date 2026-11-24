@@ -1,0 +1,38 @@
+.report-history { padding: 6px 10px; flex-shrink: 0; border-bottom: 1px solid var(--vf-border); background: var(--vf-panel); font-size: 14px; color: var(--vf-text); }
+.report-history button { min-height: 44px; padding: 6px 10px; border: 1px solid var(--vf-border); border-radius: 4px; background: var(--vf-panel); color: var(--vf-text); cursor: pointer; font: inherit; }
+.report-history button:hover:not(:disabled) { background: var(--vf-active); }
+.report-history button:focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.report-history button:disabled { color: var(--vf-muted); background: var(--vf-panel); cursor: not-allowed; }
+.report-history button[aria-pressed="true"] { border-color: var(--vf-accent); background: var(--vf-active); }
+.report-history-list { margin-top: 8px; max-height: 260px; overflow: auto; scrollbar-color: var(--vf-muted) var(--vf-panel); }
+.report-history-heading { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 8px; }
+.report-history-rows { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.report-history-rows button { display: flex; flex-wrap: wrap; text-align: left; gap: 6px 16px; font-variant-numeric: tabular-nums; }
+.report-history p { margin: 8px 0; line-height: 1.6; overflow-wrap: anywhere; }
+.report-history ::selection { background: #315d95; color: #fff; }
+.pdf-frozen-source { display: flex; flex-direction: column; flex-shrink: 0; max-height: min(260px, 35%); overflow: hidden; padding: 8px 10px; color: var(--vf-text); background: var(--vf-panel); border-bottom: 1px solid var(--vf-border); font-size: 14px; }
+.pdf-source-heading { display: flex; flex-shrink: 0; align-items: center; gap: 8px; overflow-wrap: anywhere; }
+.pdf-source-heading > span { flex: 1; min-width: 0; }
+.pdf-source-heading button { flex-shrink: 0; }
+.pdf-source-heading button, .pdf-source-status button { background: var(--vf-panel); color: var(--vf-text); border: 1px solid var(--vf-border); border-radius: 4px; min-height: 44px; padding: 6px 10px; cursor: pointer; font: inherit; }
+.pdf-source-status { display: flex; flex-wrap: wrap; flex-shrink: 0; align-items: center; gap: 8px; padding: 8px 10px; color: var(--vf-text); background: var(--vf-panel); font-size: 14px; overflow-wrap: anywhere; }
+.pdf-frozen-source pre { min-height: 0; overflow: auto; margin: 8px 0 0; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; }
+.pdf-source-current { background: var(--vf-active); }
+.pdf-source-line { display: inline-block; min-width: 3em; padding-right: 1em; text-align: right; color: var(--vf-text); user-select: none; }
+.pdf-frozen-source :focus-visible, .pdf-source-status :focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.pdf-version-toolbar { flex-wrap: wrap; flex-shrink: 0; }
+.pdf-version-toolbar button { flex-shrink: 0; white-space: nowrap; }
+.publication-reading-actions { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+.publication-reading-actions button { min-height: 44px; }
+.publication-reading-actions button:focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.report-derivatives { padding: 10px 0; max-width: 100%; min-width: 0; }
+.report-derivatives > button { text-align: left; white-space: normal; }
+.report-derivatives select { max-width: 100%; background: var(--vf-panel); color: var(--vf-text); border: 1px solid var(--vf-border); min-height: 44px; padding: 6px; border-radius: 4px; font: inherit; }
+.report-derivatives label { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.report-derivatives .report-history-rows button { overflow-wrap: anywhere; min-width: 0; }
+.report-derivatives .report-history-rows span { min-width: 0; max-width: 100%; }
+.report-derivative-selected { border-top: 1px solid var(--vf-border); padding-top: 10px; margin-top: 12px; }
+.report-derivative-selected > button { margin: 0 4px 6px 0; }
+.report-derivative-selected pre { max-height: 280px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; tab-size: 4; }
+.report-derivative-selected iframe { display: block; width: 100%; height: 320px; border: 0; margin-top: 8px; }
+.report-derivatives :focus-visible { outline: 2px solid #80b6ff; outline-offset: 2px; }

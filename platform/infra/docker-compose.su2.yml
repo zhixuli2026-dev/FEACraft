@@ -1,0 +1,16 @@
+# API and worker must select the same solver image.
+services:
+  api:
+    image: ${VIBEFLOW_SU2_IMAGE:-vibeflow/api:su2}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.su2
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}
+  arq-worker:
+    image: ${VIBEFLOW_SU2_IMAGE:-vibeflow/api:su2}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.su2
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}

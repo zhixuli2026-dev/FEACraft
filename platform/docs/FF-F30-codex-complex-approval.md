@@ -1,0 +1,9 @@
+# FF-F30 Codex 交互问答与复杂审批
+
+待回应卡片优先占用原生会话的可滚动区域。提交时可停止执行，回应后恢复消息编辑区。使用现有会话草稿保存任务文本。允许自填的问题可以点击建议项后继续修改，选择题保留下拉，秘密字段只提供密码输入。提交后清除秘密输入，公开事件、审批快照和会话详情使用脱敏投影。 [待回应布局](../web/src/panels/NativeChatPanel.tsx) · [交互组件](../web/src/panels/NativeApproval.tsx) · [服务端答复校验](../server/app/services/codex_approval.py)
+
+- Windows 和非特权 WSL 的真实 Codex、DeepSeek 在 Plan 提出三个问题。Edge 点击建议、输入自定义标签、填写遮蔽字段，提交后读到实际标签。空答复返回 400，随后正确答复成功。公开事件、审批 API、会话历史及页面均无测试密值。SQLite 审批回执只保留已回答和秘密字段标记。 [Windows 回执](../../tmp/live-f30-codex-interaction-0nj449g_/live-result.json) · [WSL 回执](../../tmp/live-f30-codex-interaction-mjl9pq19/live-result.json) · [建议和自填界面](../../tmp/live-f30-codex-interaction-0nj449g_/question-card.png) · [密码字段与停止操作](../../tmp/live-f30-codex-interaction-0nj449g_/question-secret-field.png)
+- 非特权 WSL 与真实 DeepSeek 生成文件修改审批。Edge 拒绝后继续同一回合，公开 API 读回原字节。Windows 的 DeepSeek 默认工具目录没有提供直接 `apply_patch`，首次未生成文件审批。WSL 将单独的补丁操作转为实际文件审批事件。 [WSL 文件审批](../../tmp/live-f30-codex-interaction-819mr5sb/live-result.json) · [拒绝界面](../../tmp/live-f30-codex-interaction-819mr5sb/file-approval-card.png)
+- 命令审批与一次交付在 FF-F29 用实际 WSL 和 PostgreSQL 验证。额外权限场景在隔离进程开启 Codex 的 `request_permissions_tool`，真实模型发出网络权限请求，服务端拒绝只读模式授权，Edge 提交拒绝。可申请项按实际权限对象显示，空字段不形成复选项，原请求仍可展开。 [命令批准与取消](FF-F29-one-time-approval.md) · [额外权限回执](../../tmp/live-f30-codex-interaction-rp3fyn4o/live-result.json) · [权限界面](../../tmp/live-f30-codex-interaction-rp3fyn4o/permissions-card.png) · [Codex 原生工具选项](https://github.com/openai/codex/blob/main/codex-rs/features/src/lib.rs)
+
+两种宿主均使用已有 DeepSeek 真实配置。本阶段观测 16 个原生回合启动，其中 15 个上报用量，模拟 0。首次 Windows 交互发现原生模型工具要求每题具备非空选项，验收为秘密字段附通用占位选项，公开卡仍只显示密码框。一次 WSL 回复超过浏览器验收的 35 秒观察窗，扩大观察窗后复验通过。前端 TypeScript 与 Vite 构建通过，仍有现有大分包提示。 [阶段验收](../../tmp/FF-F30-codex-complex-approval-20261121/validation.json) · [正式真实验收入口](../server/live_llm_codex_complex_approval_acceptance.py) · [Codex 输入协议](https://github.com/openai/codex/blob/main/codex-rs/protocol/src/request_user_input.rs)

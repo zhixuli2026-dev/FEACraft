@@ -1,0 +1,12 @@
+.report-build-control { margin-block: 10px; color: var(--vf-text); font-size: 14px; overflow-wrap: anywhere; }
+.report-build-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.report-build-control button { min-height: 44px; border: 1px solid var(--vf-border); border-radius: 5px; padding: 7px 10px; background: var(--vf-panel); color: inherit; font: inherit; cursor: pointer; }
+.report-build-control button:hover { border-color: var(--vf-accent); }
+.report-build-control button:focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.report-build-control button:disabled { opacity: .55; cursor: default; }
+.report-build-control [data-testid="report-build"] { background: #2058c7; color: #fff; border-color: #2058c7; }
+.report-build-control p { margin-block: 8px; line-height: 1.6; }
+.report-build-control [role="alert"] { color: var(--vf-text); }
+.report-build-control ul { list-style: none; padding: 0; margin-block: 8px; }
+.report-build-control li { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-block: 4px; }
+.report-build-control ::selection { color: var(--vf-text); background: var(--vf-active); }

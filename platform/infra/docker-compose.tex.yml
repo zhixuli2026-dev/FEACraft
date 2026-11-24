@@ -1,0 +1,26 @@
+# Optional document tools; build the selected base API image first.
+services:
+  api:
+    image: ${VIBEFLOW_TEX_IMAGE:-vibeflow/api:tex}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.tex
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}
+        LATEXMK_VERSION: ${LATEXMK_VERSION:-1:4.86~ds-1}
+        TEXLIVE_VERSION: ${TEXLIVE_VERSION:-2024.20250309-1}
+        TEXLIVE_EXTRA_VERSION: ${TEXLIVE_EXTRA_VERSION:-2024.20250309-2}
+        BIBER_VERSION: ${BIBER_VERSION:-2.20-2}
+        NOTO_CJK_VERSION: ${NOTO_CJK_VERSION:-1:20240730+repack1-1}
+  arq-worker:
+    image: ${VIBEFLOW_TEX_IMAGE:-vibeflow/api:tex}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.tex
+      args:
+        API_IMAGE: ${VIBEFLOW_API_IMAGE:-vibeflow/api:dev}
+        LATEXMK_VERSION: ${LATEXMK_VERSION:-1:4.86~ds-1}
+        TEXLIVE_VERSION: ${TEXLIVE_VERSION:-2024.20250309-1}
+        TEXLIVE_EXTRA_VERSION: ${TEXLIVE_EXTRA_VERSION:-2024.20250309-2}
+        BIBER_VERSION: ${BIBER_VERSION:-2.20-2}
+        NOTO_CJK_VERSION: ${NOTO_CJK_VERSION:-1:20240730+repack1-1}

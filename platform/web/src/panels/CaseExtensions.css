@@ -1,0 +1,23 @@
+.case-extensions { color: var(--vf-text); margin: 20px 0; min-width: 0; overflow-wrap: anywhere; }
+.case-extensions h3 { font-size: 15px; margin: 0 0 10px; }
+.case-extensions fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.case-extensions label { display: grid; gap: 4px; min-width: 0; margin: 8px 0; }
+.case-extensions .case-extension-state { display: flex; align-items: center; gap: 6px; min-height: 32px; }
+.case-extensions input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--vf-accent); }
+.case-extensions input:not([type="checkbox"]), .case-extensions textarea, .case-extensions select { width: 100%; }
+.case-extensions button, .case-extensions input:not([type="checkbox"]), .case-extensions select, .case-extensions textarea {
+  max-width: 100%; min-height: 36px; padding: 6px 9px; font: inherit; color: var(--vf-text);
+  border: 1px solid var(--vf-border); border-radius: 5px; background: var(--vf-bg);
+}
+.case-extensions textarea { resize: vertical; font-family: ui-monospace, Consolas, monospace; }
+.case-extensions button:not(:disabled) { cursor: pointer; }
+.case-extensions button:hover:not(:disabled) { background: var(--vf-active); }
+.case-extensions button:disabled { color: var(--vf-muted); }
+.case-extensions button[type="submit"]:not(:disabled) { border-color: var(--vf-accent); }
+.case-extensions :focus-visible { outline: 2px solid var(--vf-accent); outline-offset: 2px; }
+.case-extensions p { margin: 8px 0; }
+.case-extension-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .case-extensions button, .case-extensions input:not([type="checkbox"]), .case-extensions select, .case-extensions textarea { min-height: 44px; }
+  .case-extensions input:not([type="checkbox"]), .case-extensions textarea, .case-extensions select { font-size: 16px; }
+}

@@ -1,0 +1,6 @@
+services:
+  web:
+    ports: ["${WEB_HTTPS_BIND:-443}:443"]
+    volumes:
+      - ./nginx-tls.conf.example:/etc/nginx/vibeflow-tls/https.conf:ro
+      - ${TLS_CERT_DIRECTORY:?Provide the TLS certificate directory}:/etc/nginx/certs:ro

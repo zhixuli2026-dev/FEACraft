@@ -1,0 +1,56 @@
+.vf-citation-format {
+  border: 1px solid var(--vf-border);
+  margin-block: 6px;
+  padding: 8px;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.vf-citation-format > p {
+  margin-block: 0 4px;
+}
+
+.vf-citation-format .csl-bib-body {
+  margin-top: 7px;
+}
+
+.vf-citation-format .csl-entry + .csl-entry {
+  margin-top: 4px;
+}
+
+.vf-citation-format .hanging-indent .csl-entry {
+  padding-inline-start: 1.25em;
+  text-indent: -1.25em;
+}
+
+.vf-citation-format .csl-entry:has(> .csl-left-margin) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 0.45em;
+}
+
+.vf-citation-format .csl-indent {
+  margin-inline-start: 1.25em;
+}
+
+.vf-citation-format a {
+  color: var(--vf-accent);
+  text-underline-offset: 0.14em;
+}
+
+.vf-citation-files input::file-selector-button {
+  border: 1px solid var(--vf-border);
+  border-radius: 5px;
+  background: var(--vf-bg);
+  color: var(--vf-text);
+  padding: 4px 8px;
+  margin-inline-end: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.vf-citation-files input:focus-visible {
+  outline: 1px solid var(--vf-accent);
+  outline-offset: 2px;
+}

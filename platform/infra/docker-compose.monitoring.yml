@@ -1,0 +1,26 @@
+services:
+  api:
+    environment:
+      VIBEFLOW_MONITORING_EXPORT_TOKEN: ${MONITORING_EXPORT_TOKEN:?Set a telemetry export token}
+      VIBEFLOW_MONITORING_DB_PATH: /telemetry/monitor.sqlite
+    volumes:
+      - telemetry:/telemetry:ro
+  monitor:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    command: ["python", "-m", "app.services.monitoring_collector"]
+    restart: unless-stopped
+    depends_on:
+      api: {condition: service_healthy}
+    environment:
+      VIBEFLOW_MONITORING_DB_PATH: /telemetry/monitor.sqlite
+      VIBEFLOW_MONITORING_NODES: ${MONITORING_NODES:?Configure node origins and database groups}
+      VIBEFLOW_MONITORING_EXPORT_TOKEN: ${MONITORING_EXPORT_TOKEN:?Set a telemetry export token}
+      VIBEFLOW_MONITORING_WEBHOOK: ${MONITORING_WEBHOOK:-}
+      VIBEFLOW_MONITORING_WEBHOOK_TOKEN: ${MONITORING_WEBHOOK_TOKEN:-}
+    volumes:
+      - telemetry:/telemetry
+
+volumes:
+  telemetry:
