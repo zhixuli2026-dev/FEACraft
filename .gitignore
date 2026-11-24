@@ -10,7 +10,12 @@
 /.impeccable/
 /.playwright-mcp/
 /tools/innoextract*/
+/tools/innoextract-src.tar.gz
 /tools/package/
+/tools/7zip-bin-*.tgz
+/tools/screen_0.png
+/tools/shot.b64
+/tools/vibeflow_window.png
 /platform/.build-inputs/
 /platform/backups/
 
