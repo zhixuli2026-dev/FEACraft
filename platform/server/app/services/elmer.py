@@ -1,4 +1,4 @@
-"""Locate the installed serial Windows Elmer solver."""
+"""Locate the configured serial Elmer solver or the default Windows package."""
 import os
 from pathlib import Path
 
@@ -17,8 +17,8 @@ def default_executable(_env=None):
 def elmer_executable():
     explicit = os.environ.get('VIBEFLOW_ELMER')
     path = Path(explicit).expanduser() if explicit else default_executable()
-    if os.name != 'nt' or path is None or not path.is_file():
-        raise FileNotFoundError('ElmerSolver 不可用，请配置 Windows 版 VIBEFLOW_ELMER')
+    if path is None or not path.is_file():
+        raise FileNotFoundError('ElmerSolver 不可用，请设置执行主机上的 VIBEFLOW_ELMER')
     return str(path.resolve())
 
 

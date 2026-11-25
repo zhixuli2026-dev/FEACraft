@@ -10,7 +10,7 @@ from .durable_events import json_text
 from .mesh_artifacts import input_snapshot
 from .runtime_config import get_runtime_setting
 from .solve_artifacts import configuration,managed
-from .solve_handler import SolveHandler,WORKER,command
+from .solve_handler import SolveHandler,WORKER,command,source_selection
 from . import mesh_worker,solve_publication
 from .step_handlers import PreparedStep
 from .workflow_state import ExecutionConflict
@@ -44,16 +44,17 @@ class PreparedSolveHandler(SolveHandler):
         await check_job_quota(db,user, case_id=case.id)
         identifier=str(uuid.uuid4());distro=get_runtime_setting('wsl_distro','vibeflow-linux')
         bashrc=get_runtime_setting('openfoam_bashrc','/usr/lib/openfoam/openfoam2406/etc/bashrc')
+        source_build = source_selection(cfg['solver'])
         config={'schema':'vibeflow.prepared-serial.v1','execution_id':identifier,'run_dir':run_dir,'distro':distro,
-            'configuration':cfg,'source':source,'max_log_bytes':limit,
+            'configuration':cfg,'source':source,'max_log_bytes':limit,**source_build,
             'retired_files':{p:r for p,r in source['files'].items() if managed(p,run_dir)},
             'case_queries':{'schema':queries.SCHEMA,'helper_sha256':hashlib.sha256(Path(queries.__file__).read_bytes()).hexdigest()}}
-        spec={'command':command(run_dir,identifier,distro,bashrc,limit,cfg['solver'])+' --prepared-source '+CONFIG,
+        spec={'command':command(run_dir,identifier,distro,bashrc,limit,cfg['solver'],**source_build)+' --prepared-source '+CONFIG,
             'case_prefix':case.s3_prefix,'runtime':'wsl','argv':None,'timeout_seconds':int(seconds),'max_log_bytes':limit,'evidence_run_dir':None}
         self.validate_spec(spec)
         descriptor={'handler':'prepared-solve.v1','handler_version':self.version,'case_id':case.id,'run_dir':run_dir,
             'solver':cfg['solver'],'source':source,'engineering_source':engineering,'configuration':cfg,
-            'prepared_configuration':config,'execution_id':identifier,'distro':distro,
+            'prepared_configuration':config,'execution_id':identifier,'distro':distro,**source_build,
             'worker_sha256':hashlib.sha256(WORKER.read_bytes()).hexdigest(),
             'runner_sha256':hashlib.sha256(Path(mesh_worker.__file__).read_bytes()).hexdigest()}
         return PreparedStep(self.key,self.version,self.job_type,spec,paths,None,self.publication_channel(descriptor),descriptor,
@@ -62,7 +63,7 @@ class PreparedSolveHandler(SolveHandler):
     def validate_spec(self,spec):
         try:
             parts=shlex.split(spec['command'])
-            if len(parts)!=18 or parts[-2:]!=['--prepared-source',CONFIG]:raise ValueError('Invalid prepared serial worker')
+            if len(parts) not in {18,20} or parts[-2:]!=['--prepared-source',CONFIG]:raise ValueError('Invalid prepared serial worker')
             prefix,tail=spec['command'].rsplit(' --prepared-source ',1)
             if tail!=CONFIG:raise ValueError('Invalid prepared serial source path')
             super().validate_spec({**spec,'command':prefix})

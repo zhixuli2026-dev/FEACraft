@@ -1,0 +1,7 @@
+
+if get_option('enable-normal')
+  feacraft_su2 = shared_library('feacraft_su2', 'feacraft_entry.cpp',
+                                dependencies: [su2_cfd_dep, su2_deps, common_dep],
+                                cpp_args: [default_warning_flags, su2_cpp_args])
+  executable('SU2_CFD-source', 'feacraft_cli.cpp', link_with: feacraft_su2)
+endif

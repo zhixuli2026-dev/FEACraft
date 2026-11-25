@@ -89,6 +89,18 @@ def artifacts(run,descriptor,output,frozen):
     if (native.get('schema')!='vibeflow.mpi-native.v1' or native['helper_sha256']!=descriptor['native_sha256'] or not native['openfoam']
             or (descriptor['distro']!='native-linux' and native['uid']==0)):
         raise ValueError('MPI toolchain does not belong to this invocation')
+    source_directory=config.get('source_library_dir')
+    source_build=native.get('source_build')
+    if source_directory:
+        from .openfoam_source_runner import library_path
+        tool=native['tools'][config['solver']]
+        if (not source_build or source_build.get('solver')!=config['solver']
+                or source_build.get('loader_sha256')!=config['source_loader_sha256']
+                or source_build.get('library_sha256')!=tool['sha256']
+                or tool['path']!=library_path(source_directory,config['solver'])):
+            raise ValueError('MPI source library differs from its sealed invocation')
+    elif source_build is not None:
+        raise ValueError('MPI receipt has an unexpected source library')
     if set(native['processors'])!={'processor'+str(i) for i in range(descriptor['subdomains'])}:
         raise ValueError('MPI has an incomplete processor set')
     if set(native['steps'])!={'decompose','solve','reconstruct'} or any(s['returncode']!=0 for s in native['steps'].values()):

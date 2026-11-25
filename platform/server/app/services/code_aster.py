@@ -1,4 +1,5 @@
 """Find the administrator-configured serial Linux Code_Aster installation."""
+import hashlib
 import json
 import os
 from pathlib import PurePosixPath
@@ -9,6 +10,7 @@ from .runtime_config import get_runtime_settings
 
 
 DEFAULT = '/opt/vibeflow-ff-c08/code-aster/bin/run_aster'
+SOURCE_MANIFEST = 'feacraft-code-aster-source.json'
 
 
 def runtime_root(executable):
@@ -38,6 +40,19 @@ def code_aster_executable():
 
 def state_package_digest(executable, distro):
     prefix = host_path(runtime_root(executable),distro)
+    source = prefix / SOURCE_MANIFEST
+    if source.is_file():
+        with source.open('rb') as stream:
+            body = stream.read(4 * 1024 * 1024 + 1)
+        if len(body) > 4 * 1024 * 1024:
+            raise ValueError('Code_Aster source build manifest is too large')
+        record = json.loads(body)
+        if (not isinstance(record,dict) or record.get('schema') != 'feacraft.code-aster-source.v1'
+                or not isinstance(record.get('files'),dict) or not record['files']
+                or not isinstance(record.get('source_sha256'),str)
+                or not re.fullmatch('[0-9a-f]{64}',record['source_sha256'])):
+            raise ValueError('Code_Aster source build manifest is unavailable')
+        return hashlib.sha256(body).hexdigest()
     packages = sorted((prefix/'conda-meta').glob('code-aster-*.json'))
     if len(packages)!=1 or packages[0].stat().st_size>4*1024*1024:
         raise ValueError('Code_Aster state requires an identifiable Conda solver build')

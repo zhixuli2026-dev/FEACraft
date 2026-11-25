@@ -1,4 +1,4 @@
-"""Execute an installed serial OpenFOAM solver in a sealed fresh attempt."""
+"""Execute a serial OpenFOAM solver in a sealed fresh attempt."""
 import argparse
 import hashlib
 import json
@@ -10,7 +10,7 @@ import sys
 import uuid
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
-from app.services import mesh_worker
+from app.services import mesh_worker, openfoam_source_runner
 from app.services.case_evidence import safe_run_dir
 from app.services.solve_artifacts import EVIDENCE, TOOLCHAIN, LOG, INVOCATION, initial_snapshot, output_times, result
 
@@ -25,14 +25,21 @@ def write_receipt(path,document):
 
 
 def native_toolchain(args):
-    tool=shutil.which(args.solver);appbin=os.environ.get('FOAM_APPBIN')
-    if not tool or not appbin or not Path(tool).resolve().is_relative_to(Path(appbin).resolve()):
-        raise ValueError('Solver must come from the configured OpenFOAM application directory')
+    source_build = None
+    if args.source_library_dir:
+        tool,source_build=openfoam_source_runner.build_record(args.source_library_dir,args.solver)
+    else:
+        tool=shutil.which(args.solver);appbin=os.environ.get('FOAM_APPBIN')
+        if not tool or not appbin or not Path(tool).resolve().is_relative_to(Path(appbin).resolve()):
+            raise ValueError('Solver must come from the configured OpenFOAM application directory')
     toolchain={'schema':'vibeflow.solve-toolchain.v1','execution_id':args.execution_id,
         'worker_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         'runner_sha256':hashlib.sha256(Path(mesh_worker.__file__).read_bytes()).hexdigest(),
-        'solver':args.solver,'executable':tool,'executable_sha256':hashlib.sha256(Path(tool).read_bytes()).hexdigest(),
+        'solver':args.solver,'executable':tool,
+        'executable_sha256':source_build['library_sha256'] if source_build else hashlib.sha256(Path(tool).read_bytes()).hexdigest(),
         'openfoam':os.environ.get('WM_PROJECT_VERSION'),'distro':args.distro,'python':sys.version.split()[0]}
+    if source_build:
+        toolchain['source_build']=source_build
     if not toolchain['openfoam']:raise ValueError('OpenFOAM environment is missing')
     return tool,toolchain
 
@@ -44,6 +51,7 @@ def main():
     parser.add_argument('--distro',required=True)
     parser.add_argument('--max-log-bytes',type=int,required=True)
     parser.add_argument('--solver',required=True)
+    parser.add_argument('--source-library-dir')
     parser.add_argument('--resume-checkpoint')
     parser.add_argument('--prepared-source')
     parser.add_argument('--retire-prepared-results',action='store_true')
@@ -63,7 +71,8 @@ def main():
         path=root/args.prepared_source;prepared=json.loads(path.read_text(encoding='utf8'))
         if (prepared['schema']!='vibeflow.prepared-serial.v1' or prepared['run_dir']!=run_dir
                 or prepared['execution_id']!=args.execution_id or prepared['distro']!=args.distro
-                or prepared['configuration']['solver']!=args.solver or prepared['max_log_bytes']!=args.max_log_bytes):
+                or prepared['configuration']['solver']!=args.solver or prepared['max_log_bytes']!=args.max_log_bytes
+                or prepared.get('source_library_dir')!=args.source_library_dir):
             raise ValueError('Prepared serial settings differ from invocation')
         from app.services import case_file_queries as query_helper
         helper_sha=hashlib.sha256(Path(query_helper.__file__).read_bytes()).hexdigest()
@@ -120,6 +129,8 @@ def main():
     arguments = ['-case', str(run)]
     if 'convection_diffusivity' in snapshot['configuration']:
         arguments += ['-lib', 'libthermoTools.so']
+    if args.source_library_dir:
+        tool,*arguments = openfoam_source_runner.command(tool,args.solver,arguments)
     mesh_worker.execute(tool,run,run/LOG,[args.max_log_bytes],trace=trace,arguments=arguments)
     if trace:
         queried=query_helper.collect(root,root,prepared['source'],lambda p,reverse=False:p)

@@ -4,10 +4,12 @@ import gzip
 import hashlib
 import json
 import math
+from pathlib import Path
 import re
 
 from .. import storage
 from . import attempt_workspace as workspace
+from . import openfoam_source_runner
 from . import openfoam_acoustic_medium,openfoam_boundary_inputs,openfoam_cht,openfoam_cht_materials,openfoam_conduction_material,openfoam_deformation,openfoam_dynamic_refinement,openfoam_fluid_model,openfoam_fluid_thermophysics,openfoam_numerical_inputs,openfoam_reference_temperature,openfoam_rotation
 from .async_ops import finish_before_cancel
 from .case_evidence import case_input_fingerprint, safe_run_dir, verify_records
@@ -268,6 +270,18 @@ def artifacts_for(run,descriptor,output,frozen_files):
             toolchain.get('distro')!=descriptor['distro'] or not toolchain.get('openfoam') or
             not toolchain.get('executable_sha256')):
         raise ValueError('Solver toolchain does not belong to this invocation')
+    directory = descriptor.get('source_library_dir')
+    source_build = toolchain.get('source_build')
+    if directory:
+        library = openfoam_source_runner.library_path(directory,toolchain['solver'])
+        if (not isinstance(source_build,dict) or toolchain.get('executable')!=library
+                or source_build.get('solver')!=toolchain['solver']
+                or source_build.get('openfoam')!=toolchain['openfoam']
+                or source_build.get('library_sha256')!=toolchain['executable_sha256']
+                or source_build.get('loader_sha256')!=openfoam_source_runner.digest(Path(openfoam_source_runner.__file__))):
+            raise ValueError('Solver source build does not belong to this invocation')
+    elif source_build is not None:
+        raise ValueError('Unexpected solver source build')
     if resumed:require_toolchain(toolchain,resumed['toolchain'])
     validate_fields(run,run_dir,evidence)
     if output.get('schema')!='vibeflow.attempt-outputs.v1':

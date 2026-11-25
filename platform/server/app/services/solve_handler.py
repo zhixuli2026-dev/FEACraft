@@ -20,15 +20,31 @@ from .runtime_config import get_runtime_setting
 from .solve_artifacts import configuration, gravity_input, has_initial_fields, motion_input, porosity_input, transport_input
 from .step_handlers import PreparedStep
 from .workflow_state import ExecutionConflict, InvalidStepInput
-from . import openfoam_runtime, openfoam_structural_feedback
+from . import openfoam_runtime, openfoam_source_runner, openfoam_structural_feedback
 
 WORKER=Path(__file__).with_name('solve_worker.py')
 
 
-def command(run_dir,execution_id,distro,bashrc,max_log_bytes,solver):
-    return 'source '+shlex.quote(bashrc)+' && exec '+shlex.join(['python3',win_to_wsl_path(WORKER),
+def source_selection(solver):
+    from ..config import get_settings
+
+    configured = get_settings().openfoam_source_library_dir
+    if not configured or solver not in openfoam_source_runner.SOLVERS:
+        return {}
+    try:
+        openfoam_source_runner.library_path(configured, solver)
+    except ValueError as error:
+        raise ExecutionConflict('runtime_unavailable', str(error)) from error
+    return {'source_library_dir': configured}
+
+
+def command(run_dir,execution_id,distro,bashrc,max_log_bytes,solver,source_library_dir=''):
+    arguments = ['python3',win_to_wsl_path(WORKER),
         '--run-dir',run_dir,'--execution-id',execution_id,'--distro',distro,
-        '--max-log-bytes',str(max_log_bytes),'--solver',solver])
+        '--max-log-bytes',str(max_log_bytes),'--solver',solver]
+    if source_library_dir:
+        arguments.extend(['--source-library-dir',source_library_dir])
+    return 'source '+shlex.quote(bashrc)+' && exec '+shlex.join(arguments)
 
 
 class SolveHandler:
@@ -208,7 +224,8 @@ class SolveHandler:
         from .quota import check_job_quota
         await check_job_quota(db,user, case_id=case.id)
         execution_id=str(uuid.uuid4())
-        spec={'command':command(run_dir,execution_id,distro,bashrc,budget['max_log_bytes'],cfg['solver']),
+        source_build = source_selection(cfg['solver'])
+        spec={'command':command(run_dir,execution_id,distro,bashrc,budget['max_log_bytes'],cfg['solver'],**source_build),
             'case_prefix':case.s3_prefix,'runtime':'wsl','argv':None,
             'timeout_seconds':budget['timeout_seconds'],'max_log_bytes':budget['max_log_bytes'],'evidence_run_dir':None}
         spec.update(openfoam_runtime.transport(spec['command'],distro))
@@ -223,19 +240,25 @@ class SolveHandler:
             'runner_sha256':hashlib.sha256(Path(mesh_worker.__file__).read_bytes()).hexdigest(),
             **({'restart_policy':restart_policy} if restart_policy is not None else {}),
             **({'initial_source':initial_source} if initial_source is not None else {}),
-            'input_publications':references,**derived_records},generated_inputs=generated or None)
+            'input_publications':references,**source_build,**derived_records},generated_inputs=generated or None)
 
     def validate_spec(self,spec):
         try:
             parts=shlex.split(spec['command'])
-            if (len(parts)!=16 or parts[0]!='source' or parts[2:6]!=['&&','exec','python3',win_to_wsl_path(WORKER)] or
-                    parts[6::2]!=['--run-dir','--execution-id','--distro','--max-log-bytes','--solver'] or
+            if (len(parts) not in {16,18} or parts[0]!='source' or parts[2:6]!=['&&','exec','python3',win_to_wsl_path(WORKER)] or
+                    parts[6:16:2]!=['--run-dir','--execution-id','--distro','--max-log-bytes','--solver'] or
                     not re.fullmatch(r'/usr/lib/openfoam/[A-Za-z0-9_.-]+/etc/bashrc',parts[1]) or
                     not re.fullmatch(r'[a-z0-9-]+',parts[11]) or safe_run_dir(parts[7])!=parts[7] or
                     str(uuid.UUID(parts[9]))!=parts[9] or int(parts[13])!=spec['max_log_bytes'] or
                     not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*Foam',parts[15]) or
                     not openfoam_runtime.valid_transport(spec,parts[11]) or spec.get('evidence_run_dir') is not None):
                 raise ValueError('Unexpected solver command')
+            if len(parts)==18:
+                if parts[16]!='--source-library-dir':
+                    raise ValueError('Unexpected solver source option')
+                openfoam_source_runner.library_path(parts[17],parts[15])
+                if spec['command']!=command(parts[7],parts[9],parts[11],parts[1],int(parts[13]),parts[15],parts[17]):
+                    raise ValueError('Noncanonical solver source command')
         except (ValueError,KeyError,TypeError,IndexError) as error:
             raise ExecutionConflict('evidence_invalid','Solver command differs from its registered worker') from error
 

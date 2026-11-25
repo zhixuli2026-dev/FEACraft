@@ -134,12 +134,27 @@ def main():
         if 'solution_text' in config:
             with (run/'system/fvSolution').open('x',encoding='utf-8') as dictionary:
                 dictionary.write(config['solution_text'])
-        names=('foamDictionary','decomposePar',config['solver'],'mpirun','reconstructPar')
+        solver=config['solver']
+        source_directory=config.get('source_library_dir')
+        names=('foamDictionary','decomposePar','mpirun','reconstructPar')
+        if not source_directory:names=(*names,solver)
         tools={name:shutil.which(name) for name in names}
         appbin=os.environ.get('FOAM_APPBIN')
         if not appbin or not os.environ.get('WM_PROJECT_VERSION') or not all(tools.values()):raise ValueError('MPI/OpenFOAM toolchain unavailable')
         if any(not Path(path).resolve().is_relative_to(Path(appbin).resolve()) for name,path in tools.items() if name!='mpirun'):
             raise ValueError('MPI solver/tool is outside the configured OpenFOAM installation')
+        source_build=None
+        rank_arguments=['-parallel','-case',str(run)]
+        if source_directory:
+            loader=Path(__file__).with_name('openfoam_source_runner.py')
+            if digest(loader)['sha256']!=config['source_loader_sha256']:
+                raise ValueError('MPI OpenFOAM source loader changed')
+            spec=importlib.util.spec_from_file_location('openfoam_source_runner',loader)
+            runner=importlib.util.module_from_spec(spec);spec.loader.exec_module(runner)
+            tools[solver],source_build=runner.build_record(source_directory,solver)
+            rank_command=runner.command(tools[solver],solver,rank_arguments)
+        else:
+            rank_command=[tools[solver],*rank_arguments]
         fingerprints={name:{'path':path,**digest(Path(path))} for name,path in tools.items()}
         trace=query_helper.Trace(stage) if query_helper else None
         if trace:fingerprints['strace']=trace.tool
@@ -180,7 +195,7 @@ def main():
         # This explicit per-invocation opt-in never changes WSL's nobody path.
         if config['distro']=='native-linux' and os.getuid()==0:
             mpi_environment.update(OMPI_ALLOW_RUN_AS_ROOT='1',OMPI_ALLOW_RUN_AS_ROOT_CONFIRM='1')
-        steps['solve']=invoke([tools['mpirun'],*mpi_options,'-np',str(config['subdomains']),tools[config['solver']],'-parallel','-case',str(run)],run,run/'mpi-solve.log',budget,
+        steps['solve']=invoke([tools['mpirun'],*mpi_options,'-np',str(config['subdomains']),*rank_command],run,run/'mpi-solve.log',budget,
             environment=mpi_environment,trace=trace,label='solve')
         steps['reconstruct']=invoke([tools['reconstructPar'],'-case',str(run)],run,run/'mpi-reconstruct.log',budget,trace=trace,label='reconstruct')
         # These three logs are opened by this parent, outside the traced native
@@ -211,6 +226,7 @@ def main():
             'deleted':sorted(translate(p,reverse=True) for p in deleted),
             'helper_sha256':digest(Path(__file__))['sha256']}
         if queried:receipt['case_queries']=queried
+        if source_build:receipt['source_build']=source_build
         with (proof/'native.json').open('x',encoding='utf8') as stream:json.dump(receipt,stream,sort_keys=True)
     finally:
         # The deterministic path and inode receipt remain available if SIGKILL

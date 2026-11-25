@@ -69,7 +69,8 @@ class ResumeHandler(SolveHandler):
         run_dir=data['run_dir'];execution_id=str(uuid.uuid4())
         distro,bashrc=openfoam_runtime.configured()
         if distro!=data['toolchain']['distro']:raise ExecutionConflict('runtime_unavailable','Checkpoint belongs to a different native runtime')
-        spec={'command':command(run_dir,execution_id,distro,bashrc,budget['max_log_bytes'],data['configuration']['solver'])+
+        source_build = {key:descriptor[key] for key in ('source_library_dir',) if key in descriptor}
+        spec={'command':command(run_dir,execution_id,distro,bashrc,budget['max_log_bytes'],data['configuration']['solver'],**source_build)+
             ' --resume-checkpoint '+shlex.quote(run_dir+'/'+checkpoint.NAME),
             'case_prefix':case.s3_prefix,'runtime':'wsl','argv':None,'evidence_run_dir':None,
             'timeout_seconds':budget['timeout_seconds'],'max_log_bytes':budget['max_log_bytes']}
@@ -77,7 +78,7 @@ class ResumeHandler(SolveHandler):
         self.validate_spec(spec)
         return PreparedResume(self.key,self.version,self.job_type,spec,[],None,self.publication_kind,
             {'handler':'solve.resume.v1','handler_version':self.version,'source':descriptor['source'],'run_dir':run_dir,
-             'configuration':data['configuration'],'execution_id':execution_id,'distro':distro,
+             'configuration':data['configuration'],'execution_id':execution_id,'distro':distro,**source_build,
              'worker_sha256':hashlib.sha256(Path(solve_worker.__file__).read_bytes()).hexdigest(),
              'runner_sha256':hashlib.sha256(Path(mesh_worker.__file__).read_bytes()).hexdigest(),
              'executor_sha256':hashlib.sha256(Path(checkpoint.__file__).read_bytes()).hexdigest(),
@@ -95,11 +96,11 @@ class ResumeHandler(SolveHandler):
     def validate_spec(self,spec):
         try:
             parts=shlex.split(spec['command'])
-            if len(parts)!=18 or parts[16:]!=['--resume-checkpoint',parts[7]+'/'+checkpoint.NAME]:raise ValueError('Unexpected resume command')
+            if len(parts) not in {18,20} or parts[-2:]!=['--resume-checkpoint',parts[7]+'/'+checkpoint.NAME]:raise ValueError('Unexpected resume command')
             if not openfoam_runtime.valid_transport(spec,parts[11]):raise ValueError('Unexpected resume runtime')
-            fresh=command(parts[7],parts[9],parts[11],parts[1],int(parts[13]),parts[15])
+            fresh=command(parts[7],parts[9],parts[11],parts[1],int(parts[13]),parts[15],parts[17] if len(parts)==20 else '')
+            if spec['command']!=fresh+' --resume-checkpoint '+shlex.quote(parts[-1]):raise ValueError('Noncanonical resume worker command')
             SolveHandler.validate_spec(self,{**spec,'command':fresh,**openfoam_runtime.transport(fresh,parts[11])})
-            if spec['command']!=fresh+' --resume-checkpoint '+shlex.quote(parts[17]):raise ValueError('Noncanonical resume worker command')
         except (ValueError,KeyError,TypeError,IndexError) as error:
             raise ExecutionConflict('evidence_invalid','续算命令不符合注册求解器协议') from error
 

@@ -54,6 +54,8 @@ def require_toolchain(actual,original):
     for key in ('solver','executable','executable_sha256','openfoam','distro','python','worker_sha256','runner_sha256'):
         if not original.get(key) or actual.get(key)!=original[key]:
             raise ValueError('Resume native environment differs from its checkpoint: '+key)
+    if actual.get('source_build')!=original.get('source_build'):
+        raise ValueError('Resume OpenFOAM source build differs from its checkpoint')
 
 
 def verify_frozen(root,run_dir,path,*,completed=False):

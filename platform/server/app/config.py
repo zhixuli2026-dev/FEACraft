@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     # Optional registered handler -> host overrides for mixed tool environments.
     job_handler_execution_hosts: dict[str, dict[str, str]] = Field(default_factory=dict)
     worker_host_queue: bool = False
+    openfoam_source_library_dir: str = ""  # Absolute path on the solver execution host.
 
     # --- 对象存储 ---
     # backend=fs: 本地文件系统（storage_fs_root 下，当前默认——Docker 未就绪期的选择）

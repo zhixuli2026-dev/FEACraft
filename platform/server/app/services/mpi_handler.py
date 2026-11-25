@@ -17,7 +17,7 @@ from .geometry_handler import GeometryHandler
 from .openfoam_numerical_inputs import DECOMPOSE, SOLUTION, declared_configuration, mpi_decomposition, native_inputs
 from .solve_artifacts import control_values
 from .step_handlers import PreparedStep
-from . import openfoam_runtime
+from . import openfoam_runtime, openfoam_source_runner
 from .workflow_state import ExecutionConflict, InvalidStepInput
 
 WORKER=Path(__file__).with_name('mpi_worker.py')
@@ -73,6 +73,10 @@ class MpiHandler:
         configuration={'source':source,'execution_id':identifier,'run_dir':run_dir,'solver':solver,'subdomains':count,
             'distro':distro,'bashrc':bashrc,'decompose_text':text,'max_log_bytes':budget['max_log_bytes'],'pmix_gds':'hash',
             'native_sha256':hashlib.sha256(NATIVE.read_bytes()).hexdigest()}
+        from .solve_handler import source_selection
+        source_build=source_selection(solver)
+        if source_build:
+            configuration.update(source_build,source_loader_sha256=openfoam_source_runner.digest(Path(openfoam_source_runner.__file__)))
         if selection is not None:
             configuration['decomposition']=selection
         if numerics:
