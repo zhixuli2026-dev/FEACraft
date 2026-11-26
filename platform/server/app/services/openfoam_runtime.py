@@ -4,6 +4,8 @@ from pathlib import Path
 import shutil
 import sys
 
+from .linux_job_workspace import isolated_command
+
 NATIVE_LINUX='native-linux'
 SERIAL_HANDLERS = frozenset({'mesh.generate', 'solve.openfoam', 'solve.openfoam.resume'})
 
@@ -53,13 +55,4 @@ def isolated_argv(workspace, argv, *, source_libraries=None):
     options = []
     if source_libraries:
         options.extend(('--openfoam-libraries', source_libraries))
-    launcher = Path(__file__).with_name('agent_shell_linux.py')
-    return ['/usr/bin/unshare', '--user', '--map-root-user', '--mount', '--net', '--pid', '--fork', '--kill-child=SIGKILL',
-            sys.executable, '-I', '-S', '-u', str(launcher), '--workspace', str(workspace), '--openfoam',
-            *options, '--', *argv]
-
-
-def child_environment(env):
-    return {name: value for name, value in env.items()
-            if name in {'PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TZ', 'VIBEFLOW_CASE_ROOT'}
-            or name.startswith(('OMP_', 'MKL_', 'OPENBLAS_'))}
+    return isolated_command(workspace, '--openfoam', argv, options=options)

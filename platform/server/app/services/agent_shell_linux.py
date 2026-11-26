@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import subprocess
@@ -14,6 +15,12 @@ import sys
 
 RUNTIME_DIRECTORIES = ('/usr', '/opt', '/bin', '/sbin', '/lib', '/lib32', '/lib64', '/libx32',
                        '/etc/alternatives', '/etc/fonts', '/etc/texmf', '/var/lib/texmf', '/var/cache/fontconfig')
+OFFICE_DIRECTORIES = ('/etc/libreoffice', '/var/lib/libreoffice')
+REGISTERED_WORKERS = {
+    'office': ('pdf_number_worker.py', 'ppt_worker.py'),
+    'compose': ('registered_compose_worker.py',),
+    'flotherm-convert': ('flotherm_convert_worker.py',),
+}
 RUNTIME_FILES = ('/etc/ld.so.cache', '/etc/localtime', '/etc/nsswitch.conf', '/etc/passwd', '/etc/group',
                  '/etc/os-release', '/etc/papersize', '/etc/locale.alias')
 ELMER_RUNTIME = Path('/run/elmer')
@@ -22,7 +29,7 @@ MOOSE_RUNTIME = Path('/run/moose')
 MOOSE_HELPER = MOOSE_RUNTIME / 'checkpoint.py'
 SHELL_HOME = Path('/home/user')
 RESERVED_PATHS = tuple(Path(path) for path in (*RUNTIME_DIRECTORIES, '/dev', '/etc', '/proc', '/sys', '/.old-root',
-                                              ELMER_RUNTIME, MOOSE_RUNTIME, SHELL_HOME))
+                                              *OFFICE_DIRECTORIES, ELMER_RUNTIME, MOOSE_RUNTIME, SHELL_HOME))
 DEVICES = ('null', 'zero', 'random', 'urandom')
 RO, NOSUID, NODEV, NOEXEC, REMOUNT, BIND = 1, 2, 4, 8, 32, 4096
 LIBC = ctypes.CDLL(None, use_errno=True)
@@ -49,13 +56,13 @@ def bind(root, target, *, source=None, flags=RO | NOSUID | NODEV):
     mount(None, destination, flags=REMOUNT | BIND | flags)
 
 
-def enable_openfoam_loopback():
+def enable_private_loopback():
     import fcntl
     import socket
     import struct
 
     if [name for _, name in socket.if_nameindex()] != ['lo']:
-        raise ValueError('OpenFOAM must start with only a private loopback interface')
+        raise ValueError('Isolated worker must start with only a private loopback interface')
     # Linux ifreq, SIOCGIFFLAGS, SIOCSIFFLAGS and IFF_UP.
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as control:
         request = bytearray(struct.pack('16s24x', b'lo'))
@@ -65,8 +72,63 @@ def enable_openfoam_loopback():
         fcntl.ioctl(control, 0x8914, request)
 
 
+def bind_worker_runtime(root, program, case, application):
+    if not program.is_absolute() or '..' in program.parts:
+        raise ValueError('Registered worker requires an absolute executable')
+    resolved = program.resolve(strict=True)
+    for executable in dict.fromkeys((resolved, program)):
+        installed = root / executable.relative_to('/')
+        if installed.is_file() and os.path.samestat(executable.stat(), installed.stat()):
+            continue
+        # Preserve the installed layout used by Python virtual environments
+        # and the ParaView binary distribution to locate their libraries.
+        prefix = executable.parent.parent
+        if (executable.parent.name != 'bin' or prefix.resolve(strict=True) != prefix
+                or any(prefix.is_relative_to(path) or path.is_relative_to(prefix)
+                       for path in (*RESERVED_PATHS, case, application, Path('/tmp')))):
+            raise ValueError('Configure the worker executable in a dedicated runtime directory')
+        bind(root, prefix)
+    if not (root / program.relative_to('/')).is_file():
+        raise ValueError('Configured worker executable is absent from its runtime mount')
+
+
+def bind_attempt_manifest(root, case):
+    manifest = case.parent / 'manifest.json'
+    descriptor = os.open(manifest, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise ValueError('Attempt manifest must be a regular file')
+        bind(root, manifest, source=Path(f'/proc/self/fd/{descriptor}'))
+    finally:
+        os.close(descriptor)
+
+
+def bind_document_runtime(root, case, helper, folders, tool):
+    bind(root, helper)
+    for folder in folders:
+        if (folder.parent != case.parent or folder.resolve(strict=True) != folder
+                or not re.fullmatch(r'\.(?:pandoc-call-[0-9a-f]{32}|report-compile-[A-Za-z0-9_-]{1,64})', folder.name)):
+            raise ValueError('Document scratch directory differs from its registered workspace')
+        descriptor = os.open(folder, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            bind(root, folder, source=Path(f'/proc/self/fd/{descriptor}'), flags=NOSUID | NODEV)
+        finally:
+            os.close(descriptor)
+    if tool is not None:
+        tool = tool.resolve(strict=True)
+        if any(tool.is_relative_to(path) or path.is_relative_to(tool) for path in (case, *folders)):
+            raise ValueError('Document executable overlaps its workspace')
+        installed = root / tool.relative_to('/')
+        if not installed.is_file() or not os.path.samestat(tool.stat(), installed.stat()):
+            if any(part in {'dev', 'proc', 'sys', '.old-root'} for part in tool.parts[1:2]):
+                raise ValueError('Document executable overlaps private system paths')
+            bind(root, tool)
+
+
 def prepare_root(case, *, terminal=False, executable=None, elmer=False, moose=False,
-                 moose_checkpoint=None, home=None, openfoam=False, foam_libraries=None):
+                 moose_checkpoint=None, home=None, openfoam=False, foam_libraries=None,
+                 worker_runtime=None, attempt_manifest=False, paraview=False, document=None,
+                 ppt_media=False, case_command=False):
     if case is not None and (
         not case.is_absolute() or case != Path.cwd() or case != case.resolve(strict=True)
         or len(case.parts) < 3
@@ -77,7 +139,7 @@ def prepare_root(case, *, terminal=False, executable=None, elmer=False, moose=Fa
     mount('tmpfs', root, filesystem='tmpfs', flags=NOSUID | NODEV, options='mode=0755')
     for name in ('dev','etc','proc','tmp','.old-root'):
         (root / name).mkdir()
-    if moose or openfoam:
+    if moose or openfoam or paraview or ppt_media or case_command:
         shm = root / 'dev/shm'
         shm.mkdir()
         mount('tmpfs', shm, filesystem='tmpfs', flags=NOSUID | NODEV | NOEXEC, options='mode=1777')
@@ -85,7 +147,8 @@ def prepare_root(case, *, terminal=False, executable=None, elmer=False, moose=Fa
         mount('tmpfs', root / 'tmp', filesystem='tmpfs', flags=NOSUID | NODEV, options='size=512m,mode=0700')
     else:
         (root / 'tmp').chmod(0o1777)
-    for name in RUNTIME_DIRECTORIES:
+    runtime = (*RUNTIME_DIRECTORIES, *OFFICE_DIRECTORIES) if ppt_media else RUNTIME_DIRECTORIES
+    for name in runtime:
         source = Path(name)
         if source.is_symlink():
             (root / source.relative_to('/')).symlink_to(os.readlink(source))
@@ -156,19 +219,19 @@ def prepare_root(case, *, terminal=False, executable=None, elmer=False, moose=Fa
                     or hashlib.file_digest(script, 'sha256').hexdigest() != moose_checkpoint):
                 raise ValueError('Linux MOOSE checkpoint helper differs from its sealed digest')
             bind(root, MOOSE_HELPER, source=Path(f'/proc/self/fd/{script.fileno()}'))
-    if openfoam:
+    if openfoam or worker_runtime is not None:
         application = Path(__file__).resolve().parents[1]
         if case.name != 'run' or application.is_relative_to(case) or case.is_relative_to(application):
-            raise ValueError('OpenFOAM requires an independent sealed workspace')
-        bind(root, application)
-        manifest = case.parent / 'manifest.json'
-        descriptor = os.open(manifest, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-        try:
-            if not stat.S_ISREG(os.fstat(descriptor).st_mode):
-                raise ValueError('OpenFOAM attempt manifest must be a regular file')
-            bind(root, manifest, source=Path(f'/proc/self/fd/{descriptor}'))
-        finally:
-            os.close(descriptor)
+            raise ValueError('Registered Linux worker requires an independent sealed workspace')
+        if not paraview:
+            bind(root, application)
+        if worker_runtime is not None:
+            bind_worker_runtime(root, worker_runtime, case, application)
+    if openfoam or attempt_manifest:
+        bind_attempt_manifest(root, case)
+    if document is not None:
+        bind_document_runtime(root, case, *document)
+    if openfoam:
         if foam_libraries is not None:
             source = foam_libraries.resolve(strict=True)
             if (not foam_libraries.is_absolute() or not source.is_dir() or source == Path('/')
@@ -184,12 +247,13 @@ def prepare_root(case, *, terminal=False, executable=None, elmer=False, moose=Fa
         bind(root, Path('/dev') / name, flags=NOSUID | NOEXEC)
     mount('proc', root / 'proc', filesystem='proc', flags=RO | NOSUID | NODEV | NOEXEC)
 
-    # Keep the authorized directory rather than re-resolving its source when
-    # placing the only writable host mount. The bind excludes child mounts.
+    # Pin the authorized directory rather than re-resolving its source.
+    # The bind excludes child mounts.
     if case is not None:
         descriptor = os.open('.', os.O_RDONLY | os.O_DIRECTORY)
         try:
-            bind(root, case, source=Path(f'/proc/self/fd/{descriptor}'), flags=NOSUID | NODEV)
+            flags = NOSUID | NODEV | (RO if document is not None else 0)
+            bind(root, case, source=Path(f'/proc/self/fd/{descriptor}'), flags=flags)
         finally:
             os.close(descriptor)
 
@@ -224,8 +288,18 @@ def main():
     parser.add_argument('--workspace', type=Path)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--terminal', action='store_true')
+    mode.add_argument('--case-command', action='store_true')
     mode.add_argument('--solver-sha256')
     mode.add_argument('--openfoam', action='store_true')
+    mode.add_argument('--geometry', action='store_true')
+    mode.add_argument('--postprocess', action='store_true')
+    for name in REGISTERED_WORKERS:
+        mode.add_argument('--'+name, dest='registered_worker', action='store_const', const=name)
+    mode.add_argument('--ppt-media', action='store_true')
+    mode.add_argument('--paraview-sha256')
+    mode.add_argument('--document', choices=('pandoc', 'synctex'))
+    parser.add_argument('--document-folder', type=Path, action='append', default=[])
+    parser.add_argument('--document-executable', type=Path)
     parser.add_argument('--openfoam-libraries', type=Path)
     package = parser.add_mutually_exclusive_group()
     package.add_argument('--elmer', action='store_true')
@@ -240,12 +314,17 @@ def main():
         parser.error('A solver runtime requires a fixed executable')
     if args.moose_checkpoint_sha256 is not None and not args.moose:
         parser.error('The MOOSE checkpoint helper requires a MOOSE runtime')
-    if args.home_selection is not None and (args.solver_sha256 is not None or args.openfoam):
-        parser.error('Native solver children have no account home')
+    if args.home_selection is not None and (
+            args.solver_sha256 is not None or args.openfoam or args.geometry or args.postprocess
+            or args.paraview_sha256 or args.document or args.registered_worker or args.ppt_media
+            or args.case_command):
+        parser.error('Registered Linux workers have no account home')
     if args.openfoam_libraries is not None and not args.openfoam:
         parser.error('OpenFOAM source libraries require an OpenFOAM worker')
     checkpoint_python = Path(sys.executable).resolve(strict=True) if args.moose_checkpoint_sha256 else None
     executable = None
+    worker_runtime = None
+    document = None
     if args.terminal:
         if args.command:
             parser.error('An interactive terminal takes no command')
@@ -267,15 +346,77 @@ def main():
         if args.workspace is None or len(args.command) != 5 or args.command[:4] != ['/bin/bash','--noprofile','--norc','-c']:
             parser.error('OpenFOAM requires a workspace and registered Bash worker')
         os.environ.update(HOME='/tmp', TMPDIR='/tmp')
-        enable_openfoam_loopback()
+        enable_private_loopback()
+        command = args.command
+    elif args.geometry:
+        worker = Path(__file__).resolve().with_name('geo_script.py')
+        if (args.workspace is None or len(args.command) not in (8, 10)
+                or args.command[1:5] != [str(worker), '--case', '.', '--mode']
+                or args.command[5] not in {'preview', 'export'}
+                or args.command[6] != '--execution-id'
+                or (len(args.command) == 10 and args.command[8] != '--tolerance')):
+            parser.error('Geometry requires a workspace and registered Python worker')
+        worker_runtime = Path(args.command[0])
+        os.environ.update(HOME='/tmp', TMPDIR='/tmp')
+        command = [str(worker_runtime), '-I', '-B', '-u', *args.command[1:]]
+    elif args.postprocess:
+        worker = Path(__file__).resolve().with_name('postprocess_worker.py')
+        if (args.workspace is None or len(args.command) not in (6, 7)
+                or args.command[1:3] != [str(worker), '--run-dir'] or args.command[4] != '--execution-id'
+                or (len(args.command) == 7 and args.command[6] != '--case-inputs')):
+            parser.error('Postprocessing requires a workspace and registered Python worker')
+        worker_runtime = Path(args.command[0])
+        os.environ.update(HOME='/tmp', TMPDIR='/tmp')
+        command = [str(worker_runtime), '-I', '-B', '-u', *args.command[1:]]
+    elif args.registered_worker:
+        allowed = {str(Path(__file__).resolve().with_name(name)) for name in REGISTERED_WORKERS[args.registered_worker]}
+        if args.workspace is None or len(args.command) < 2 or args.command[1] not in allowed:
+            parser.error('The registered worker requires a workspace and fixed entry point')
+        worker_runtime = Path(args.command[0])
+        os.environ.update(HOME='/tmp', TMPDIR='/tmp')
+        command = [str(worker_runtime), '-I', '-B', '-u', *args.command[1:]]
+    elif args.ppt_media:
+        worker = Path(__file__).resolve().with_name('ppt_media_native.py')
+        if (args.workspace is None or len(args.command) != 7
+                or args.command[1:6] != ['-I', '-S', '-u', str(worker), '--execution-id']):
+            parser.error('PPT media requires a workspace and registered worker')
+        worker_runtime = Path(args.command[0])
+        os.environ.update(HOME='/tmp', TMPDIR=str(args.workspace/'.vibeflow'))
+        command = args.command
+    elif args.paraview_sha256:
+        if args.workspace is None or len(args.command) not in (2, 3) or args.command[1:-1] not in ([], ['--no-mpi']):
+            parser.error('ParaView requires a workspace and registered script')
+        worker_runtime = Path(args.command[0])
+        script = Path(args.command[-1])
+        if (script.is_absolute() or '..' in script.parts or script.suffix != '.py'
+                or not (args.workspace / script).resolve(strict=True).is_relative_to(args.workspace)):
+            parser.error('ParaView script must be inside the workspace')
+        with worker_runtime.open('rb') as binary:
+            if hashlib.file_digest(binary, 'sha256').hexdigest() != args.paraview_sha256:
+                raise ValueError('ParaView executable differs from its sealed digest')
+        os.environ.update(HOME='/tmp', TMPDIR='/tmp')
+        command = args.command
+    elif args.document:
+        helper = Path(__file__).resolve().with_name(args.document+'_native.py')
+        if (args.workspace is None or len(args.command) != 9 or args.command[1:5] != ['-I','-S','-u',str(helper)]
+                or args.command[5] != '--config' or args.command[7] != '--sha256'):
+            parser.error('Document isolation requires a workspace and registered helper')
+        document = (helper, args.document_folder, args.document_executable)
+        os.environ.update(HOME='/tmp', TMPDIR='/tmp')
         command = args.command
     else:
         if args.workspace is None or len(args.command) != 1:
             parser.error('A command takes a workspace and one shell expression')
+        if args.case_command:
+            enable_private_loopback()
         command = ['/bin/sh', '-c', args.command[0]]
     entry = prepare_root(args.workspace, terminal=args.terminal, executable=executable, elmer=args.elmer,
                          moose=args.moose, moose_checkpoint=args.moose_checkpoint_sha256, home=args.home_selection,
-                         openfoam=args.openfoam, foam_libraries=args.openfoam_libraries)
+                         openfoam=args.openfoam, foam_libraries=args.openfoam_libraries,
+                         worker_runtime=worker_runtime,
+                         attempt_manifest=bool(args.postprocess or args.registered_worker or args.ppt_media),
+                         paraview=args.paraview_sha256 is not None, document=document,
+                         ppt_media=args.ppt_media, case_command=args.case_command)
     if args.home_selection is not None:
         os.environ.update(HOME=str(SHELL_HOME), TMPDIR='/tmp')
     if entry is not None:

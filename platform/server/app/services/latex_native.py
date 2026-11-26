@@ -177,16 +177,17 @@ def execute(argv,cwd,env,log,limit,trace):
         raise ValueError('LaTeX transcript did not finish')
 
 
-def compile_case(config_path, *, scoped=False):
+def compile_case(config_path, *, scoped=False, isolate=False):
     settings=json.loads(config_path.read_text(encoding='utf-8'))
     aliases = settings.get('input_aliases', {})
-    if aliases and not scoped:
+    confined = bool(aliases) or isolate
+    if confined and not scoped:
         subprocess.run(['/usr/bin/unshare','--user','--map-root-user','--mount','--net','--pid',
             '--fork','--kill-child=SIGKILL',sys.executable,'-I','-S',__file__,'--config',str(config_path),
-            '--scoped'], env=ALIAS_ENV, check=True)
+            '--scoped', *(['--isolate'] if isolate else [])], env=ALIAS_ENV, check=True)
         return
     native_sha256 = record(Path(__file__))['sha256']
-    if aliases:
+    if confined:
         _enter_alias_root(config_path, aliases, settings['files'])
     root=config_path.parent/'case'
     main=root/settings['main']
@@ -218,14 +219,14 @@ def compile_case(config_path, *, scoped=False):
         cache=output/'texmf-cache';cache.mkdir()
         cache_root=cache.resolve()
         controlled_env['TEXMFCACHE']='out/texmf-cache'+os.pathsep+'/var/lib/texmf'
-    base_env = ALIAS_ENV if aliases else os.environ
+    base_env = ALIAS_ENV if confined else os.environ
     env=dict(base_env,**controlled_env,TEXMFHOME=str(empty),TMPDIR=str(scratch))
     argv=['latexmk','-'+recipe,'-no-shell-escape','-norc','-interaction=nonstopmode',
         '-synctex=1','-recorder','-file-line-error','-outdir=out','./'+main.name]
     transcript=config_path.parent/'compile.log'
     trace=config_path.parent/'file-access.trace'
     traced=['strace','-f','-qq','-y','-s','4096','-e','trace=open,openat,openat2,execve,connect','-o',str(trace),*argv]
-    if aliases:
+    if confined:
         traced = ['/usr/bin/setpriv','--no-new-privs','--bounding-set=-all',
                   '--inh-caps=-all','--ambient-caps=-all',*traced]
     execute(traced,main.parent,env,transcript,settings['max_log_bytes'],trace)
@@ -347,11 +348,12 @@ def main():
     parser.add_argument('--probe',choices=RECIPES)
     parser.add_argument('--config',type=Path)
     parser.add_argument('--scoped', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--isolate', action='store_true', help=argparse.SUPPRESS)
     args=parser.parse_args()
     if args.probe:
         print(json.dumps(probe(args.probe),sort_keys=True))
     elif args.config:
-        compile_case(args.config.resolve(), scoped=args.scoped)
+        compile_case(args.config.resolve(), scoped=args.scoped, isolate=args.isolate)
     else:
         parser.error('A probe or compile configuration is required')
 

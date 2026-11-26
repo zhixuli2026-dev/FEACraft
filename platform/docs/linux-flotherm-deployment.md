@@ -26,6 +26,23 @@ Linux 和 Windows 完整组还各执行两项负向算例：无效 C++ 导致真
 
 Windows 首轮在成功发布后紧接着重放时遇到 `storage_quota_busy`，属于远端写入结算仍在进行；测试脚本加入仅针对该状态的 30 秒有界重试，原失败记录保留。Linux 取消首轮的专用存储启动参数被 PowerShell 拆开，卷上限未生效，新桶首次写入失败；改用参数数组启动新的专用存储并核对实际参数，等待接口就绪后才重试。首次过早连接的错误也保留在容器日志中。没有修改正式存储配额或降低产物核验。
 
+## Linux 转换与辅助库隔离
+
+FF-J16 将 FloTHERM IR 转换和辅助库编译接入原生 Linux 的独立挂载、PID、网络及 IPC 命名空间。转换进程读取本次封存的输入并写入选定的产物目录。辅助库保持编译与加载子进程登记，子进程只访问本次算例副本及只读工具链。编译临时目录归本次执行使用。
+
+2026-11-26，文件系统和认证 SeaweedFS 各导入并转换同一份 ECXML，生成 52 个工程文件及通过预检的双热阻模型。产物记录 `θJC=25 K/W`、`θJB=45 K/W`、芯片功率 `0.3 W`。两个实际 OpenFOAM 编译都产生 ELF，另起命令分别从冻结发布加载该库，并核对进程的 IPC 命名空间与普通 worker 不同。两次取消都观察到真实 `cc1plus` 运行，随后核验根和原生子范围停止。原库的活动文件和归档字节一致。S3 文件由起初无缓存的另一 API 读回，外账户查询返回 404。模型调用 0 次。 [文件系统回执](../../tmp/j16-flotherm-3kjsjigl/result.json) · [认证 S3 回执](../../tmp/j16-flotherm-rjf8nx6h/result.json)
+
+Pack 的正式导出入口需要已配置的 Windows FloTHERM 启动器。当前 Windows 环境的入口检查返回 `flotherm_export_unavailable`，持证 Pack 导出继续由 FF-I01 和 FF-I03 跟踪。
+
+共享启动器更新后，原生 OpenFOAM 串行、两进程 MPI、重建及运行中取消通过回归，400 单元速度场最大归一化差为 `1e-6`。PDF、PPT、旁白视频和两种草稿也通过实际回归。试验资源已清理，原 11 个 Docker 服务标识一致。构建缓存仍为 5.857 GB，Windows C 盘可用空间由 39,211,577,344 B 变为 39,234,068,480 B。 [MPI 回执](../../tmp/j16-openfoam-8lhh68q2/result.json) · [办公产物回执](../../tmp/j16-office-mu81etv0/result.json)
+
+复验通过公开接口导入 ECXML 双热阻算例，先实际生成工程文件，再从生成的 C++ 源码编译及加载 `libvibeflowFlothermTwoR.so`。从项目根运行。
+
+```powershell
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_flotherm_isolation_acceptance.py --storage fs
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_flotherm_isolation_acceptance.py --storage s3
+```
+
 ## 更新、回退与范围
 
 候选镜像 `vibeflow/api:linux-flotherm-v3-20261118` 在已验收的 Linux TeX/独立收尾镜像上更新六个应用模块。更新前确认没有排队或运行作业、保存 Compose 配置，只替换 API/worker。保留旧镜像、数据库、存储及历史发布；不要通过删除数据卷回退。部署结果记录在 `../../tmp/linux-flotherm-20261118/deployment-result.json`，包括实际容器源码核对和三份历史 TeX PDF 哈希读回。

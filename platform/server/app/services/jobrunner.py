@@ -212,7 +212,7 @@ class JobProcess:
         self._diagnostics_sealed = False
         self.evidence_snapshot: dict | None = None
         self.isolated_workspace = False
-        self.openfoam_serial = False
+        self.linux_workspace = None
         self.remote_workspace_prefix = None
         self.finished = False
         self.phase = "queued"
@@ -298,12 +298,24 @@ class JobProcess:
             if os.name!='nt' and self.runtime=='windows':
                 from .job_linux_namespaces import prepared as namespace_prepared
                 self._owned_process.on_namespace=lambda process,init:namespace_prepared(self.owner,process,init)
-                if self.openfoam_serial:
-                    from .openfoam_runtime import child_environment, isolated_argv
-                    parts = shlex.split(argv[-1])
-                    libraries = parts[parts.index('--source-library-dir')+1] if '--source-library-dir' in parts else None
-                    argv = isolated_argv(self.cwd, argv, source_libraries=libraries)
+                if self.linux_workspace:
+                    from .linux_job_workspace import child_environment, isolated_command, python_argv
+                    if self.linux_workspace == 'openfoam':
+                        from .openfoam_runtime import isolated_argv
+                        parts = shlex.split(argv[-1])
+                        libraries = parts[parts.index('--source-library-dir')+1] if '--source-library-dir' in parts else None
+                        argv = isolated_argv(self.cwd, argv, source_libraries=libraries)
+                    elif self.linux_workspace == 'command':
+                        argv = isolated_command(self.cwd, '--case-command', [self.command])
+                    else:
+                        argv = python_argv(self.cwd, '--'+self.linux_workspace, argv)
                     env = child_environment(env)
+                    if self.linux_workspace == 'command':
+                        env.update(HOME='/tmp', TMPDIR='/tmp')
+                    if self.linux_workspace == 'compose':
+                        from ..storage import _fs_root
+
+                        env['VIBEFLOW_STORAGE_FS_ROOT'] = str(_fs_root().resolve())
                     self._owned_process.isolate_linux_network=True
             from .native_execution import NativeExecutor
             if NativeExecutor.applies(self.argv):
@@ -925,6 +937,7 @@ async def _launch_claimed(owner, guard, job_id, command, case_s3_prefix, *, runt
     # its non-cancellable copy is draining. No native payload exists yet.
     allocated = []
     isolated_cwd = None
+    linux_workspace = None
     def prepare_paths():
         legacy_staging = _use_s3() and isolated_cwd is None
         prefix = prepare_job_staging(case_s3_prefix, job_id) if legacy_staging else case_s3_prefix
@@ -939,13 +952,22 @@ async def _launch_claimed(owner, guard, job_id, command, case_s3_prefix, *, runt
         async with SessionLocal() as db:
             job, attempt = await job_execution._owned(db, owner)
             case_id = job.case_id
-            from .openfoam_runtime import SERIAL_HANDLERS
-            binding = json.loads(attempt.input_manifest_json).get('handler') or {}
-            openfoam_serial = os.name != 'nt' and runtime == 'windows' and binding.get('key') in SERIAL_HANDLERS
+            if os.name != 'nt' and runtime == 'windows':
+                from .linux_job_workspace import PYTHON_WORKSPACES
+                from .openfoam_runtime import SERIAL_HANDLERS
+
+                binding = json.loads(attempt.input_manifest_json).get('handler') or {}
+                handler = binding.get('key')
+                if argv is None:
+                    linux_workspace = 'command'
+                elif handler in SERIAL_HANDLERS:
+                    linux_workspace = 'openfoam'
+                else:
+                    linux_workspace = PYTHON_WORKSPACES.get(handler)
         from .attempt_workspace import runtime_workspace
         isolated_cwd = await runtime_workspace(owner)
-        if openfoam_serial and isolated_cwd is None:
-            raise ValueError('Native OpenFOAM requires a sealed attempt workspace')
+        if linux_workspace and isolated_cwd is None:
+            raise ValueError(f'Native Linux {linux_workspace} requires a sealed attempt workspace')
         execution_prefix, cwd, log_path = await finish_before_cancel(asyncio.to_thread(prepare_paths))
         if isolated_cwd is not None:
             cwd = isolated_cwd
@@ -977,7 +999,7 @@ async def _launch_claimed(owner, guard, job_id, command, case_s3_prefix, *, runt
                     staging_prefix=execution_prefix if _use_s3() and isolated_cwd is None else None,
                     source_prefix=case_s3_prefix if _use_s3() and isolated_cwd is None else None, owner=owner)
     jp.isolated_workspace = isolated_cwd is not None
-    jp.openfoam_serial = openfoam_serial
+    jp.linux_workspace = linux_workspace
     jp.remote_workspace_prefix = case_s3_prefix if _use_s3() else None
     jp._launch_guard = guard
     _registry[job_id] = jp

@@ -23,6 +23,25 @@ LuaLaTeX 的可写字体缓存使用相对路径 `out/texmf-cache`，读取缓�
 
 这个缓存目录在每次编译前新建且为空。Lua 生成的字体字节码与索引具有非稳定序列化，不作为输入源逐字节比较；访问过的缓存文件相对路径记录为 `volatile_runtime_inputs` 中的 `@lua-font-cache/…`。真实字体、读取的系统缓存及其他系统输入仍逐文件哈希，路径解析后越出该私有缓存目录仍走原有依赖校验。独立重编译继续比较完整 PDF 语义图、SyncTeX、日志、参考文献、冻结源码和输入清单。
 
+## Linux 文档作业隔离
+
+Pandoc 的解析、版本探测、HTML/DOCX 编译及引文格式化由原注册进程管理器启动。Linux 原生子进程使用独立挂载、PID 和网络命名空间。报告输入只读，编译器只能写入本次调用和产物目录。SyncTeX 查询只读取本次冻结的 PDF、sidecar 和请求配置。工具输出、超时和退出凭据沿用原作业及请求登记。
+
+Linux 普通 TeX 编译与显式输入别名编译使用同一私有根，封存的编译目录提供本次写入所需空间。编译器能力集在启动 `latexmk` 前清除，继续执行 TeX 依赖追踪和产物核验。API 和 worker 保留各子进程的私有网络及停止记录。
+
+2026-11-26，文件系统和认证 SeaweedFS 各通过一个正式报告与三个 TeX 作业。两个报告的 HTML 内嵌原 PNG，DOCX 包含同一图片，下载字节与发布摘要一致。pdfLaTeX、XeLaTeX、LuaLaTeX 各在两种存储生成实际 PDF，XeLaTeX 正确读取声明的绝对输入别名。六次 SyncTeX 查询均定位到冻结主文件第 3 行，两次本地 BibTeX 引文格式化结果已核对。两个存储均观察到实际 pdfTeX 运行后发起取消，根和子进程范围均核验为空，旧 PDF 摘要一致。认证 S3 产物由启动时无缓存的另一 API 读回。模型调用 0 次。 [文件系统回执](../../tmp/j16-documents-nnae6btg/result.json) · [认证 S3 回执](../../tmp/j16-documents-snuqp5ri/result.json)
+
+首轮报告准备缺少请求子进程的命名空间确认，导致执行门在放行前拒绝。补齐确认后，数据库关联请求、进程及退出凭据。随后验收夹具按 HTML 的空白折叠规则核对标题，并逐字节核对图像内容。 [首轮请求回执](../../tmp/j16-documents-0t_fteyf/result.json) · [首轮标题回执](../../tmp/j16-documents-8g8rffs7/result.json)
+
+隔离试验容器和卷已清理，原 11 个运行容器的标识一致。构建缓存仍为 5.857 GB。Windows C 盘可用空间由 39,223,128,064 B 变为 39,222,759,424 B。
+
+复验入口使用现有 TeX 镜像，并创建隔离的 PostgreSQL、Redis、API 和 worker。
+
+```powershell
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_document_isolation_acceptance.py --storage fs --cancel
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_document_isolation_acceptance.py --storage s3 --cancel
+```
+
 ## 验收记录
 
 当前阶段证据位于 `tmp/linux-tex-20261118`。Windows/WSL 与 Linux/S3 的 pdfLaTeX 已实际生成双页 PDF 和 BibTeX 参考文献，核验文字、PDF/产物哈希、冻结源码、SyncTeX 坐标及版本约束的分段下载。Linux XeLaTeX 的中文字体、biber 参考文献及 LuaLaTeX 也已通过同一真实流程，Windows/WSL LuaLaTeX 兼容复验通过。随后修改实际源码，核验旧 PDF 过期但冻结源码与定位保持；恢复原文后重新一致。实际重建 API/worker，三份历史 PDF 哈希和 SyncTeX 定位保持。共 5 个成功文档作业；作业子进程及准备/查询请求停止凭据分别核验。未通过的首次结果保留。

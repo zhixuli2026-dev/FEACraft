@@ -4,8 +4,10 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 
-from pdf_pages import number_pdf, safe_pdf_relative
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from app.services.pdf_pages import number_pdf, safe_pdf_relative
 
 
 def main():

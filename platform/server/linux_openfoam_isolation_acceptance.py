@@ -30,7 +30,8 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 
-from app.services.openfoam_runtime import child_environment, isolated_argv
+from app.services.linux_job_workspace import child_environment
+from app.services.openfoam_runtime import isolated_argv
 
 host = sys.argv[1]
 with socket.create_connection((host, 6379), timeout=2):

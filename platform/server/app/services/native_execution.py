@@ -175,6 +175,9 @@ class NativeExecutor:
                 ['python3','-I','-S',native_path(NATIVE),'--config',native_path(config_path),'--sha256',digest])
             argv=(['/bin/bash','--noprofile','--norc','-c',command] if self.runtime=='windows' else
                 ['wsl.exe','-d',self.profile['--distro'],'--user','nobody','--exec','bash','--noprofile','--norc','-c',command])
+            if self.runtime=='windows':
+                from .openfoam_runtime import isolated_argv
+                argv = isolated_argv(self.cwd, argv)
             return argv,int(self.profile['--timeout']),self.max_log_bytes
         if self.kind=='udf':
             from .udf_artifacts import CONFIG
@@ -196,6 +199,9 @@ class NativeExecutor:
                 ['python3','-I','-S',native_path(NATIVE),'--config',native_path(config_path),'--sha256',digest])
             argv=(['/bin/bash','--noprofile','--norc','-c',command] if self.runtime=='windows' else
                 ['wsl.exe','-d',self.profile['--distro'],'--user','nobody','--exec','bash','--noprofile','--norc','-c',command])
+            if self.runtime=='windows':
+                from .openfoam_runtime import isolated_argv
+                argv = isolated_argv(self.cwd, argv)
             return argv,int(self.profile['--timeout']),self.max_log_bytes
         if self.kind=='mpi':
             from .mpi_artifacts import CONFIG
@@ -336,7 +342,14 @@ class NativeExecutor:
             if parameters['sha256']!=digest:raise ValueError('Pandoc request settings changed')
             _,timeout=pandoc_native.command(settings)
             base=str(Path(getattr(sys,'_base_executable',sys.executable)).resolve())
-            return [base,'-I','-S','-u',str(pandoc_execution.NATIVE),'--config',parameters['config'],'--sha256',digest],timeout+15,1024*1024
+            argv=[base,'-I','-S','-u',str(pandoc_execution.NATIVE),'--config',parameters['config'],'--sha256',digest]
+            if sys.platform=='linux':
+                from .linux_job_workspace import document_argv
+                folders = [Path(parameters['config']).parent]
+                if purpose=='pandoc_compile':
+                    folders.append(Path(settings['output']).parent)
+                argv=document_argv(self.cwd, 'pandoc', argv, folders=folders, executable=settings['pandoc'])
+            return argv,timeout+15,1024*1024
         from . import latex_artifacts,attempt_workspace
         distro=self.profile['--distro']
         if not isinstance(parameters,dict) or parameters.get('distro')!=distro:
@@ -361,7 +374,7 @@ class NativeExecutor:
                 or settings['epoch']!=int(self.profile['--epoch']) or settings['max_log_bytes']!=self.max_log_bytes
                 or settings.get('input_aliases',{})!=json.loads(self.profile.get('--input-aliases-json','{}'))):
             raise ValueError('Native compile settings differ from the registered attempt')
-        return [*argv,'--config',path_for(path)],180,self.max_log_bytes
+        return [*argv,'--config',path_for(path), *(['--isolate'] if native_linux else [])],180,self.max_log_bytes
 
     async def _handle(self,reader,writer):
         handler=asyncio.current_task();self.handlers.add(handler)
@@ -653,10 +666,32 @@ class NativeExecutor:
             argv=[*argv[:3],'--user','root',*argv[5:]]
         if self.linux_compute is not None:
             self.linux_compute.bind(entry.owned)
-        if sys.platform=='linux' and self.kind=='mpi' and self.runtime=='windows':
-            from .openfoam_runtime import child_environment
+        if sys.platform=='linux' and self.kind in {'report','latex','synctex'} and self.runtime=='windows':
+            from .linux_job_workspace import child_environment
+            entry.owned.isolate_linux_network=True
+            if entry.owned.on_namespace is None:
+                async def confirm_namespace(root, init):
+                    entry.check()
+                    if root.get('namespace_init') != init or root['host']['pid_namespace'] == init['pid_namespace']:
+                        raise ValueError('Document namespace does not match its prepared process')
+
+                # Request-owned children persist this identity in records.register
+                # before release. Job children already have a durable birth hook.
+                entry.owned.on_namespace = confirm_namespace
+            env=child_environment(env)
+        if sys.platform=='linux' and self.kind in {'mpi','udf','flotherm-library'} and self.runtime=='windows':
+            from .linux_job_workspace import child_environment
             entry.owned.isolate_linux_network=True
             env=child_environment(env)
+        if sys.platform=='linux' and self.kind=='paraview':
+            from .linux_job_workspace import child_environment, isolated_command
+            entry.owned.isolate_linux_network=True
+            argv=isolated_command(self.cwd, '--paraview-sha256='+self.profile['--executable-sha256'], argv)
+            env=child_environment(env, extra={
+                'VIBEFLOW_VTK_OSMESA_DIR', 'VTK_DEFAULT_OPENGL_WINDOW', 'VTK_SMP_MAX_THREADS', 'LP_NUM_THREADS',
+                'PV_MATERIALS_PATH', 'VIBEFLOW_CATALYST_STATE', 'VIBEFLOW_CATALYST_OUTPUT',
+                'VIBEFLOW_CATALYST_VERSION', 'CATALYST_IMPLEMENTATION_PATHS', 'CATALYST_IMPLEMENTATION_NAME',
+            })
         if sys.platform=='linux' and self.kind=='code-aster':
             # The owned outer gate freezes the private network identity. The
             # Code_Aster helper still builds and drains its own chroot.

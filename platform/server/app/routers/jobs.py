@@ -10,6 +10,7 @@ import json
 import math
 import re
 import sqlite3
+import sys
 import uuid
 from typing import Literal
 
@@ -257,7 +258,8 @@ async def submit_job(case_id: int, body: JobIn, request: Request, user: User = D
                 return await commit(prepared[0] if prepared is not None else None)
 
             operation = (_stage_remote_commands(db,case,user_id,idempotency_key,digest,body.type,[spec],commit_first,
-                code='command_seal',label='封存作业输入',input_paths=body.input_paths,allow_legacy=True)
+                code='command_seal',label='封存作业输入',input_paths=body.input_paths,
+                allow_legacy=not (sys.platform=='linux' and body.runtime=='windows'))
                 if remote_shell else persist())
             j, created, prefix = await wait(operation,request=request)
         else:

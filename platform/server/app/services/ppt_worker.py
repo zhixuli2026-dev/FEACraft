@@ -4,8 +4,10 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 
-from ppt_builder import build_pptx
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from app.services.ppt_builder import build_pptx
 
 
 def main():

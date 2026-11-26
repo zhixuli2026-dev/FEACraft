@@ -75,8 +75,10 @@ class RequestExecutor(NativeExecutor):
             if purpose!=('synctex_query_linux' if native_linux else 'synctex_query'):raise ValueError('SyncTeX requests cannot invoke another native purpose')
             config,digest=synctex_execution.validate(parameters,self.profile)
             if native_linux:
-                return [str(Path(getattr(sys,'_base_executable',sys.executable)).resolve()),'-I','-S','-u',str(synctex_execution.NATIVE),
-                        '--config',str(config),'--sha256',digest],20,1024*1024
+                from .linux_job_workspace import document_argv
+                argv=[str(Path(getattr(sys,'_base_executable',sys.executable)).resolve()),'-I','-S','-u',str(synctex_execution.NATIVE),
+                      '--config',str(config),'--sha256',digest]
+                return document_argv(self.cwd, 'synctex', argv),20,1024*1024
             return ['wsl.exe','-d',self.profile['distro'],'--exec','python3','-I','-S','-u',wsl_path(synctex_execution.NATIVE),
                     '--config',wsl_path(config),'--sha256',digest],20,1024*1024
         if self.citation_preview:

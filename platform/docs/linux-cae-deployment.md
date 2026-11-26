@@ -63,6 +63,26 @@ Linux 启动器在私有网络中启用回环接口，供本地 MPI rank 通信�
 
 原 11 个 Docker 服务均核对，隔离试验容器及临时卷已清理。构建缓存约 5.857 GB，本阶段回收 0 B。Windows C 盘可用空间从 39,246,512,128 B 变为 39,237,353,472 B。
 
+## Linux ParaView 批处理与数值后处理隔离
+
+注册的 `pvpython` 和 `pvbatch` 作业保留原来的协调器与原生子进程登记。实际运行用户脚本的子进程获得独立的挂载、PID 和网络命名空间。子进程可写本次封存的运行目录，ParaView 运行时只读，网络只在该次执行的命名空间内可用。Linux worker 按封存记录核对选定的可执行文件和脚本路径，传入出图、线程和 Catalyst 所需的环境变量。
+
+数值后处理的两种公开路径使用相同隔离机制。带求解发布的算例按冻结版本读取求解产物，旧算例按已封存的文件读取。VTK 工作进程可读取对应 attempt 的只读清单，产物仍由作业 owner 统一校验和发布。
+
+文件系统和认证 SeaweedFS 分别执行真实 `icoFoam` 求解，再从发布版本提取压力探针、线采样和数组公式。两个时刻、两个位置的四项公式值逐值相同，且按采样 CSV 独立复算。S3 的另一 API 从空缓存读回发布产物，跨账户作业查询返回 404。两个原生 VTK 作业的停止范围均已核验为空。 [文件系统求解链](../../tmp/j16-batch-v41kkc69/result.json) · [认证 S3 求解链](../../tmp/j16-batch-c0djernj/result.json)
+
+两个存储后端分别运行 `pvpython` 和 `pvbatch`，用实际 NACA0012 数据各生成 640×360 压力图和包含 148 个点的声速等值线。对端 API 读回并核对图像、CSV 和统计摘要。脚本内核对测试文件、环境变量和 Redis 与常规 worker 隔离。两次运行中取消都先观察到真实后代进程，再核对根与原生子范围完整停止。此前图片的活动路径及归档版本均按原摘要读回。
+
+同批验收将实际求解的十份输入写入旧算例。经过旧入口的两次 VTK 提取与注册求解链的两次结果逐值一致。首轮验收脚本因旧接口省略可选的发布列表报错，按可选字段读取后在两种存储上重新通过。原 11 个 Docker 服务身份一致，隔离容器与卷已清理。模型调用 0 次。 [文件系统批处理](../../tmp/j16-batch-g4qwnxfr/result.json) · [认证 S3 批处理](../../tmp/j16-batch-5b67dfby/result.json) · [首轮脚本回执](../../tmp/j16-batch-m8a25bni/result.json)
+
+在项目根复验时，先用 `--from-solve` 运行求解链。脚本会在显示的回执目录内将实际网格和流场原件及摘要写入 `foam-archive/`。后续 `--foam-archive` 从该路径读取，经正式文件接口写入另一算例，同时验收两种 ParaView 后端。
+
+```powershell
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_batch_isolation_acceptance.py --storage s3 --from-solve
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_batch_isolation_acceptance.py --storage fs --foam-archive tmp/j16-batch-c0djernj/foam-archive
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_batch_isolation_acceptance.py --storage s3 --foam-archive tmp/j16-batch-c0djernj/foam-archive
+```
+
 ## 尚未完成的范围
 
 本节证明 Linux 串行 OpenFOAM 工程链和检查点续算。后续 MPI/functionObject UDF、正式三维 Gmsh 验收单独记录；后续 TeX/SyncTeX 与 FloTHERM 辅助库已分别完成 Linux 入口及实际验收，见 [TeX 部署](linux-tex-deployment.md)和 [FloTHERM 部署](linux-flotherm-deployment.md)。各文档保留具体覆盖边界，不能由工具安装推定全部功能已验收。物理多主机、完整外部依赖、存储条件操作兼容和全功能交付继续按原任务推进。同主机的独立容器不冒充物理多主机。

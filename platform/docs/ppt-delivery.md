@@ -20,3 +20,25 @@ FF-E21 与 FF-F65 共用以下子任务。每项使用可下载的实际 PPTX �
 算例面板可选择已有图像或读取本地图片。Edge 使用同源 Tesseract WASM 和语言数据识别文本，像素分析重建实色矩形与椭圆。两张实测样本各包含一段文本和两个图形。人工改正后，生成文件的文本框和矢量对象均可编辑，用 Impress 渲染后读回改正内容。照片、复杂曲线、透明叠加和字体识别仍属现有重建能力的边界。实际本地 OCR 2 次，实际与模拟 LLM 调用各 0 次。 [Tesseract 本地部署](https://github.com/naptha/tesseract.js/blob/master/docs/local-installation.md) · [重建验收](../../tmp/ff-e21-ppt-reconstruction-rtq8umua/ppt-reconstruction.json) · [英文页面](../../tmp/ff-e21-ppt-reconstruction-rtq8umua/rebuilt-eng.png) · [中文页面](../../tmp/ff-e21-ppt-reconstruction-rtq8umua/rebuilt-chi_sim.png)
 
 在算例面板选择带演讲者备注的 PPTX 和旁白语言即可生成 MP4。后台将 PPTX 封存，使用 LibreOffice Impress、Poppler、eSpeak NG、FFmpeg 和 FFprobe 输出 1280 × 720 的 H.264/AAC 视频。运行环境需安装这些工具，Windows 使用已配置的非特权 WSL。英语 17.82 秒、普通话 13.36 秒，两份实际视频的首尾帧与原页顺序一致，解码均读到有效音量。Edge 从有版本校验的发布入口预览并下载。现有输出路径会拒绝覆盖，原始 PPTX 哈希保持。 [播放验收](../../tmp/ff-e21-ppt-narration-edr6lhox/ppt-narration.json) · [英语 MP4](../../tmp/ff-e21-ppt-narration-edr6lhox/english-narration.mp4) · [普通话 MP4](../../tmp/ff-e21-ppt-narration-edr6lhox/chinese-narration.mp4) · [六项验收汇总](../../tmp/FF-E21-ppt-20261124/ppt-complete.json)
+
+## Linux 办公产物隔离
+
+注册的 PDF 编号、PPTX 生成、旁白视频和两个报告草稿发布入口在 Linux 上使用独立挂载、进程和网络命名空间。子进程只得到本次封存目录、只读清单及所选运行时。Impress 的配置和全局字体保持只读，媒体工作文件和 LibreOffice 私有用户配置均写入本次作业目录。停止回执绑定到实际作业和私有网络身份。
+
+2026-11-26，文件系统与认证 SeaweedFS 共完成 10 个实际办公产物作业。编号 PDF 保留原页面旋转并读回 `1 / 2`、`2 / 2`。两份 PPTX 的可编辑标题、原生对象和备注通过读回。英语 109.717 秒、普通话 76.315 秒的 MP4 均实际解码为 1280×720 H.264/AAC，首尾页颜色、页序和有效音轨均核验。音轨峰值分别为 −2.7 dB、0.0 dB。两个部署分别观察到运行中的 FFmpeg，再发起取消并核验停止。旧视频按原摘要读回。
+
+两种存储各从真实 OpenFOAM 核验后的流场完成 VTK 提取，随后生成正式草稿与独立生成稿。两版草稿均包含 `mean.p@0.2`，此前正文按原字节备份。首轮验收以笼统的文字查找断言草稿内容，复跑按实际指标名称核对。S3 冷副本核对不可变产物摘要，外账户访问返回 404。模型调用 0 次。 [文件系统回执](../../tmp/j16-office-y11lsltp/result.json) · [认证 S3 回执](../../tmp/j16-office-aooudgqy/result.json) · [首轮回执](../../tmp/j16-office-1sctryu8/result.json)
+
+原 11 个 Docker 运行容器标识一致。工具镜像保留，Docker 镜像占用由 21.57 GB 变为 22.26 GB，构建缓存仍为 5.857 GB。Windows C 盘可用空间由 39,221,915,648 B 变为 39,216,525,312 B。
+
+验收镜像在原 Linux API 镜像上使用包仓库安装原生工具。草稿复验的工程输入来自真实 OpenFOAM 求解，可先按批处理验收说明生成 `foam-archive/`。 [求解输入与复验](linux-cae-deployment.md#linux-paraview-批处理与数值后处理隔离)
+
+```powershell
+@'
+FROM vibeflow/api:j14-release-paraview-20261125
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends libreoffice-impress poppler-utils ffmpeg espeak-ng fonts-noto-cjk && rm -rf /var/lib/apt/lists/*
+'@ | docker build --pull=false -t vibeflow/api:linux-office-acceptance-20261126 -
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_office_isolation_acceptance.py --storage fs --foam-archive tmp/j16-batch-c0djernj/foam-archive
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_office_isolation_acceptance.py --storage s3 --foam-archive tmp/j16-batch-c0djernj/foam-archive
+```

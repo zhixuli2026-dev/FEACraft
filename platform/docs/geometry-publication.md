@@ -16,6 +16,23 @@
 
 标准生成文件、`A-geo/exports/`、日志、缓存及此前记录的生成路径不当作新几何依赖。执行仍复制整个 `A-geo`，保留已有脚本调用方式。这不是任意 Python 程序的完整依赖分析：外部路径、网络数据、把生成目录作为输入的自定义脚本需要后续显式依赖契约，不能以当前快照保证其可重放。
 
+## 原生 Linux 作业隔离
+
+2026-11-26，Linux worker 的自动预览、手动预览和 STEP/STL 导出接入独立的挂载、PID 和网络命名空间。脚本在封存的 `run/` 中运行，可以导入 `A-geo` 中一同封存的模块。应用代码与 Python 运行时只读，临时目录归本次执行使用。启动器清理继承环境并清除进程能力集；执行器保留私有网络身份和整个作业进程范围的停止回执。
+
+镜像自带的 Python 可直接使用。部署用独立虚拟环境时，可用 `python -m venv --copies` 在专用运行时目录创建环境，安装 CadQuery 和 OCP，再将 `VIBEFLOW_PYTHON` 指向该目录的 `bin/python`。该目录需要独立于应用源码和算例目录，作业启动时以只读方式挂载。
+
+文件系统与认证 SeaweedFS 分别验收两账户、两次自动预览、一次手动预览、一次导出和一次运行中取消。宿主 worker 可读取测试文件、环境变量并连接 Redis，作业内这三个入口均隔离。两个实际算例体积为 24 和 60，手动预览容差为 0.15。STEP/STL 从另一 API 实例读回并核对发布哈希，STEP 重新导入后的体积为 24。取消前观察到真实子进程，取消回执 `verified=true`、`scope_empty=true`，此前已发布的文件保持可读。两轮均以容器 UID 65534 运行，模型调用 0 次。[文件系统回执](../../tmp/j16-geometry-fm6t3jhr/result.json) · [SeaweedFS 回执](../../tmp/j16-geometry-4h9yepjy/result.json)
+
+首轮测试将 caseDict 中的文本宽度直接传给 CadQuery，修正测试脚本的数值转换后复验通过。共享启动器更新后，OpenFOAM 网格、串行求解、MPI 和运行中取消通过文件系统回归。[初轮日志](../../tmp/j16-geometry-hoylq81j/job-1.log) · [OpenFOAM 回归](../../tmp/j16-openfoam-umljw_r9/result.json)
+
+从项目根复验。脚本创建临时 Docker 部署，使用实际 PostgreSQL、Redis 和 CadQuery。
+
+```powershell
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_geometry_isolation_acceptance.py --storage fs
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_geometry_isolation_acceptance.py --storage s3 --runtime venv
+```
+
 ## 产物与事务边界
 
 worker 两种模式均生成 scene、validation 和实际工具链记录（Python、CadQuery、OCP 版本及 worker 文件 SHA-256）。export 另生成 STEP/STL 和 manifest，并保留自定义 export hook、inline export 的新增/变化产物；用户输入脚本和资产不会作为输出覆盖原件。
@@ -85,7 +102,7 @@ DB 提交后才尝试更新旧 `A-geo` 文件路径。再次取得 case 锁且�
 
 `--postgres` 限本机 PostgreSQL，创建并最终删除有唯一测试前缀的临时库；默认仅临时 SQLite。真实专业测试需要当前已验证的 CadQuery、WSL/OpenFOAM、TeX、Pandoc 和其他专业运行时。源码回退使用 `platform/backups/mainline-N2-geometry-publication-20261102.zip`，先校验再解包到全新目录；不直接覆盖代码、现有数据库或用户文件。通用恢复流程见 [mainline-baseline.md](mainline-baseline.md)。
 
-当前未交付的部分必须保留：
+2026-11-02 首轮验收时记录的后续任务：
 
 - 下游网格/求解/后处理/报告尚未统一消费 publication 引用；原始文件读取接口仍可能看到逐文件更新中的兼容目录。当前保证针对几何 canonical/pinned 读取和 B 阶段证据，不能推广到全部消费者。
 - 非几何任务仍须逐项接入隔离输入及不可变输出；整个依赖图的重算范围、工具链变化失效和调度器自动派发尚未完成。

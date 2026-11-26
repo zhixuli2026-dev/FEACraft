@@ -37,6 +37,23 @@ MPI 平均压力为 `0.022259352333744136`，UDF 为 `0.02226855869812202`，差
 
 Windows 最终完整验收在审查版本 v4；之后唯一生产差异是 Linux 专用加载器选择，封存脚本核对该差异及其余 app 源码一致，没有把它表述为另一次最终版本 Windows 实跑。Linux 最终完整流程和取消使用 v5，重建读回使用 v6。所有审查源码及中间失败均保留。
 
+## Linux 通用命令与 UDF 隔离
+
+FF-J16 将 Linux 宿主的通用命令、类型化命令和命令批次接入独立的挂载、PID 和网络命名空间。工作目录为本次封存的可写副本，作业继承有限的工具和区域配置。私有回环、POSIX 共享内存、HOME 和临时目录供本次执行使用。API 继续使用已有 `runtime=windows` 字段选择 Linux 宿主上的原生入口。旧任务可按已有流程恢复封存输入，或使用当前版本重新提交。
+
+UDF 协调器沿用已登记的作业和子进程通道。运行 `wmake`、ELF 加载器及实际求解器的子进程进入 OpenFOAM 的隔离目录和私有网络。只读应用源码、清单及工具链用于构建和追踪，原生子进程的停止凭据绑定到该次执行。
+
+2026-11-26，文件系统与认证 SeaweedFS 共完成 12 个通用命令作业，覆盖全量封存、显式选取文件、类型化发布、发布引用和批次。普通 worker 可访问的测试文件、环境变量和 Redis 在作业内隔离，作业内真实回环通信和 POSIX 共享内存通过。两个非特权宿主 worker 分别计算了 400 单元串行参考，编译实际 ELF，并由 `icoFoam` 加载 UDF。两份归档速度场对各自串行参考的归一化最大差均为 `4.99e-7`。两次取消均以实际 `icoFoam` 已启动为前提，父、子进程已核验停止，原速度场保留。S3 使用起初无缓存的对端 API，跨账户查询返回 404。模型调用 0 次。 [文件系统回执](../../tmp/j16-command-udf-ta5augir/result.json) · [认证 S3 回执](../../tmp/j16-command-udf-oyljoxx0/result.json)
+
+验收环境已清理，原 11 个 Docker 服务标识一致。构建缓存仍为 5.857 GB。Windows C 盘可用空间由 39,216,209,920 B 变为 39,211,876,352 B。
+
+复验使用现有 `vibeflow/api:linux-mpi-udf-v4-20261118` 镜像和真实 PostgreSQL、Redis、OpenFOAM。
+
+```powershell
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_command_udf_isolation_acceptance.py --storage fs
+& platform/server/.venv/Scripts/python.exe -X utf8 -B platform/server/linux_command_udf_isolation_acceptance.py --storage s3
+```
+
 ## 证据与后续范围
 
 证据位于 `tmp/linux-mpi-udf-20261118/`：
