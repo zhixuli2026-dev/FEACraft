@@ -83,19 +83,33 @@ async def _validate_links(db, case_id, run_id, step_id, attempt_id):
 async def lock_case_execution(db, case_id):
     """Serialize control writes without consuming an event sequence (caller commits)."""
     dialect = db.get_bind().dialect.name
-    insert = {"sqlite": sqlite_insert, "postgresql": pg_insert}.get(dialect)
-    if insert is None:
+    counter = CaseEventCounter
+    if dialect == "postgresql":
+        # Match the row lock taken by a next_seq UPDATE without creating a
+        # new tuple for each read. Existing cases normally have a counter.
+        locked = select(counter.case_id).where(counter.case_id == case_id).with_for_update(key_share=True)
+        if await db.scalar(locked) is None:
+            await db.execute(pg_insert(counter).values(case_id=case_id, next_seq=1)
+                             .on_conflict_do_nothing(index_elements=[counter.case_id]))
+            (await db.execute(locked)).scalar_one()
+        return
+
+    if dialect != "sqlite":
         raise RuntimeError("Unsupported durable event database: " + dialect)
-    await db.execute(insert(CaseEventCounter).values(case_id=case_id, next_seq=1)
-                     .on_conflict_do_nothing(index_elements=[CaseEventCounter.case_id]))
-    await db.execute(update(CaseEventCounter).where(CaseEventCounter.case_id == case_id)
-        .values(next_seq=CaseEventCounter.next_seq))
+    await db.execute(sqlite_insert(counter).values(case_id=case_id, next_seq=1)
+                     .on_conflict_do_nothing(index_elements=[counter.case_id]))
+    await db.execute(update(counter).where(counter.case_id == case_id).values(next_seq=counter.next_seq))
 
 
 async def reserve_case_sequence(db, case_id):
-    await lock_case_execution(db, case_id)
-    return (await db.execute(update(CaseEventCounter).where(CaseEventCounter.case_id == case_id)
-        .values(next_seq=CaseEventCounter.next_seq + 1).returning(CaseEventCounter.next_seq))).scalar_one() - 1
+    counter = CaseEventCounter
+    dialect = db.get_bind().dialect.name
+    insert = {"sqlite": sqlite_insert, "postgresql": pg_insert}.get(dialect)
+    if insert is None:
+        raise RuntimeError("Unsupported durable event database: " + dialect)
+    reservation = insert(counter).values(case_id=case_id, next_seq=2).on_conflict_do_update(
+        index_elements=[counter.case_id], set_={"next_seq": counter.next_seq + 1})
+    return (await db.execute(reservation.returning(counter.next_seq - 1))).scalar_one()
 
 
 async def append_event(db, case_id, event_type, payload, *, run_id=None, step_id=None,

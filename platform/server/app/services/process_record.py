@@ -12,7 +12,8 @@ BINDING={'case_id','job_id','attempt_id','worker_id'}
 
 def validate(record,*,bound=True):
     fields=BASE|BINDING if bound else BASE
-    if not isinstance(record,dict) or set(record) not in (fields,fields|{'namespace_init'}) or record.get('schema')!=SCHEMA:
+    if (not isinstance(record,dict) or set(record)-{'namespace_init','linux_network'}!=fields
+            or record.get('schema')!=SCHEMA):
         raise ValueError('Invalid durable process identity schema')
     validate_os(record['host'])
     if type(record['pid']) is not int or record['pid']!=record['host']['pid'] or record['runtime'] not in {'windows','linux','wsl','wsl-sandbox'}:
@@ -32,6 +33,12 @@ def validate(record,*,bound=True):
                 or init['platform']!='linux' or any(init[key]!=host[key] for key in ('host_id','boot_id','uid'))
                 or init['pid_namespace']==host['pid_namespace'] or init['pid']==host['pid']):
             raise ValueError('Process namespace init differs from its Linux host')
+    if 'linux_network' in record:
+        network = record['linux_network']
+        if ('namespace_init' not in record or not isinstance(network,dict) or set(network) != {'host','init'}
+                or any(not isinstance(value,str) or not re.fullmatch(r'[1-9][0-9]{0,19}',value)
+                       for value in network.values()) or network['host'] == network['init']):
+            raise ValueError('Invalid private Linux network namespace identity')
     if native is not None:
         if not isinstance(native,dict) or set(native)!={'distribution','process'} or record['host']['platform']!='windows':
             raise ValueError('Invalid native process binding')

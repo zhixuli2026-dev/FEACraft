@@ -17,7 +17,7 @@ import time
 import uuid
 
 from .async_ops import finish_before_cancel
-from .native_execution_client import ADDRESS,CAPABILITY,ChildExecutionError,context,latex_probe_timeout
+from .native_execution_client import ADDRESS,CAPABILITY,ChildExecutionError,NativeComputeLimit,context,latex_probe_timeout
 from .owned_process import OwnedProcess,wsl_path
 from . import native_child_records as records
 
@@ -563,6 +563,8 @@ class NativeExecutor:
                 if self.kind=='agent.shell' and (owned.stop_result is None or owned.stop_result['verified'] is not True):
                     raise ChildExecutionError('Agent child cleanup was not verified')
                 await asyncio.wait_for(asyncio.shield(pump),5)
+                if self.kind=='agent.shell' and owned.stop_result['reason'] in {'cpu_limit','memory_limit'}:
+                    raise NativeComputeLimit('The Agent command reached its admitted Linux compute limit')
                 sample_diagnostics()
                 if budget is not None and budget.violation=='log_limit':
                     raise ChildExecutionError('Native output exceeded the shared allowance')

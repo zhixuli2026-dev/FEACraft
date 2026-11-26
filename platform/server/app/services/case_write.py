@@ -33,6 +33,9 @@ _writes = ContextVar('case_publication_alias_writes', default=None)
 _digest_workers = 4
 _digest_slots = BoundedSemaphore(_digest_workers)
 _digest_pool = ThreadPoolExecutor(max_workers=_digest_workers, thread_name_prefix='case-digest')
+_metadata_workers = 2
+_metadata_slots = BoundedSemaphore(_metadata_workers)
+_metadata_pool = ThreadPoolExecutor(max_workers=_metadata_workers, thread_name_prefix='case-metadata')
 
 
 def record_write(prefix, path):
@@ -117,26 +120,36 @@ def case_read_slot(code, label):
 
 
 @asynccontextmanager
-async def _read_operation_slot(code, label, wait_for_capacity):
+async def _read_operation_slot(code, label, slots, wait_for_capacity):
     if not wait_for_capacity:
         with case_read_slot(code, label):
             yield
         return
-    while not _digest_slots.acquire(blocking=False):
+    while not slots.acquire(blocking=False):
         await asyncio.sleep(.005)
     try:
         yield
     finally:
-        _digest_slots.release()
+        slots.release()
 
 
 async def bounded_case_read(operation, *args, code='file_version', label='文件版本读取', seconds=None,
                             wait_for_capacity=False):
+    return await _run_case_read(operation, args, code, label, seconds, _digest_slots, _digest_pool,
+                                wait_for_capacity)
+
+
+async def bounded_local_metadata_read(operation, *args, code, label):
+    """Run a local stat or size-bounded read without waiting on scans and hashes."""
+    return await _run_case_read(operation, args, code, label, None, _metadata_slots, _metadata_pool, True)
+
+
+async def _run_case_read(operation, args, code, label, seconds, slots, pool, wait_for_capacity):
     try:
         async with deadline_scope(get_settings().storage_measurement_timeout_seconds if seconds is None else seconds) as deadline:
-            async with _read_operation_slot(code, label, wait_for_capacity):
+            async with _read_operation_slot(code, label, slots, wait_for_capacity):
                 deadline.check()
-                future = asyncio.get_running_loop().run_in_executor(_digest_pool, copy_context().run, operation, *args)
+                future = asyncio.get_running_loop().run_in_executor(pool, copy_context().run, operation, *args)
                 try:
                     record = await asyncio.shield(future)
                 except asyncio.CancelledError:

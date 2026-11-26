@@ -492,8 +492,8 @@ async def _case_access(case_id: int, user: User, db: AsyncSession,
     role = await sharing.case_access_role(db, workspace, case, user.id, write=write)
     if role is None:
         raise HTTPException(404, "算例不存在")
-    from ..services.trash import is_case_deleted, is_workspace_deleted
-    if is_case_deleted(case_id) or is_workspace_deleted(case.workspace_id):
+    from ..services.trash import case_unavailable
+    if case_unavailable(case_id, case.workspace_id):
         raise HTTPException(404, "算例不存在")
     return case,role
 

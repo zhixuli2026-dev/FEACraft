@@ -110,6 +110,12 @@ Linux 单 API 部署可加载 `infra/docker-compose.docker-cli.yml`，从正式 
 
 同一 Linux 部署可用 `VIBEFLOW_TERMINAL_SESSION_LINUX_CPU_LIMIT_SECONDS` 和 `VIBEFLOW_TERMINAL_SESSION_LINUX_MEMORY_LIMIT_MB` 设置普通 PTY 会话的独立额度。配置默认为 `0`。启用后，API 在会话登记前核验控制器，成功终止时在 `stop.linux_compute_usage` 写入内核计量。 [终端内核额度及验收](owned-pty-sessions.md#linux-pty-内核额度)
 
+Linux Agent 命令通过 `VIBEFLOW_AGENT_SHELL_LINUX_CPU_LIMIT_SECONDS` 和 `VIBEFLOW_AGENT_SHELL_LINUX_MEMORY_LIMIT_MB` 设置每条命令及其后代的累计 CPU 与内存额度。两项默认均为 `0`，独立启用。启用时同样需要私有 cgroup v1 命名空间及受信执行门的控制器权限。命令达到额度时可在工具执行详情读取 `stop.linux_compute_usage`。 [Agent 命令额度](owned-agent-shell.md#linux-agent-命令内核额度)
+
+Linux Agent 本机 POSIX 命令及其后代默认使用私有网络命名空间。执行门在放行前核验网络身份，工具执行详情记录 `identity.linux_network`。该控制覆盖命令的 IPv4 和 IPv6 出口，API 仍在原网络中使用已配置的模型服务。 [Agent 命令网络验收](owned-agent-shell.md#linux-agent-命令网络隔离)
+
+Linux Agent 命令的可写工作区为当前算例或该命令的 S3 暂存目录。安装在系统路径下的工具通过只读挂载提供，命令使用自己的 `/tmp`。现有 Linux 执行门的挂载和 PID 命名空间必须可用，准备失败会终止此次工具执行。 [Agent 文件系统隔离](owned-agent-shell.md#linux-agent-命令文件系统隔离)
+
 ## 日常检查和恢复
 
 使用 `infra/docker-compose.monitoring.yml` 时，独立采集器依照节点配置保存时序、请求日志和告警投递状态。监控数据卷和正常业务卷分别备份。 [配置与实测](FF-J20-central-monitoring.md)

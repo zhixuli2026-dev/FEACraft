@@ -246,7 +246,7 @@ def inner(arguments,fd,nonce,terminal_fd=None,volume_fd=None,ready_fd=None):
 
 
 def execute(arguments,control,nonce,role,*,namespace,shell=False,terminal_fd=None,prepare_namespace=False,
-            compute_monitor=None,linux_admission=None):
+            compute_monitor=None,linux_admission=None,isolate_network=False):
     if not namespace:
         if shell and len(arguments)!=1:
             raise ValueError('Shell launch requires one unchanged command string')
@@ -298,6 +298,8 @@ def execute(arguments,control,nonce,role,*,namespace,shell=False,terminal_fd=Non
     command=['unshare',*(() if recovery_payload else ('--user','--map-current-user')),'--mount','--pid','--fork','--mount-proc',
         '--kill-child=SIGKILL',sys.executable,'-I','-S','-u',str(Path(__file__).resolve()),
         '--inner','--control-fd',str(reader),'--nonce',nonce]
+    if isolate_network:
+        command.insert(1, '--net')
     if terminal_fd is not None:command+=['--terminal-fd',str(terminal_fd)]
     if volume is not None:command+=['--volume-fd',str(volume.fd)]
     if ready_writer is not None:command+=['--ready-fd',str(ready_writer)]
@@ -382,10 +384,13 @@ def main():
     parser.add_argument('--linux-compute')
     parser.add_argument('--linux-compute-member')
     parser.add_argument('--linux-compute-shared')
+    parser.add_argument('--isolate-network',action='store_true')
     parser.add_argument('command',nargs=argparse.REMAINDER)
     args=parser.parse_args()
     if args.prepare_namespace and (os.name=='nt' or args.role!='host' or args.inner or args.parent_pid is not None or args.forward_control or args.shell):
         raise ValueError('Namespace preparation is only for a native Linux host gate')
+    if args.isolate_network and (not args.prepare_namespace or args.native_scope is not None):
+        raise ValueError('Network isolation requires a prepared Linux host namespace')
     if args.ready_fd is not None and (not args.inner or args.ready_fd<3):
         raise ValueError('Namespace readiness requires the fixed init')
     if not args.command or args.command[0]!='--' or len(args.command)<2:
@@ -443,13 +448,16 @@ def main():
                 print(json.dumps(value,sort_keys=True),file=sys.stderr,flush=True)
             with linux_compute_module().budget(args.linux_compute,args.nonce,report) as (admission,monitor):
                 return execute(arguments,control,args.nonce,args.role,namespace=True,terminal_fd=terminal_fd,
-                    prepare_namespace=True,compute_monitor=monitor,linux_admission=admission)
+                    prepare_namespace=True,compute_monitor=monitor,linux_admission=admission,
+                    isolate_network=args.isolate_network)
         if args.linux_compute_shared is not None:
             with linux_compute_module().monitor_shared(args.linux_compute_shared,args.nonce) as monitor:
                 return execute(arguments,control,args.nonce,args.role,namespace=True,terminal_fd=terminal_fd,
-                    prepare_namespace=True,compute_monitor=monitor,linux_admission=args.linux_compute_shared)
+                    prepare_namespace=True,compute_monitor=monitor,linux_admission=args.linux_compute_shared,
+                    isolate_network=args.isolate_network)
         return execute(arguments,control,args.nonce,args.role,namespace=os.name!='nt',shell=args.shell,
-            terminal_fd=terminal_fd,prepare_namespace=args.prepare_namespace,compute_monitor=compute_monitor)
+            terminal_fd=terminal_fd,prepare_namespace=args.prepare_namespace,compute_monitor=compute_monitor,
+            isolate_network=args.isolate_network)
     finally:
         if compute_monitor is not None:
             compute_monitor.close()

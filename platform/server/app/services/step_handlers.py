@@ -70,6 +70,11 @@ def registered():
     from .ppt_handler import PptHandler
     from .ppt_media_handler import PptMediaHandler
     from .legacy_postprocess_handler import LegacyPostprocessHandler
+    from .abaqus_handler import AbaqusHandler
+    from .comsol_handler import ComsolHandler
+    from .fluent_handler import FluentHandler
+    from .starccm_handler import StarccmHandler
+    from .hypermesh_handler import HypermeshHandler
     from .calculix_handler import CalculixHandler
     from .su2_handler import Su2Handler
     from .elmer_handler import ElmerHandler
@@ -87,7 +92,8 @@ def registered():
     handlers = (GeometryHandler('preview'), GeometryHandler('export'), MeshHandler(), SolveHandler(), PreparedSolveHandler(), ResumeHandler(), PostprocessHandler(), ReportHandler(),
         ComposeHandler('E-report/report.md'), ComposeHandler('E-report/report.generated.md'), LatexHandler(), PdfNumberHandler(), PptHandler(), LegacyPostprocessHandler(), CalculixHandler(), Su2Handler(), ParaViewHandler(), MpiHandler(), WorkflowMpiHandler(), UdfHandler('build'), UdfHandler('integrate'), WorkflowUdfHandler('build'), WorkflowUdfHandler('integrate'), FlothermConvertHandler(), FlothermLibraryHandler())
     handlers += (ElmerHandler(), MooseHandler(), CodeAsterHandler()) + tuple(CaseCommandHandler(kind) for kind in sorted(COMMAND_TYPES))
-    handlers += (PptMediaHandler(), FlothermPackHandler())
+    handlers += (PptMediaHandler(), FlothermPackHandler(), AbaqusHandler(), ComsolHandler(),
+                 FluentHandler(), StarccmHandler(), HypermeshHandler())
     return {(handler.key, handler.version):handler for handler in handlers}
 
 
@@ -135,6 +141,16 @@ def publication_handler(descriptor):
         return get_handler('su2.solve',descriptor.get('handler_version','1'))
     if descriptor.get('handler')=='calculix.v1':
         return get_handler('calculix.solve',descriptor.get('handler_version','1'))
+    if descriptor.get('handler')=='abaqus.v1':
+        return get_handler('abaqus.solve',descriptor.get('handler_version','1'))
+    if descriptor.get('handler')=='comsol.v1':
+        return get_handler('comsol.solve',descriptor.get('handler_version','1'))
+    if descriptor.get('handler')=='fluent.v1':
+        return get_handler('fluent.solve',descriptor.get('handler_version','1'))
+    if descriptor.get('handler')=='starccm.v1':
+        return get_handler('starccm.solve',descriptor.get('handler_version','1'))
+    if descriptor.get('handler')=='hypermesh.v1':
+        return get_handler('hypermesh.export',descriptor.get('handler_version','1'))
     if descriptor.get('handler')=='elmer.v1':
         return get_handler('elmer.solve',descriptor.get('handler_version','1'))
     if descriptor.get('handler')=='moose.v1':

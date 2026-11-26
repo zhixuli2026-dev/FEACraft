@@ -109,6 +109,7 @@ class OwnedProcess:
         self._native_scope_digest=None
         self.windows_compute_policy=None
         self.linux_compute_policy=None
+        self.isolate_linux_network=False
         self.linux_compute_admission=None
         self.windows_compute_parent=None
         self.linux_compute_usage=None
@@ -204,6 +205,10 @@ class OwnedProcess:
             if os.name=='nt' or distro is not None:
                 raise ValueError('Namespace observation requires a native Linux host')
             args.append('--prepare-namespace')
+        if self.isolate_linux_network:
+            if self.on_namespace is None:
+                raise ValueError('Network isolation requires prepared Linux namespace registration')
+            args.append('--isolate-network')
         if self.linux_compute_policy is not None:
             from .linux_gate_compute import selection
             if self.on_namespace is None:
@@ -279,6 +284,8 @@ class OwnedProcess:
                         or identity.probe(self.namespace_init)['state']!='match'):
                     raise ValueError('Prepared namespace init differs from its host')
                 self.record['namespace_init']=json.loads(json.dumps(self.namespace_init))
+                if self.isolate_linux_network:
+                    self.record['linux_network'] = self._network_namespaces()
                 self._record_digest=hashlib.sha256(json.dumps(self.record,sort_keys=True).encode()).hexdigest()
                 await self.on_namespace(json.loads(json.dumps(self.record)),json.loads(json.dumps(self.namespace_init)))
             if distro:
@@ -318,6 +325,13 @@ class OwnedProcess:
         await self._release()
         self.released=True
 
+    def _network_namespaces(self):
+        host = str((Path('/proc') / str(self.record['pid']) / 'ns/net').stat().st_ino)
+        init = str((Path('/proc') / str(self.namespace_init['pid']) / 'ns/net').stat().st_ino)
+        if host == init:
+            raise ValueError('Linux command did not enter a private network namespace')
+        return {'host':host, 'init':init}
+
     async def verify_registration(self):
         if self.guardian is not None and (self.guardian.proc.poll() is not None or self.guardian_proof is not None):
             raise ValueError('Business release requires its selected guardian to remain live')
@@ -333,6 +347,8 @@ class OwnedProcess:
         elif (await asyncio.to_thread(identity.probe,self.record['host']))['state']!='match':raise ValueError('Owned host birth changed')
         if self.namespace_init is not None and (await asyncio.to_thread(identity.probe,self.namespace_init))['state']!='match':
             raise ValueError('Prepared namespace init changed before release')
+        if self.isolate_linux_network and self.record.get('linux_network') != self._network_namespaces():
+            raise ValueError('Prepared network namespace changed before release')
         if self.native is not None and (await probe_native(self.native['distribution'],self.native['process']))['state']!='match':raise ValueError('Owned native birth changed')
 
     async def _read_control(self):

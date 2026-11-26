@@ -21,6 +21,10 @@ class ChildExecutionError(OSError):
     pass
 
 
+class NativeComputeLimit(ChildExecutionError):
+    """An owned process reached its configured Linux CPU or memory limit."""
+
+
 @contextmanager
 def context(address,capability):
     token=CURRENT.set((address,capability))
@@ -115,6 +119,8 @@ def run_native(purpose,parameters,*,timeout,capture=False,sink=None):
                     return subprocess.CompletedProcess(purpose,message['returncode'],bytes(collected) if capture else None,b'')
                 elif message.get('type')=='error':
                     if message.get('error')=='TimeoutError':raise subprocess.TimeoutExpired(purpose,timeout)
+                    if message.get('error')=='NativeComputeLimit':
+                        raise NativeComputeLimit('命令已达到 Linux CPU 或内存额度，请查看执行回执')
                     raise ChildExecutionError('Owned native execution failed: '+str(message.get('error','unknown')))
                 else:
                     raise ChildExecutionError('Invalid native execution response')

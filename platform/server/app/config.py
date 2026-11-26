@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     terminal_session_workspace_limit_mb: int = Field(default=0, ge=0)
     terminal_session_linux_cpu_limit_seconds: int = Field(default=0, ge=0, le=86400)
     terminal_session_linux_memory_limit_mb: int = Field(default=0, ge=0, le=1024*1024)
+    agent_shell_linux_cpu_limit_seconds: int = Field(default=0, ge=0, le=600)
+    agent_shell_linux_memory_limit_mb: int = Field(default=0, ge=0, le=1024*1024)
     codex_concurrent_sessions: int = Field(default=4, ge=1, le=128)
     codex_session_lifetime_seconds: float = Field(default=0, ge=0, le=30*86400)
     codex_session_max_output_bytes: int = Field(default=0, ge=0, le=2**63-1)

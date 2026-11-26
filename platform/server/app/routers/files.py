@@ -209,6 +209,7 @@ async def _case_for_file_request(case_id, user, db, *, write=True):
 async def _read_file_tree(db, case, user, select_entries, *args, code, label):
     from ..services.case_journal_recovery import require_settled
     from ..services.case_tree import listing_marker
+    from ..services.case_write import bounded_local_metadata_read
     from ..services.durable_events import ensure_parent_transaction
     from ..services.event_replay import latest_sequence
     from ..services.storage_operations import admit_locked
@@ -217,11 +218,11 @@ async def _read_file_tree(db, case, user, select_entries, *args, code, label):
     # Local filesystem readers can finish while peers wait on this request's
     # existing budget. Keep S3 recovery and owner-credit admission unchanged.
     local_read = not storage._use_s3()
+    read_marker = bounded_local_metadata_read if local_read else bounded_case_read
     async with case_read_capacity.file_read_deadline(code, label):
         async def checkpoint():
             watermark = await latest_sequence(db, case_id)
-            marker = await bounded_case_read(listing_marker, prefix, code=code, label=label,
-                                             wait_for_capacity=local_read)
+            marker = await read_marker(listing_marker, prefix, code=code, label=label)
             return watermark, marker
 
         async with case_read_capacity.reading(db, case, defer_journal=True):

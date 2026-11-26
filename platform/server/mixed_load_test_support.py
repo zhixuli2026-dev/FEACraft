@@ -24,6 +24,7 @@ def docker(*args, env=None, timeout=30):
 
 API_IMAGE = 'vibeflow/api:j14-release-paraview-20261125'
 WEB_IMAGE = 'vibeflow/web:j14-ingress-drain-offline-20261125'
+CCX_IMAGE = 'vibeflow/api:linux-calculix-v1-20261118'
 opener = build_opener(ProxyHandler({}))
 
 DRAG_OBSERVATION = '''
@@ -46,9 +47,10 @@ DRAG_OBSERVATION = '''
 
 
 class Deployment:
-    def __init__(self, stack, evidence, api_image, web_image, *, trace_drags=False):
+    def __init__(self, stack, evidence, api_image, web_image, *, trace_drags=False, ccx_image=None):
         self.api_image = api_image
         self.web_image = web_image
+        self.ccx_image = ccx_image
         self.observer = Path(__file__).with_name('mixed_load_observer.py')
         self.render_mount = ()
         if trace_drags:
@@ -111,6 +113,12 @@ class Deployment:
                         '-e', 'VIBEFLOW_VIZ_IDLE_SECONDS=300', '-e', 'LP_NUM_THREADS=1',
                         '-e', 'OMP_NUM_THREADS=1', '-e', 'VTK_SMP_MAX_THREADS=1',
                         '-e', 'VIBEFLOW_VTK_OSMESA_DIR=/opt/paraview/lib/mesa']
+        if ccx_image is not None:
+            tool = self.volume('calculix', '/work/tools')
+            docker('run', *options, '--mount', tool, '--entrypoint', '/bin/sh', ccx_image,
+                   '-ec', 'install -m 0555 /usr/local/bin/ccx /work/tools/ccx', timeout=40)
+            self.runtime.extend(('--mount', tool + ',readonly'))
+            self.env['VIBEFLOW_CALCULIX'] = '/work/tools/ccx'
         self.flags = [item for key in self.env for item in ('-e', key)]
         docker('run', '--rm', '--pull=never', '--network', network, *self.runtime, *self.flags,
                '--entrypoint', '/usr/local/bin/python', self.api_image, '-B', '-m', 'alembic', 'upgrade', 'head',
@@ -119,9 +127,34 @@ class Deployment:
         self.worker = self.start_worker(self.label + '-worker')
 
     def start_worker(self, name):
-        return self.run_container(name, *self.runtime, *self.flags,
-                                  '--entrypoint', '/usr/local/bin/python', self.api_image,
+        identity = ('--hostname', name) if self.ccx_image else ()
+        return self.run_container(name, *identity, *self.runtime, *self.flags,
+                                  '--entrypoint', '/usr/local/bin/python', self.ccx_image or self.api_image,
                                   '-B', '-m', 'app.services.distributed_worker', environment=self.env)
+
+    def resource_counters(self):
+        code = """
+import json
+from pathlib import Path
+root = Path('/sys/fs/cgroup')
+paths = {
+    'memory_bytes': ('memory.current', 'memory/memory.usage_in_bytes'),
+    'memory_peak_bytes': ('memory.peak', 'memory/memory.max_usage_in_bytes'),
+    'cpu_nanoseconds': ('cpuacct/cpuacct.usage',),
+}
+values = {}
+for metric, candidates in paths.items():
+    for name in candidates:
+        if (root / name).is_file():
+            values[metric] = int((root / name).read_text())
+            break
+if 'cpu_nanoseconds' not in values and (root / 'cpu.stat').is_file():
+    stats = dict(line.split() for line in (root / 'cpu.stat').read_text().splitlines())
+    values['cpu_nanoseconds'] = int(stats['usage_usec']) * 1000
+print(json.dumps(values))
+"""
+        return {role: json.loads(docker('exec', container, '/usr/local/bin/python', '-B', '-c', code, timeout=12))
+                for role, container in (('api_a', self.a), ('api_b', self.b), ('worker', self.worker))}
 
     def volume(self, suffix, target):
         name = docker('volume', 'create', self.label + '-' + suffix)
@@ -230,15 +263,18 @@ class RenderClient:
         # A separate list round trip drains the camera-down notifications.
         await self.rpc('pv.proxy.manager.list',[])
         move = self.number + 1
-        changed = {**event,'action':'move','x':.68+.015*index,'y':.56,'mixed_load_move':move}
-        latency, frame = await self.call_for_image('viewport.mouse.interaction',[changed], move=move)
+        changed = {**event,'action':'move','x':.68+.015*(index % 6),'y':.56,'mixed_load_move':move}
+        timing = {}
+        latency, _ = await self.call_for_image('viewport.mouse.interaction',[changed], move=move, timing=timing)
         await self.rpc('viewport.mouse.interaction',[{**changed,'action':'up','buttonLeft':False}])
         if quality != 100:
             await self.rpc('viewport.image.push.quality', ['-1', 100, 1])
-        return latency,frame
+        return {'image_ms':latency, **timing}
 
-    async def call_for_image(self, method, args, *, move=None):
+    async def call_for_image(self, method, args, *, move=None, timing=None):
         started = time.perf_counter()
+        if timing is not None:
+            timing['move_started_ms'] = time.time_ns() // 1_000_000
         attachment = frame = None
         acknowledged = False
         identifier = await self.send(method,args)
@@ -263,6 +299,8 @@ class RenderClient:
                                 (move is None or (info.get('mixed_load_move') == move and
                                  info.get('stale') is False and info.get('size') == [480,360]))):
                             frame = (round((time.perf_counter() - started)*1000, 3), attachment)
+                            if timing is not None:
+                                timing['frame_received_ms'] = time.time_ns() // 1_000_000
                         attachment = None
                 elif message.type not in (aiohttp.WSMsgType.BINARY,aiohttp.WSMsgType.PING,aiohttp.WSMsgType.PONG):
                     raise OSError(f'Visualization socket closed: message={message.type.name}, code={self.socket.close_code}')

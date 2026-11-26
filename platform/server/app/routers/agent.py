@@ -1266,8 +1266,11 @@ async def _run_loop_inner(cid: int, user_id: int, profile_id: int, model: str,
             return
         endpoint = resolve_endpoint(profile.provider, profile.base_url or None)
         profile_org_id, profile_ciphertext = profile.org_id, profile.key_ciphertext
-        org_result = await db.scalars(select(Membership.org_id).where(Membership.user_id == user_id))
-        org_id = org_result.all()
+        perm = conv.permission_mode or "approve_writes"
+        org_id = []
+        if perm != "ask":
+            memberships = await db.scalars(select(Membership.org_id).where(Membership.user_id == user_id))
+            org_id = memberships.all()
         # The shared KMS and the streaming client can wait independently of SQL.
         await db.commit()
         try:
@@ -1288,7 +1291,6 @@ async def _run_loop_inner(cid: int, user_id: int, profile_id: int, model: str,
             case_dict_writer=lambda content: update_case_dict(case, content, source="agent"),
             user_id=user_id, org_id=org_id, case_id=case.id)
         # 权限模式：ask=不给工具；plan=只读工具；full_access=危险工具直执行；approve_writes=挂审批
-        perm = conv.permission_mode or "approve_writes"
         tools = None if perm == "ask" else (
             tools_for_anthropic() if api_kind == "anthropic" else tools_for_openai())
         if perm == "plan" and tools is not None:
@@ -1816,44 +1818,51 @@ async def _run_loop(cid: int, user_id: int, profile_id: int, model: str,
     execution_token = None
     inner = None
     try:
-        async with SessionLocal() as db:
-            conversation = await db.get(Conversation, cid)
-            run_metadata = {}
-            if conversation is not None:
-                supervisor_register("agent", cid, conversation.case_id, cancel_event.set)
-                case = await db.get(Case, conversation.case_id)
-                permission = conversation.permission_mode or "approve_writes"
-                run_metadata = {
-                    "workingDirectory": case.s3_prefix if case else "",
-                    "mode": "goal" if allow_goal_runner else
-                            "ask" if permission == "ask" else "plan" if permission == "plan" else "agent",
-                    "permission": permission,
-                    "model": model or conversation.model,
-                }
+        admitting_owner = True
         try:
             if owner is None:
                 from ..services.execution_storage_admission import admit
                 owner = await admit(lambda: conversation_control.start(cid, user_id, 'api', search_run_id))
-            else:
-                async with SessionLocal() as db:
+            async with _stream_session() as db:
+                if execution_owner is not None:
                     await conversation_control.renew(db, owner)
-                    await db.commit()
-            heartbeat = asyncio.create_task(conversation_control.watch(owner, cancel_event))
-            execution_token = conversation_control.active_owner.set(owner)
+                admitting_owner = False
+                has_pending_approval = select(ToolCall.id).where(
+                    ToolCall.conversation_id == cid, ToolCall.status == 'pending').exists()
+                startup = (await db.execute(select(
+                    Conversation.case_id, Conversation.permission_mode, Conversation.model,
+                    Case.s3_prefix, has_pending_approval.label('awaiting_approval'),
+                ).outerjoin(Case, Case.id == Conversation.case_id).where(Conversation.id == cid))).one_or_none()
+                run_metadata = {}
+                awaiting_approval = False
+                if startup is not None:
+                    supervisor_register("agent", cid, startup.case_id, cancel_event.set)
+                    permission = startup.permission_mode or "approve_writes"
+                    run_metadata = {
+                        "workingDirectory": startup.s3_prefix or "",
+                        "mode": "goal" if allow_goal_runner else
+                                "ask" if permission == "ask" else "plan" if permission == "plan" else "agent",
+                        "permission": permission,
+                        "model": model or startup.model,
+                    }
+                    awaiting_approval = startup.awaiting_approval
+                if not awaiting_approval:
+                    await _append_event(db, cid, "run_state", {
+                        "run_id": search_run_id, "status": "started", **run_metadata,
+                        'execution_binding': conversation_control.stop_binding(owner)})
+                # Publish the renewed owner and the run start together.
+                await db.commit()
         except Exception as error:
+            if not admitting_owner:
+                raise
             yield sse({'type': 'stream.error', 'message': '会话已有执行或需要对账', 'code': getattr(error, 'code', 'state_conflict')})
             yield sse({'type': 'stream.done', 'reason': 'execution_conflict'})
             return
-        async with SessionLocal() as db:
-            pending = await db.scalar(select(ToolCall.id).where(
-                ToolCall.conversation_id == cid, ToolCall.status == 'pending').limit(1))
-            if pending is not None:
-                yield sse({'type': 'stream.done', 'reason': 'awaiting_approval'})
-                return
-            await _append_event(db, cid, "run_state", {
-                "run_id": search_run_id, "status": "started", **run_metadata,
-                'execution_binding': conversation_control.stop_binding(owner)})
-            await db.commit()
+        if awaiting_approval:
+            yield sse({'type': 'stream.done', 'reason': 'awaiting_approval'})
+            return
+        heartbeat = asyncio.create_task(conversation_control.watch(owner, cancel_event))
+        execution_token = conversation_control.active_owner.set(owner)
         inner = _run_loop_inner(cid, user_id, profile_id, model,
                                 cancel_event, search_run_id, reasoning_effort, goal_tools_remaining)
         async for frame in inner:

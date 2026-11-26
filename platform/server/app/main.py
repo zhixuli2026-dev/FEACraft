@@ -11,7 +11,7 @@ from .config import get_settings, validate_storage_backend
 from .db import SessionLocal, init_db
 from .routers import agent, auth, cadscene, calculix, cite, code_aster, codex, completion, elmer, events, files, flotherm, geometry, index, jobs, llm, logs, mesh, moose, mpi, opencode_cfg, org, paraview, postprocess, remote, remote_hpc, reports, runtime, scnet, skills, su2, terminal, udf, viz, vizproxy, workflows, workspaces
 from .services import monitor_export, rate_limit
-from .routers import acp, website_auth
+from .routers import abaqus, acp, comsol, fluent, hypermesh, starccm, website_auth
 from .routers import native_history
 from .routers import manual_files
 from .routers import upload_recovery
@@ -280,6 +280,11 @@ app.include_router(opencode_cfg.router)
 from .routers import cli_contracts
 app.include_router(cli_contracts.router)
 app.include_router(calculix.router)
+app.include_router(abaqus.router)
+app.include_router(comsol.router)
+app.include_router(fluent.router)
+app.include_router(starccm.router)
+app.include_router(hypermesh.router)
 app.include_router(su2.router)
 app.include_router(elmer.router)
 app.include_router(moose.router)

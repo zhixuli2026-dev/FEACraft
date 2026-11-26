@@ -77,8 +77,12 @@ def profile(kind,value):
 def document(request):
     if request.kind not in PURPOSES:raise ValueError('Unsupported native request kind')
     scope(request.case_id,request.kind)
+    linux_compute_policy = None
+    private_network = False
     if request.kind=='agent.shell':
         selected=profile(request.kind,json.loads(request.profile_json))
+        linux_compute_policy = selected.get('linux_compute_policy')
+        private_network = selected.get('linux_network') == 'private'
         if request.conversation_id!=selected['conversation_id'] or request.tool_call_id!=selected['tool_call_id']:
             raise ValueError('Agent shell request crosses its tool binding')
     elif request.conversation_id is not None or request.tool_call_id is not None:raise ValueError('Non-tool request has an Agent binding')
@@ -111,6 +115,8 @@ def document(request):
             raise ValueError('Unregistered native request child has an identity')
         if row['identity'] is not None:
             process_record.validate(row['identity'],bound=False)
+            if private_network and row['phase'] in {'running','stopped'} and 'linux_network' not in row['identity']:
+                raise ValueError('Linux Agent child lacks its configured network namespace')
             native=is_native(request)
             if row['identity']['runtime']!=('wsl' if native else 'windows') or (row['identity']['native'] is not None)!=native:
                 raise ValueError('Native request child runtime differs')
@@ -118,11 +124,13 @@ def document(request):
                 raise ValueError('Native request child distribution differs')
         if row['stop'] is not None:
             if row['identity'] is None:raise ValueError('Native request cleanup has no identity')
-            process_stop.validate(row['stop'],row['identity'])
+            process_stop.validate(row['stop'],row['identity'],linux_compute_policy=linux_compute_policy)
         if row['phase']=='running' and row['identity'] is None:
             raise ValueError('Running native request child has no identity')
         if row['phase']=='stopped' and (row['stop'] is None or not row['stop']['verified'] or row['error'] is not None):
             raise ValueError('Stopped native request child lacks exit proof')
+        if row['phase']=='stopped' and linux_compute_policy is not None and 'linux_compute_usage' not in row['stop']:
+            raise ValueError('Stopped Agent child lacks configured Linux compute usage')
     return value
 
 
@@ -315,7 +323,8 @@ async def finish(owner,nonce,identifier,identity,stop,error):
             row['identity']=identity
         if stop is not None:
             if row['identity'] is None:raise ValueError('Native request cleanup has no identity')
-            process_stop.validate(stop,row['identity'])
+            policy = json.loads(request.profile_json).get('linux_compute_policy') if request.kind=='agent.shell' else None
+            process_stop.validate(stop,row['identity'],linux_compute_policy=policy)
         if request.kind=='terminal.cleanup' and error is None:
             from .sandbox_image_scope import require_closed
             await require_closed(db,request)

@@ -18,10 +18,13 @@ async def read_case(case_id, prefix, user_id, function, *args, cancel=None, wait
     from ..routers.workspaces import get_owned_case
     from .agent_file_reads import stop_signal
     from .case_read_capacity import file_read_deadline, reading
-    from .case_write import CaseWriteConflict, bounded_case_read
+    from .case_write import CaseWriteConflict, bounded_case_read, bounded_local_metadata_read
     from .file_read import FileRead
+    from .memory import MEMORY_PATH, read_prompt_memory
 
     stop = Event()
+    local_read = not storage._use_s3()
+    short_memory_read = local_read and file_path == MEMORY_PATH and function is read_prompt_memory
 
     def execute(selected, *arguments):
         token = stop_signal.set(stop)
@@ -59,8 +62,11 @@ async def read_case(case_id, prefix, user_id, function, *args, cancel=None, wait
                         checked = await get_owned_case(case_id, actor, db, write=False)
                         if checked.s3_prefix != prefix:
                             raise ValueError('Case storage location changed')
-                        result = await bounded_case_read(execute_file, prefix, code=code, label=label,
-                                                         wait_for_capacity=not storage._use_s3())
+                        if short_memory_read:
+                            result = await bounded_local_metadata_read(execute_file, prefix, code=code, label=label)
+                        else:
+                            result = await bounded_case_read(execute_file, prefix, code=code, label=label,
+                                                             wait_for_capacity=local_read)
                     await finish_before_cancel(db.rollback())
                     return result
                 except CaseWriteConflict as error:

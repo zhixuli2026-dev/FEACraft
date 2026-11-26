@@ -23,8 +23,8 @@ from .workflow_state import ExecutionConflict
 BUDGET = {'timeout_seconds':86400, 'max_log_bytes':16*1024*1024}
 
 
-def submission_payload(backend, body):
-    return {'endpoint': backend + '.solve', 'payload': body}
+def submission_payload(backend, body, operation='solve'):
+    return {'endpoint': backend + '.' + operation, 'payload': body}
 
 
 def _check_remote(prefix, expected):
@@ -32,22 +32,22 @@ def _check_remote(prefix, expected):
         raise CaseWriteConflict('input_stale','求解输入或输出目标在封存期间发生变化')
 
 
-def _require_inputs(step, manifest):
+def _require_inputs(step, manifest, max_input_bytes):
     source = step.descriptor['source']['files']
-    if source[step.descriptor['input']]['size'] > 1024*1024:
-        raise HTTPException(413,'Solver input exceeds 1 MiB')
+    if source[step.descriptor['input']]['size'] > max_input_bytes:
+        raise HTTPException(413, f'Solver input exceeds {max_input_bytes // (1024 * 1024)} MiB')
     for path, expected in source.items():
         sealed = manifest['files'].get(path)
         if sealed is None or any(sealed[key] != expected[key] for key in ('size','sha256')):
             raise CaseWriteConflict('input_stale','求解依赖与封存内容不一致',path=path)
 
 
-def _parameters(prefix, raw_input, canonical_path, find_executable, label):
+def _parameters(prefix, raw_input, canonical_path, find_executable, label, max_input_bytes):
     path = canonical_path(raw_input)
     if not storage.exists(prefix,path):
         raise HTTPException(404,label+' input does not exist')
-    if storage.file_size(prefix,path)>1024*1024:
-        raise HTTPException(413,label+' input exceeds 1 MiB')
+    if storage.file_size(prefix, path) > max_input_bytes:
+        raise HTTPException(413, f'{label} input exceeds {max_input_bytes // (1024 * 1024)} MiB')
     try:
         executable = find_executable()
     except FileNotFoundError as error:
@@ -74,7 +74,7 @@ async def _commit(db,case_id,user_id,key,digest,step,staged,observations,check_l
     return job.id,True
 
 
-async def _stage(db,case_id,user_id,key,digest,backend,label,raw_input,canonical_path,find_executable,extra):
+async def _stage(db,case_id,user_id,key,digest,backend,label,raw_input,canonical_path,find_executable,extra,operation):
     code = backend+'_seal'
     caption = '封存 '+label+' 输入'
     async with file_read_deadline(code,caption,seconds=STAGING_CLEANUP_SECONDS):
@@ -85,11 +85,12 @@ async def _stage(db,case_id,user_id,key,digest,backend,label,raw_input,canonical
         await check_job_quota(db,user,case_id=case_id)
         db.expunge(case)
         await finish_before_cancel(db.rollback())
-        handler = step_handlers.get_handler(backend+'.solve')
+        handler = step_handlers.get_handler(backend+'.'+operation)
+        max_input_bytes = getattr(handler, 'max_input_bytes', 1024 * 1024)
         observations = PublicationReadSet()
 
         async def prepare():
-            parameters = await io(_parameters,case.s3_prefix,raw_input,canonical_path,find_executable,label)
+            parameters = await io(_parameters,case.s3_prefix,raw_input,canonical_path,find_executable,label,max_input_bytes)
             step = await handler.prepare(None,case,None,parameters={**parameters,**(extra or {})},budget=BUDGET,observations=observations)
             publications = (await publication_inputs.resolve(observations,case,step.input_publications)
                             if step.input_publications else None)
@@ -105,7 +106,7 @@ async def _stage(db,case_id,user_id,key,digest,backend,label,raw_input,canonical
                 step,publications = await prepare()
 
                 async def verify(manifest):
-                    _require_inputs(step,manifest)
+                    _require_inputs(step,manifest,max_input_bytes)
                     await check_live()
 
                 staged = await command_input_seal.upload(lease,owner_id,step,case.dict_revision,verify,
@@ -124,16 +125,18 @@ async def _stage(db,case_id,user_id,key,digest,backend,label,raw_input,canonical
             step,publications = await prepare()
             sources.seal()
             async with local_rerun_seal.prepare(case,step.spec,step.input_paths,publications,step.generated_inputs,all_live=False) as staged:
-                _require_inputs(step,staged.draft)
+                _require_inputs(step,staged.draft,max_input_bytes)
                 return await _commit(db,case_id,user_id,key,digest,step,staged,observations,sources.require_current)
 
 
-async def solve(db,case_id,user_id,key,body,*,backend,label,raw_input,canonical_path,find_executable,request,extra=None):
+async def submit(db,case_id,user_id,key,body,*,backend,label,raw_input,canonical_path,find_executable,request,
+                 extra=None,operation='solve'):
     try:
         job_execution.validate_key(key)
-        digest = job_execution.request_hash(submission_payload(backend, body))
+        digest = job_execution.request_hash(submission_payload(backend, body, operation))
         job_id,created = await request_lifecycle.wait(
-            _stage(db,case_id,user_id,key,digest,backend,label,raw_input,canonical_path,find_executable,extra),request=request)
+            _stage(db,case_id,user_id,key,digest,backend,label,raw_input,canonical_path,find_executable,extra,operation),
+            request=request)
         if created:
             try:
                 await job_delivery.deliver(job_id)
@@ -148,3 +151,6 @@ async def solve(db,case_id,user_id,key,body,*,backend,label,raw_input,canonical_
         raise
     except ValueError as error:
         raise HTTPException(400,str(error)) from error
+
+
+solve = submit

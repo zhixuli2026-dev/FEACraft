@@ -113,11 +113,29 @@ class RequestExecutor(NativeExecutor):
                 check_active()
             entry.owned.on_preparation=observed
         if self.kind=='agent.shell':
+            if sys.platform == 'linux' and self.runtime != 'wsl':
+                env = {name:value for name,value in env.items() if name in {'PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TZ'}}
+                env.update(HOME=str(self.cwd), TMPDIR='/tmp')
+                entry.owned.isolate_linux_network = self.profile.get('linux_network') == 'private'
+                entry.owned.linux_compute_policy = self.profile.get('linux_compute_policy')
+                if entry.owned.isolate_linux_network or entry.owned.linux_compute_policy:
+
+                    async def confirm_namespace(root, init):
+                        entry.check()
+                        if root['namespace_init'] != init or init['pid_namespace'] == root['host']['pid_namespace']:
+                            raise ValueError('Agent namespace does not match the prepared process')
+
+                    # NativeExecutor registers this complete identity before the payload is released.
+                    entry.owned.on_namespace = confirm_namespace
             return await entry.owned.prepare(argv,cwd=self.cwd,env=dict(env,PYTHONIOENCODING='utf-8'),runtime=self.runtime,
                 shell=False)
         return await super()._prepare(entry,argv,env)
 
     async def _cleanup(self,entry):
+        if self.kind=='agent.shell':
+            stop = entry.owned.stop_result
+            if stop and stop['verified'] and entry.owned.linux_compute_usage is not None:
+                stop['linux_compute_usage'] = entry.owned.linux_compute_usage
         if hasattr(self,'recovery_profile'):
             from .finalizing_native_scope import close
             await close(self.owner,entry.id,process=entry.owned)

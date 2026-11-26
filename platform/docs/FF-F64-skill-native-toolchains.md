@@ -4,6 +4,8 @@
 
 2026-11-25，36/41 个技能具备当前范围的实际工具或平台作业证据。余下 5 个需要 Abaqus、COMSOL、Fluent、HyperMesh、STAR-CCM+ 的可用厂商安装、许可证和算例，FF-F64 母项继续验收。
 
+2026-11-26，五种商业工具均已接入本机作业。在文件系统和认证 SeaweedFS 验证提交、停止和发布协议后，FF-F64 仍待对应安装及许可上的真实算例。 [Abaqus](FF-C09-abaqus.md) · [COMSOL](FF-C09-comsol.md) · [Fluent](FF-C09-fluent.md) · [STAR-CCM+](FF-C09-starccm.md) · [HyperMesh](FF-C09-hypermesh.md)
+
 | 子任务 | 技能 | 当前本机证据 | 验收记录 |
 |---|---|---|---|
 | FF-F64.01 | [vibeflow-PPT](../server/skills/vibeflow-PPT/SKILL.md) | 已有实际路径。支持版本和适用范围见验收 | [运行验收](ppt-delivery.md) |

@@ -49,3 +49,35 @@ shell 保留已批准用户命令的现有能力。本增量提供实际进程�
 完整 Agent 兼容测试使用真实路由和本地 mock provider，保留 custom/Anthropic 双协议的审批与只读工具断言，并增加 `full_access` 实际原生执行核验。原请求、全局 runtime、核心和算例管理回归以 `tmp/mainline-N4-agent-shell-evidence` 中最终结果及原始来源为准。
 
 下一单元 g2 接通 Codex stdio 的用户/会话归属、双向 I/O、取消/期限/输出边界及实际 CLI 验证，保留登录、沙盒初始化和命令审批边界。之后继续专业入口复核、全入口取消、整次预算、公平队列、统一活动/停机、N5 恢复和完整界面/跨主机/远端 S3/混合负载验收。本增量没有完成整个 Agent/CLI 功能域。
+
+## Linux Agent 命令内核额度
+
+Linux 的 `run_shell_command` 使用已批准的同一 POSIX 命令、算例与会话绑定。启用 CPU 或内存限额后，API 在建立 `NativeRequest` 前核验控制器。每个请求固定保存策略。受信执行门把准备中的 PID 命名空间加入专用 cgroup，在已登记进程身份并再次核对审批及算例权限后才放行命令。内核累计该命令及其后代的 CPU，内存按同一作用域核验。 [部署参数](deployment.md) · [Agent 执行](../server/app/services/agent_shell.py) · [原生请求接入](../server/app/services/native_request_execution.py)
+
+启用但缺少控制器权限时，工具返回 `agent_compute_unverified`。触发内核限额时返回 `agent_resource_limit`，执行详情显示 `cpu_limit` 或 `memory_limit`、退出证明、冻结策略及实测用量。Linux 命令只接收工具路径、所需区域设置、算例 `HOME` 和临时目录设置。 [任务台账](full-feature-tasks.json)
+
+2026-11-26，在实际 Linux Docker cgroup v1、PostgreSQL 和文件系统上，由授权 `deepseek-flash` 选择 `run_shell_command`，再从正式接口批准。两个 CPU 子进程的累计用量达到 1,014,611,500 ns，触发 1 秒限额并取得 `cpu_limit` 停止回执。160 MiB 分配在 64 MiB 内存与交换上限下触发一次内核 OOM，记录峰值 67,108,864 字节及 `memory_limit`。同一 API 的另一账户完成了实际文件读取，记录 69,310,600 ns CPU。全部四条已启动请求均核验进程范围为空，控制组回到零。
+
+复验还覆盖默认关闭限额、Linux 命令环境、缺少控制器权限、跨账户执行详情及对端 API 读回。启用与关闭限额的正常命令均确认测试标记和 API 连接、签名及 vault 路径变量未出现在子进程环境。缺权限入口在登记前拒绝，另一账户查阅执行详情返回 404，对端 API 返回一致的停止回执。最终轮共 10 次真实 DeepSeek HTTP 200、10 个不同的完成标识，模拟调用 0 次。 [最终回执](../../tmp/j16-agent-linux-20inena2/agent-compute.json) · [真实模型验收入口](../server/live_llm_agent_shell_linux_compute_acceptance.py)
+
+早期试跑记录了共享卷测试账号无法写入、提示中的运行时字段不符合 Linux 工具定义，以及 CPU 测试脚本转义错误。最终验收使用同一服务 UID 访问隔离共享卷，按 Linux 工具定义发起真实选择，并在提交前编译测试脚本。隔离容器、卷及网络已清理，原 11 个服务标识一致。C 盘可用空间由 39,740,526,592 B 变为 39,748,575,232 B，Docker 构建缓存维持 5.857 GB，本阶段回收 0 B。 [磁盘读数](../../tmp/ff-j16-agent-compute-20261126/disk-after.json) · [Docker 占用](../../tmp/ff-j16-agent-compute-20261126/docker-after.txt)
+
+## Linux Agent 命令网络隔离
+
+原生 Linux `run_shell_command` 默认在专用 PID 和网络命名空间执行，独立于 CPU 或内存额度设置。受信启动门读取本机网络命名空间身份和待执行命令的网络身份，确认不同后写入原生执行回执。放行前再次核对内核身份和已登记的原生进程。环境无法创建或核对私有命名空间时，命令在真实业务放行前退出。现有历史回执继续可读。 [启动门](../server/app/services/process_gate.py) · [进程归属](../server/app/services/owned_process.py) · [请求回执验证](../server/app/services/native_request_records.py)
+
+2026-11-26，隔离 Docker 复验在同一 API 网络中启动两个实际 TCP 监听器，分别使用容器 IPv4 地址和 IPv6 回环地址。API 网络中的对照连接读到监听器返回的标记。正式 Agent 工具经真实 DeepSeek 选取并批准后，计算额度开启与关闭的两种配置均只看到自己的 `lo` 接口，IPv4 连接返回 `ENETUNREACH`，IPv6 连接返回 `EADDRNOTAVAIL`。工具启动的后代进程与工具本身使用相同网络命名空间，身份与持久回执吻合。IPv6 回环仅在测试容器启用，以建立可达的对照。 [最终网络复验](../../tmp/j16-agent-linux-rf2rjmbr/agent-compute.json) · [真实模型验收入口](../server/live_llm_agent_shell_linux_compute_acceptance.py)
+
+独立的 UID 65534 启动门同时通过实际运行、命名空间核对及退出证明。CPU、OOM、缺控制器权限、跨账户 404 和跨副本停止回执通过复验。最终真实 DeepSeek HTTP 200 和不同的完成标识各 10 次，模拟调用 0 次。Linux Agent 命令的 IP 出口已验收。
+
+隔离容器、卷及网络均已回收，原 11 个 Docker 服务标识一致。C 盘可用由 39,747,219,456 B 变为 39,745,802,240 B，构建缓存 5.857 GB，回收 0 B。 [磁盘读数](../../tmp/ff-j16-agent-network-20261126/disk-after.json) · [Docker 占用](../../tmp/ff-j16-agent-network-20261126/docker-after.txt)
+
+## Linux Agent 命令文件系统隔离
+
+原生 Linux Agent 命令在独立挂载和 PID 命名空间中创建临时根文件系统。受信启动器按原绝对路径挂载当前算例或 S3 暂存目录，供命令正常读写；系统和随镜像安装的工具目录通过只读绑定提供。`/tmp` 属于本次命令，`/proc` 是本次 PID 命名空间的只读视图。切换根目录并卸载原根后，启动器清空命令能力集，再启动已批准的 POSIX 命令。当前请求保存并核对启动器 SHA-256。 [Linux 启动器](../server/app/services/agent_shell_linux.py) · [请求绑定](../server/app/services/agent_shell.py) · [Linux 根挂载切换](https://man7.org/linux/man-pages/man2/pivot_root.2.html) · [执行权限约束](https://github.com/util-linux/util-linux/blob/master/sys-utils/setpriv.1.adoc)
+
+2026-11-26，本地文件系统的隔离 PostgreSQL API 复验通过。真实 `deepseek-flash` 选择并经接口批准的命令在额度开启和关闭两种配置下均读写当前算例，从 API 逐字节读回输出。另一账户的实际对照文件无法读取，工具目录拒绝写入，临时文件未出现在容器宿主视图。实测 `NoNewPrivs=1`，命令五组 Linux 能力均为空。独立 UID 65534 实测保留输出文件属主和完整停止回执。IPv4、IPv6、CPU、OOM 和跨账户回执复验通过。10 次真实 DeepSeek HTTP 200，模型模拟调用 0 次。 [本地文件系统回执](../../tmp/j16-agent-linux-9aercnmc/agent-compute.json)
+
+认证 SeaweedFS 复验中，Agent 从已登记的 S3 快照暂存目录读取输入并写出标识文件，原 API 完成同步及清理。另一 API 使用独立的空文件缓存，直接从同一认证存储读回相同字节及同一条已核验退出回执。命令无法读取挂载范围外的实际本地对照文件，成功结束后原 API 剩余暂存目录数为 0。S3 轮有 2 次真实 DeepSeek HTTP 200，两种后端最终轮合计 12 次，模型模拟调用 0 次。 [认证 S3 回执](../../tmp/j16-agent-linux-06mdpgy7/agent-compute.json) · [真实验收入口](../server/live_llm_agent_shell_linux_compute_acceptance.py)
+
+隔离容器、卷及网络均已清理，原 11 个 Docker 服务标识一致。C 盘可用由 39,744,159,744 B 变为 39,743,496,192 B，构建缓存 5.857 GB，回收 0 B。FF-J16 仍覆盖用户常驻环境及其他执行入口的统一隔离。 [磁盘读数](../../tmp/ff-j16-agent-filesystem-20261126/disk-after.json) · [Docker 占用](../../tmp/ff-j16-agent-filesystem-20261126/docker-after.txt)
