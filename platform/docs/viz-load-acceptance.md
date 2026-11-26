@@ -119,6 +119,31 @@ Linux 原生实时视图在启动时注册已安装库中的材质名称和参�
 
 原压测控制台的 `DRAG_P95_MS` 汇总质量 100。新检查器从原始完成帧独立核对两档样本、480×360 分辨率、同一组算例、跨实例重连及停止回收，并用浏览器实际使用的质量 50 判断原 200 ms 目标。缺失一张交互帧的回执已验证会被拒绝。三轮模型调用均为 0。原 11 个 Docker 服务均核对，构建缓存回收 0 B。Windows C 盘可用空间由 39,775,879,168 B 变为 39,772,327,936 B。 [验收检查器](../tools/validate_viz_load.py)
 
+## 同机离屏渲染后端核对
+
+2026-11-26，在现有 Docker Desktop 和 RTX 3060 上探测可用的离屏渲染路径。容器中的 `nvidia-smi` 识别到 12,288 MiB 显存。加载 WSL 的 D3D12 运行库后，当前 Linux 镜像的 Mesa D3D12 在 surfaceless 与 EGLDevice 两个入口均返回 `EGL_NOT_INITIALIZED`。同一探针用系统 Mesa 的软件 EGL 实际绘制并读回了像素，两种入口均报告 LLVM 19.1.7 的 llvmpipe。 [离屏探针回执](../../tmp/ff-d22-gpu-20261126/egl-result.json) · [WSL OpenGL 架构](https://devblogs.microsoft.com/commandline/wslg-architecture/)
+
+当前交付镜像的 ParaView 5.11.2 在实际 `vtkOSOpenGLRenderWindow` 中报告 LLVM 7.0.0 的 llvmpipe。480×360 球体的十次旋转均完成渲染，单进程预检用时 12.9 至 14.0 ms。50 会话回执仍按原尺寸和实际拖动完成帧核对 200 ms 目标。 [当前镜像预检](../../tmp/ff-d22-gpu-20261126/osmesa-render-preflight.json) · [ParaView 的离屏构建选项](https://www.paraview.org/paraview-docs/v5.12.0/cxx/Offscreen.html)
+
+本机 Windows 原生 ParaView 5.11.2 用同一球体完成十次旋转，`vtkWin32OpenGLRenderWindow` 报告实际使用 NVIDIA GeForce RTX 3060，每次渲染耗时 0.68 至 0.91 ms。该结果覆盖单进程离屏绘制。 [Windows GPU 预检](../../tmp/ff-d22-gpu-20261126/windows-render-preflight.json)
+
+在临时镜像安装 `libopengl0` 后，官方 ParaView 5.11.2 EGL 包实测使用 `vtkEGLRenderWindow` 和 Mesa LLVM 19.1.7 llvmpipe。两会话对照的质量 50 完成帧 p95 分别为 OSMesa 53.7 ms 和 EGL 85.7 ms，两档质量各六张完成帧，原尺寸和两条停止回执齐全。 [OSMesa 两会话](../../tmp/ff-d22-gpu-20261126/stock-2.json) · [EGL 两会话](../../tmp/ff-d22-gpu-20261126/egl-2.json)
+
+50 会话 EGL 轮包含五个百万单元算例，共取得 300 张原尺寸匹配完成帧，通过刷新、方向轴操作、跨副本重连，50 个进程范围均核验停止。浏览器质量 50 的完成帧 p95 为 322.0 ms，质量 100 为 306.3 ms，cgroup 内存峰值约 10.60 GiB，回收用时 48.81 秒。本机已有的 OSMesa 50 会话回执为 310.8 ms、270.6 ms 和 9.14 GiB。正式性能验收仍以 200 ms 为目标。模型调用 0 次。 [EGL 50 会话](../../tmp/ff-d22-gpu-20261126/egl-50.json) · [OSMesa 50 会话](../../tmp/ff-d22-phase-20261126/stock-50.json)
+
+## Windows 原生 GPU API
+
+2026-11-26，使用完整的官方 Windows ParaView 5.11.2，通过本机 API、独立 PostgreSQL 和实际 WebSocket 运行两轮双会话对照。两轮均确认渲染进程使用 RTX 3060，各取得 12 张原尺寸匹配完成帧。刷帧、方向轴切换、同 API 重连、打包的 Web Visualizer 页面与脚本读取，以及两份停止回执均通过。每轮有一个 1,045,456 单元的算例。 [官方安装包](https://www.paraview.org/files/v5.11/ParaView-5.11.2-Windows-Python3.9-msvc2017-AMD64.zip) · [安装包摘要](../../tmp/ff-d22-windows-20261126/official-windows-archive.json)
+
+| Windows 双会话 | 两会话就绪 | API 进程树私有内存峰值 | 质量 50 完成帧 p95 | 质量 100 完成帧 p95 |
+| --- | ---: | ---: | ---: | ---: |
+| 原材质加载 | 15.48 s | 2,059,956,224 B | 76.601 ms | 85.178 ms |
+| 延迟加载纹理 | 6.84 s | 1,374,871,552 B | 61.532 ms | 81.190 ms |
+
+延迟加载后，单独验证了原厂材质库的 Checker_Alpha 纹理路径、加载及 OSPRay pathtracer 实际出图。Windows 内存字段为进程树私有字节。以上实测调用模型 0 次。正式验收仍需 50 会话、五个百万单元算例和质量 50 p95 小于 200 ms。 [原材质回执](../../tmp/ff-d22-windows-20261126/run-304adc63/result.json) · [延迟加载回执](../../tmp/ff-d22-windows-20261126/run-f3b0fa9b/result.json) · [光线追踪回执](../../tmp/ff-d22-windows-20261126/windows-raytrace.json)
+
+配置 Windows 原生可视化时，将 API 的 ParaView 路径指向完整发行包的 `bin/pvpython.exe`。若另行部署同版本的 Web Visualizer 静态资源，在 API 环境中将 `VIBEFLOW_PARAVIEW_VISUALIZER_DIR` 设为包含 `index.html` 和 `Visualizer.js` 的绝对目录。
+
 ## Linux 可视化会话内核额度
 
 ParaView 和 Trame 复用 Linux 作业的内核启动门。启用额度时，API 在持久登记前核对所需的控制器环境和挂载权限。每个会话冻结 CPU 累计时限和内存字节上限，登记该会话的 PID 命名空间后才放行渲染器。经核验的停止回执随会话返回 `stop.linux_compute_usage`，含配置、启动序号、实际 CPU 纳秒、内存峰值和 OOM 计数。CPU 与内存超额分别返回 `cpu_limit`、`memory_limit`。启用条件不满足时返回 `viz_compute_unverified`。 [部署配置](deployment.md#可视化会话内核额度) · [验收入口](../server/linux_viz_compute_acceptance.py)

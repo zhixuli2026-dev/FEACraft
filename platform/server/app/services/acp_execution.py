@@ -216,6 +216,8 @@ async def submit(db, cid, user, harness, *, profile_id, client_id, content, thre
         owner = await control.acquire(db, cid, 'api', identifier)
         from .quota import check_storage_quota
         await check_storage_quota(db, user, STATE_ALLOWANCE)
+        from .linux_account_capacity import admit
+        await admit(db, user.id, docker=docker_runtime is not None)
         await admit_model(db, user.id, harness)
         await admit_provider(user.id, profile_id)
         if thread is None:

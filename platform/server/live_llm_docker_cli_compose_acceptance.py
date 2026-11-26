@@ -22,7 +22,7 @@ from live_llm_acp_platform_acceptance import result as acp_result
 from prod_default_storage_acceptance import INFRA, call, docker, ready, register, wait
 
 
-def prepare(stack, root, args, project, deployment):
+def prepare(stack, root, args, project, deployment, *, account_limit=0):
     docker('volume', 'create', project+'-cli-state')
     stack.callback(docker, 'volume', 'rm', project+'-cli-state')
     shared = docker('volume', 'inspect', '--format', '{{.Mountpoint}}', project+'-cli-state').stdout.strip()
@@ -42,7 +42,7 @@ def prepare(stack, root, args, project, deployment):
     env.update(PG_PASSWORD=secrets.token_hex(24), JWT_SECRET=secrets.token_hex(32), PROVIDER_VAULT_FILE=str(vault),
                VIBEFLOW_ACP_DOCKER_IMAGE=args.worker_image, VIBEFLOW_ACP_DOCKER_DEPLOYMENT=str(deployment),
                VIBEFLOW_DOCKER_CLI_CLIENT=args.docker_client.resolve(strict=True).as_posix(),
-               VIBEFLOW_DOCKER_CLI_STATE_DIR=shared)
+               VIBEFLOW_DOCKER_CLI_STATE_DIR=shared, VIBEFLOW_LINUX_ACCOUNT_MAX_ACTIVE_EXECUTIONS=str(account_limit))
     base = ['compose', '--env-file', str(empty), '-p', project]
     recipe = [*base, '-f', str(INFRA/'docker-compose.prod.yml'), '-f', str(INFRA/'docker-compose.docker-cli.yml')]
     settings = json.loads(docker(*recipe, 'config', '--format', 'json', env=env).stdout)
@@ -54,6 +54,7 @@ def prepare(stack, root, args, project, deployment):
     api['ports'] = ['127.0.0.1::8000']
     assert api['pid'] == 'host'
     assert api['environment']['VIBEFLOW_ACP_DOCKER_ENTRYPOINTS_IN_IMAGE'] == 'true'
+    docker_client = api['environment']['VIBEFLOW_DOCKER_CLI_CLIENT']
     assert any(mount['source'] == mount['target'] == shared for mount in api['volumes'])
     assert all(volume['name'].startswith(project+'_') and not volume.get('external')
                for volume in settings['volumes'].values())
@@ -72,7 +73,7 @@ def prepare(stack, root, args, project, deployment):
     assert address.startswith('127.0.0.1:')
     client = stack.enter_context(httpx.Client(base_url='http://'+address, timeout=30, trust_env=False))
     wait(lambda: ready(client), 'Linux Compose API did not start')
-    version = docker('exec', project+'-api', 'docker', 'version', '--format', '{{.Client.Os}} {{.Server.Os}}').stdout.strip()
+    version = docker('exec', project+'-api', docker_client, 'version', '--format', '{{.Client.Os}} {{.Server.Os}}').stdout.strip()
     assert version == 'linux linux'
     assert docker('inspect', project+'-api', '--format', '{{.HostConfig.PidMode}}').stdout.strip() == 'host'
     return compose, client, shared
@@ -84,6 +85,43 @@ class Api:
 
     def call(self, method, path, body=None, *, expected=200, **kwargs):
         return call(self.client, method, path, body, expected=expected, **kwargs).json()
+
+
+def query_fixture(project, query):
+    return docker('exec', project+'-postgres', 'psql', '-U', 'vibeflow', '-At', '-c', query).stdout.strip()
+
+
+def retire_fixture_state(compose, project, deployment, receipt):
+    compose('stop', 'api')
+    for table, scope in (('acp_turns', 'acp'), ('native_cli_sessions', 'codex')):
+        where = " WHERE runtime='docker'" if scope == 'codex' else ''
+        for identifier in query_fixture(project, f'SELECT id FROM {table}{where}').splitlines():
+            suffix = UUID(identifier).hex
+            label = f'label=vibeflow.{scope}.execution={deployment.hex}:{suffix}'
+            containers = docker('ps', '-aq', '--no-trunc', '--filter', label).stdout.splitlines()
+            relay = docker('volume', 'ls', '--format', '{{.Name}}', '--filter', label).stdout.splitlines()
+            if containers or relay:
+                receipt.setdefault('fixture_orphans', []).append({'scope': scope, 'containers': containers, 'relay': relay})
+            for container in containers:
+                docker('rm', '--force', container)
+            if relay:
+                assert relay == [f'vf-{scope}-{suffix}-relay']
+                docker('volume', 'rm', relay[0])
+    states = set()
+    for row in query_fixture(project, 'SELECT id, created_by FROM acp_threads').splitlines():
+        token, user = row.split('|')
+        thread = UUID(token)
+        states.add(StateVolume(deployment, int(user), thread, uuid5(deployment, thread.hex)))
+    for row in query_fixture(project, "SELECT created_by, profile_json FROM native_cli_sessions WHERE runtime='docker'").splitlines():
+        user, encoded = row.split('|', 1)
+        profile = json.loads(encoded)
+        runtime = codex_docker.runtime_from(profile['docker_runtime'])
+        assert runtime.deployment == deployment
+        states.add(codex_docker.state(runtime, int(user), profile['credential']))
+    available = set(docker('volume', 'ls', '--format', '{{.Name}}').stdout.splitlines())
+    for state in states:
+        if state.name in available:
+            state.remove(docker_acp.command)
 
 
 def verify(root, args, config):
@@ -113,44 +151,12 @@ def verify(root, args, config):
         return stop['containers']['worker']['id']
 
     def sql(query):
-        return docker('exec', project+'-postgres', 'psql', '-U', 'vibeflow', '-At', '-c', query).stdout.strip()
-
-    def state_volume_cleanup(compose):
-        compose('stop', 'api')
-        for table, scope in (('acp_turns', 'acp'), ('native_cli_sessions', 'codex')):
-            where = " WHERE runtime='docker'" if scope == 'codex' else ''
-            for identifier in sql(f'SELECT id FROM {table}{where}').splitlines():
-                suffix = UUID(identifier).hex
-                label = f'label=vibeflow.{scope}.execution={deployment.hex}:{suffix}'
-                containers = docker('ps', '-aq', '--no-trunc', '--filter', label).stdout.splitlines()
-                relay = docker('volume', 'ls', '--format', '{{.Name}}', '--filter', label).stdout.splitlines()
-                if containers or relay:
-                    receipt.setdefault('fixture_orphans', []).append({'scope': scope, 'containers': containers, 'relay': relay})
-                for container in containers:
-                    docker('rm', '--force', container)
-                if relay:
-                    assert relay == [f'vf-{scope}-{suffix}-relay']
-                    docker('volume', 'rm', relay[0])
-        states = set()
-        for row in sql('SELECT id, created_by FROM acp_threads').splitlines():
-            token, user = row.split('|')
-            thread = UUID(token)
-            states.add(StateVolume(deployment, int(user), thread, uuid5(deployment, thread.hex)))
-        for row in sql("SELECT created_by, profile_json FROM native_cli_sessions WHERE runtime='docker'").splitlines():
-            user, encoded = row.split('|', 1)
-            profile = json.loads(encoded)
-            runtime = codex_docker.runtime_from(profile['docker_runtime'])
-            assert runtime.deployment == deployment
-            states.add(codex_docker.state(runtime, int(user), profile['credential']))
-        available = set(docker('volume', 'ls', '--format', '{{.Name}}').stdout.splitlines())
-        for state in states:
-            if state.name in available:
-                state.remove(docker_acp.command)
+        return query_fixture(project, query)
 
     try:
         with ExitStack() as stack:
             compose, client, shared = prepare(stack, root, args, project, deployment)
-            stack.callback(state_volume_cleanup, compose)
+            stack.callback(retire_fixture_state, compose, project, deployment, receipt)
             api = Api(client)
             register(client)
             identity = client.headers['Authorization']

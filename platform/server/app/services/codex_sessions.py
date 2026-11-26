@@ -511,7 +511,9 @@ class Session:
             self.selected['credential'] = self.credential
             self.selected['conversation_provider_id'] = conversation_provider_id
             async def allocate():
-                candidate = await records.create(self.id, self.selected, db=db,scope_owner=self.scope_owner)
+                transfer_request_id = self.id if self.on_registered is not None else None
+                candidate = await records.create(self.id, self.selected, db=db, scope_owner=self.scope_owner,
+                                                 transfer_request_id=transfer_request_id)
                 from .cli_initialization_capacity import reserve
                 await reserve(db,candidate,self.selected,inventory=inventory)
                 self.owner = candidate

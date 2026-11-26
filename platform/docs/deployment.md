@@ -145,6 +145,31 @@ sudo python3 platform/server/app/services/linux_home_quota.py \
 
 配置 `LINUX_SHELL_REQUIRE_PROJECT_QUOTA=true` 和 `EXECUTION_WORKSPACE_LIMIT_MB=4096`，并使 `linuxshellstate` 挂载该专用文件系统。直接启动 API 时使用对应的 `VIBEFLOW_` 环境变量。新增账户在首次使用 HOME 前运行同一配置工具。已有 HOME 数据迁移时，先关闭相关会话，在新卷创建项目目录，再复制原 HOME 的内容，由目标目录继承项目配额。上线前核对文件和空间用量，备份保留原数据卷。 [硬配额实测](owned-pty-sessions.md#账户-home-内核硬配额)
 
+### Linux 账户执行并发
+
+在所有 Linux API 副本、启用 Docker CLI 的 API 和 worker 上统一设置 `VIBEFLOW_LINUX_ACCOUNT_MAX_ACTIVE_EXECUTIONS`。默认 `0` 表示关闭。设置为正整数时，每个账户的普通终端、可视化会话、Agent Shell、原生文档准备、本地作业、Docker Codex 会话和 Linux ACP 回合共用该上限。作业额度记入申请启动的账户，旧作业按提交账户或工作区所有者计入。Docker Codex 的异步申请在提交时占用一个名额，登记容器会话时接续该名额。已登记进程须经核验停止后才释放。作业子进程与收尾验证沿用作业额度。 [并发验收入口](../server/live_llm_linux_account_capacity_acceptance.py) · [结构化 CLI 验收入口](../server/live_llm_linux_cli_account_capacity_acceptance.py)
+
+当账户达到上限，作业保留在队列等待重新派发，终端和独立的 HTTP 启动请求返回 `linux_account_execution_limit`（429），Agent 工具返回同一错误码。独立的账户 HOME、单个执行的 CPU 和内存限额仍按本节前述配置执行。
+
+2026-11-26，在 UID 65534 的两套 Linux API 和 Redis worker 上分别验证本地文件系统与认证 SeaweedFS。每轮让同一账户在不同算例并发启动终端，只有一个成功。另一账户的作业正常完成，本账户的作业在终端停止后自动派发，运行时阻止新终端，取消后释放额度。实际 ParaView 启停、Pandoc 引文格式化及真实 DeepSeek 选中工具后的阻止与放行均通过。最终两轮各 4 次 DeepSeek HTTP 200，模拟调用 0 次。 [文件系统回执](../../tmp/j16-account-capacity-0_n4oblq/result.json) · [认证 SeaweedFS 回执](../../tmp/j16-account-capacity-nc8fg1r5/result.json)
+
+同日在 Linux Docker CLI Compose 及 PostgreSQL 上复验。Codex 启动中的异步申请即阻止同账户另一算例的新申请。登记容器后，同账户 Kimi 返回 429、普通作业排队，第二账户的 OpenCode 完成实际算例读取。Codex 退出后，作业自动派发并成功终止。Kimi 等待写入审批时阻止 Codex 启动，结束后可再次启动 Codex。三种 CLI 均记录实际工作容器 CPU 和峰值内存，停止后核对工作及中继容器已移除。最终轮 6 次真实 DeepSeek HTTP 200，模拟调用 0 次。 [CLI 与作业联调回执](../../tmp/j16-cli-account-capacity-0nlu67_r/result.json)
+
+更新 CLI 额度后，认证 SeaweedFS 上的双 API、独立 Redis worker、终端、ParaView、Pandoc 和 Agent 组合再次通过。复验 4 次真实 DeepSeek HTTP 200，模拟调用 0 次。 [认证 SeaweedFS 回归回执](../../tmp/j16-account-capacity-_ybljts1/result.json)
+
+### Linux 账户执行用量
+
+登录后请求 `GET /api/v1/runtime/execution-usage?days=7` 查看本人用量。`days` 可取 1 到 31，默认 7。窗口使用 UTC 和执行记录的结束时间，采取左闭右开区间。响应包含 `total` 和 `by_kind`，作业按发起交付的账户归集，旧作业回溯到提交账户或工作区所有者。
+
+- `scopes` 与 `verified_stops` 分别为窗口内收录的实际或待核验执行范围数、已核验停止的范围数。原生文档请求按原生子进程计数。Codex 一次容器会话保留一份停止记录，ACP 按回合计数。
+- `cpu_used_ns` 累加已核验样本的 CPU 时间。Docker CLI 将工作容器记录的微秒转换为纳秒。
+- `max_execution_memory_peak_bytes` 取独立执行样本中的最大内存峰值。该字段描述单次执行峰值。
+- `cpu_samples` 和 `memory_samples` 给出相应指标的覆盖范围。缺少样本时对应指标为 `null`，例如默认未开启原生计算计量的请求和运行回执尚待核验的执行。
+
+生产 Compose 把 `VIBEFLOW_EXECUTION_LINUX_CPU_LIMIT_SECONDS` 和 `VIBEFLOW_EXECUTION_LINUX_MEMORY_LIMIT_MB` 一并传给 Linux API 和 worker，默认均为 `0`。独立的 Pandoc 引文及解析、TeX 预检和 SyncTeX 定位在启用对应限额后各自冻结配置，由原生 cgroup 记录。Linux 原生控制器的前提与作业相同。 [内核额度](FF-H18-wsl-compute-budget.md)
+
+2026-11-26，实际 PostgreSQL 上核对了两个账户的汇总。Docker Compose 中 Codex 与 ACP 工作容器的 CPU 微秒转换、总 CPU 和最大单次内存峰值均与停止回执相符。文件系统和认证 SeaweedFS 上核对了普通作业、终端、ParaView、Agent 和未采样请求。文档计量启用后，文件系统联调的同一账户六个已停止范围全部有 CPU 和内存样本。认证 SeaweedFS 上另实测 Pandoc 解析与引文、TeX 预检和 SyncTeX 的四份原生计量回执。汇总实测的四轮共 18 次真实 DeepSeek HTTP 200，文档专项模型调用 0 次，模拟调用共 0 次。 [Docker CLI](../../tmp/j16-cli-account-capacity-e02o3_ss/result.json) · [文件系统汇总](../../tmp/j16-account-capacity-b28_azw3/result.json) · [SeaweedFS 汇总](../../tmp/j16-account-capacity-cghl7twn/result.json) · [文档计量后的文件系统汇总](../../tmp/j16-account-capacity-zk2x6q2w/result.json) · [SeaweedFS 文档计量](../../tmp/j16-documents-ep87dj5v/result.json)
+
 ## 日常检查和恢复
 
 使用 `infra/docker-compose.monitoring.yml` 时，独立采集器依照节点配置保存时序、请求日志和告警投递状态。监控数据卷和正常业务卷分别备份。 [配置与实测](FF-J20-central-monitoring.md)

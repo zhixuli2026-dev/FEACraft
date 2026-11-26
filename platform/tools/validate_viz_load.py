@@ -73,6 +73,9 @@ def analyze(receipt):
         for name in REFRESHES
     }
     memory = receipt.get('memory_samples', [])
+    memory_metric = receipt.get('memory_metric', 'cgroup_memory_bytes')
+    if memory_metric not in {'cgroup_memory_bytes', 'windows_private_bytes'}:
+        raise ValueError('Unknown visualization memory metric')
     same_cases = drag_cases[INTERACTIVE_QUALITY] == drag_cases[100] == set(frame_hashes)
     distinct_frames = len(frame_hashes) == users and all(len(hashes) == 6 for hashes in frame_hashes.values())
     functional = (
@@ -93,8 +96,9 @@ def analyze(receipt):
         'refreshes': {name: len(cases) for name, cases in refresh_cases.items()},
         'distinct_frames_per_case': distinct_frames,
         'verified_stops': receipt.get('verified_stops', 0),
-        'peak_memory_bytes': max((row['cgroup_memory_bytes'] for row in memory), default=None),
-        'settled_memory_bytes': memory[-1]['cgroup_memory_bytes'] if memory else None,
+        'memory_metric': memory_metric,
+        'peak_memory_bytes': max((row[memory_metric] for row in memory), default=None),
+        'settled_memory_bytes': memory[-1][memory_metric] if memory else None,
         'functional': functional,
         'interactive_target_ms': DRAG_TARGET_MS,
         'interactive_target_met': bool(

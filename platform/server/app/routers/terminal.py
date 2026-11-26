@@ -403,13 +403,15 @@ async def terminal_ws(ws: WebSocket, cols: int = 80, rows: int = 24,
             await ws.close(code=1013)
             return
         throttled=reason in {'provider_rate_limited','rate_limiter_unavailable'}
+        from ..services.linux_account_capacity import CODE as LINUX_ACCOUNT_LIMIT
         specific=throttled or reason in {'input_stale','terminal_preparation_busy','terminal_preparation_timeout',
+                                        LINUX_ACCOUNT_LIMIT,
                                         'terminal_startup_input_limit','model_quota_exceeded'}
         await ws.send_json({"type": "error", "message": message,
                             "code": reason if specific else "storage_capacity" if capacity else "terminal_unavailable",
                             "status": error.status_code if isinstance(error, HTTPException) else 409,
                             **({'retry_after': detail['retry_after']} if throttled else {})})
-        await ws.close(code=1013 if capacity or throttled or reason=='terminal_preparation_timeout'
+        await ws.close(code=1013 if capacity or throttled or reason in {'terminal_preparation_timeout',LINUX_ACCOUNT_LIMIT}
                        else 4400 if isinstance(error, HTTPException) and error.status_code == 400 else 4403)
         return
     except Exception:

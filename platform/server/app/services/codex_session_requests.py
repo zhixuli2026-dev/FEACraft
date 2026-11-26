@@ -283,6 +283,9 @@ async def submit(cid, user_id, request_id, requested):
                 selected = {'case_id': case.id, 'conversation_id': cid, 'user_id': user_id,
                     'runtime': requested['runtime'], 'source_prefix': case.s3_prefix, 'permission_mode': conv.permission_mode,
                     'model': conv.model, 'credential': credential, 'conversation_provider_id': conv.provider_profile_id}
+                if requested['runtime'] == 'docker':
+                    from .linux_account_capacity import admit
+                    await admit(db, user_id, docker=True)
                 identifier = str(uuid.uuid4())
                 owner = await control.acquire(db, cid, 'codex', identifier)
                 row = NativeCliSessionRequest(id=identifier, case_id=case.id, conversation_id=cid, created_by=user_id,

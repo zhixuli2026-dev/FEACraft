@@ -264,6 +264,9 @@ class Execution:
             self.cancel.set()
             raise
         except Exception as error:
+            from .linux_account_capacity import CODE as account_limit_code
+            if isinstance(error, HTTPException) and isinstance(error.detail, dict) and error.detail.get('code') == account_limit_code:
+                return {'ok': False, 'result': error.detail['message'], 'execution_id': None, 'code': account_limit_code}
             result = {'ok':False, 'result':type(error).__name__+': '+str(error),
                       'execution_id':self.owner.id if self.owner else None}
             if isinstance(error, (NativeComputeLimit, NativeStorageLimit)):

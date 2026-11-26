@@ -598,8 +598,9 @@ class NativeExecutor:
                 expiry.cancel()  # Cleanup drains the retained resources, without renewing execution.
                 reason=entry.reason or 'root_exit'
                 await owned.stop(reason=reason,grace_ms=0 if reason=='root_exit' else 500)
-                if self.kind=='agent.shell' and (owned.stop_result is None or owned.stop_result['verified'] is not True):
-                    raise ChildExecutionError('Agent child cleanup was not verified')
+                metered_child = self.kind=='agent.shell' or owned.linux_compute_policy is not None
+                if metered_child and (owned.stop_result is None or owned.stop_result['verified'] is not True):
+                    raise ChildExecutionError('Native child cleanup was not verified')
                 if home_monitor is not None:
                     home_monitor.cancel()
                     await asyncio.gather(home_monitor,return_exceptions=True)
@@ -609,8 +610,8 @@ class NativeExecutor:
                         if self.home_watch.budget.violation is not None:
                             owned.stop_result['reason']=self.home_watch.budget.violation
                 await asyncio.wait_for(asyncio.shield(pump),5)
-                if self.kind=='agent.shell' and owned.stop_result['reason'] in {'cpu_limit','memory_limit'}:
-                    raise NativeComputeLimit('The Agent command reached its admitted Linux compute limit')
+                if metered_child and owned.stop_result['reason'] in {'cpu_limit','memory_limit'}:
+                    raise NativeComputeLimit('The native command reached its admitted Linux compute limit')
                 if self.kind=='agent.shell' and owned.stop_result['reason'] in {'disk_limit','disk_unverified'}:
                     raise NativeStorageLimit('The Agent command crossed its Linux account home storage limit')
                 sample_diagnostics()

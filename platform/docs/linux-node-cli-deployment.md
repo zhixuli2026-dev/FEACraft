@@ -72,6 +72,8 @@ Node 安装包可通过 `fetch_node.py --archive PATH` 复用，始终校验官�
 
 在 Linux API 宿主上准备供该部署使用的私有目录，权限设为 `0700`。API 和引擎使用同一个绝对路径，因此工作容器可以绑定存放在该目录内的特定算例副本。目录应位于公开算例数据之外。将绝对路径填入 `VIBEFLOW_DOCKER_CLI_STATE_DIR`，将可在 API 镜像运行的 Linux Docker 可执行文件填入 `VIBEFLOW_DOCKER_CLI_CLIENT`。`VIBEFLOW_DOCKER_CLI_SOCKET` 默认是 `/var/run/docker.sock`，API 持有该引擎的容器管理权限。 [环境示例](../infra/.env.example)
 
+Compose 将该客户端以只读方式挂载到 API 的 `/run/vibeflow-docker/docker`，供容器创建、连接及 cgroup 采样使用。原生 Linux 作业可独立只读绑定 `/usr` 作为运行时。 [账户执行并发](deployment.md#linux-账户执行并发)
+
 从 `platform` 目录用同版源码和已有 Node CLI 工具层构建工作镜像。镜像包含启动器和 ACP 配置，容器内的 API 可以跨自身文件系统直接启动它。将镜像标签填入 `VIBEFLOW_ACP_DOCKER_IMAGE`，给 `VIBEFLOW_ACP_DOCKER_DEPLOYMENT` 分配部署专属 UUID，重启时沿用。CLI 状态卷按部署、账户和线程绑定，同一镜像和引擎保有原生续聊身份。 [工作镜像](../infra/Dockerfile.docker-cli-worker)
 
 ```bash

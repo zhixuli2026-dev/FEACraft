@@ -39,6 +39,14 @@ _CAPABILITIES_SECONDS = 65
 _capability_slots = BoundedSemaphore(2)
 _monitor_slots = BoundedSemaphore(2)
 
+
+@router.get('/execution-usage')
+async def execution_usage(days: int = Query(default=7, ge=1, le=31),
+                          user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    from ..services.linux_account_usage import summarize
+    return await summarize(db, user.id, days)
+
+
 async def _wsl_probe(user_id, settings) -> dict:
     from ..services.runtime_probe_execution import wsl_probe
     return await wsl_probe(user_id, settings)

@@ -97,6 +97,8 @@ async def create(case_id,user_id,selected,*,db=None):
     async def insert(db):
         from .case_validation import admit_native_locked
         await admit_native_locked(db,case_id)
+        from .linux_account_capacity import admit
+        await admit(db, user_id)
         at=now()
         row=NativeVizSession(case_id=case_id,created_by=user_id,owner_id=WORKER_ID,
             owner_token_sha256=hashlib.sha256(token.encode()).hexdigest(),owner_identity_json=json_text(birth),

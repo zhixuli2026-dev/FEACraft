@@ -9,7 +9,7 @@ import json
 import re
 
 from fastapi import HTTPException
-from sqlalchemy import case as sql_case, select, update, func, or_
+from sqlalchemy import case as sql_case, select, func, or_
 from sqlalchemy.orm import aliased
 
 from ..db import SessionLocal
@@ -32,6 +32,10 @@ class DeliveryDeferred(ExecutionConflict):
 async def intent(db, job, attempt):
     events = list(await db.scalars(select(DurableEvent).where(DurableEvent.attempt_id == attempt.id,
         DurableEvent.type == EVENT).order_by(DurableEvent.seq)))
+    return validate_intent(job, attempt, events)
+
+
+def validate_intent(job, attempt, events):
     if not events:
         return None
     from .job_execution import request_hash
@@ -130,6 +134,26 @@ def latest_attempt_id():
             .order_by(candidate.number.desc()).limit(1).correlate(Job).scalar_subquery())
 
 
+def jobs_requested_by(user_id, *, latest_only):
+    """Use committed delivery actor, with the legacy submission/owner fallback."""
+    events = select(DurableEvent.id).where(DurableEvent.case_id == Case.id,
+                                          DurableEvent.attempt_id == JobAttempt.id, DurableEvent.type == EVENT)
+    payload = DurableEvent.payload_json
+    for whitespace in (' ', '\n', '\r', '\t'):
+        payload = func.replace(payload, whitespace, '')
+    requester = f'"requested_by":{user_id}'
+    requested = events.where(or_(payload.contains(requester + ','), payload.contains(requester + '}'))).exists()
+    fallback = func.coalesce(JobSubmissionRequest.created_by, Workspace.user_id) == user_id
+    query = (select(Case, Job, JobAttempt).select_from(Job)
+             .join(Case, Case.id == Job.case_id).join(Workspace, Workspace.id == Case.workspace_id))
+    if latest_only:
+        query = query.outerjoin(JobAttempt, JobAttempt.id == latest_attempt_id())
+    else:
+        query = query.join(JobAttempt, JobAttempt.job_id == Job.id)
+    return (query.outerjoin(JobSubmissionRequest, JobSubmissionRequest.job_id == Job.id)
+            .where(or_(requested, fallback & ~events.exists())))
+
+
 @asynccontextmanager
 async def occupied_jobs(db, owner_id, *, exclude=None):
     query = (select(Case, Job, JobAttempt).select_from(Job)
@@ -148,11 +172,20 @@ async def occupied_jobs(db, owner_id, *, exclude=None):
 async def require_capacity(db, case, job, attempt, spec, *, dispatch_only=False):
     """Called under case control before the claim, not after native creation.
 
-Lock order is case control -> workspace owner's User row. Counting other cases
-does not acquire their control locks. All modern claims serialize this way.
+    Lock order is case control followed by account rows in ID order. Counting
+    other cases does not acquire their control locks.
 """
+    from . import linux_account_capacity as account_capacity
     value = await intent(db,job,attempt)
+    account_limit = account_capacity.limit()
     if value is None:
+        if account_limit:
+            requester = await db.scalar(select(JobSubmissionRequest.created_by).where(JobSubmissionRequest.job_id == job.id))
+            if requester is None:
+                requester = await db.scalar(select(Workspace.user_id).where(Workspace.id == case.workspace_id))
+            await account_capacity.lock_accounts(db, requester)
+            if await account_capacity.full_locked(db, requester, account_limit):
+                raise DeliveryDeferred(account_capacity.MESSAGE)
         return
     from .attempt_workspace import require_sealed
     require_sealed(job,attempt)
@@ -176,7 +209,11 @@ does not acquire their control locks. All modern claims serialize this way.
     except HTTPException as error:
         raise DeliveryDeferred('Delivery requester no longer has case write access') from error
     workspace = await db.get(Workspace,case.workspace_id)
-    await db.execute(update(User).where(User.id == workspace.user_id).values(id=User.id))
+    if dispatch_only and value.get('target_platform') == 'windows':
+        account_limit = 0
+    await account_capacity.lock_accounts(db, workspace.user_id, caller.id if account_limit else workspace.user_id)
+    if account_limit and await account_capacity.full_locked(db, caller.id, account_limit):
+        raise DeliveryDeferred(account_capacity.MESSAGE)
     owner = await db.get(User,workspace.user_id)
     quota = (await quotas_for(db,owner))['job_concurrent']
     if type(quota) is not int or quota < 1:

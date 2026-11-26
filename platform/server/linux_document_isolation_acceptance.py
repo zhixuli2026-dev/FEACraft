@@ -52,7 +52,7 @@ async def artifact(client, peer, owner, kind, publication, path):
         return await response.read()
 
 
-def child_receipts(job, purposes):
+def child_receipts(job, purposes, *, uid):
     attempt = job['attempt']
     children = [child for child in attempt['child_processes']['children'].values() if child['purpose'] in purposes]
     assert {child['purpose'] for child in children} == purposes
@@ -60,11 +60,11 @@ def child_receipts(job, purposes):
     for child in children:
         stop = child['stop']
         assert stop['verified'] and stop['scope_empty']
-        receipts.append({'purpose': child['purpose'], 'network': namespace(child['identity']), 'stop': stop})
+        receipts.append({'purpose': child['purpose'], 'network': namespace(child['identity'],uid=uid), 'stop': stop})
     return receipts
 
 
-async def report(client, api, peer, owner, scratch):
+async def report(client, api, peer, owner, scratch, *, uid):
     token, case = owner
     route = f'/cases/{case}'
     image = io.BytesIO()
@@ -96,10 +96,11 @@ async def report(client, api, peer, owner, scratch):
                              json={'bibtex': bibliography, 'keys': ['sample'], 'preset': 'ieee'})
     assert 'Verified document' in citation['html'] and 'Sample' in citation['html']
     return {'job': job['id'], 'publication': publication, 'hashes': hashes,
-            'children': child_receipts(job, {'pandoc_parse','pandoc_compile','pandoc_version'}), 'citation_formatted': True}
+            'children': child_receipts(job, {'pandoc_parse','pandoc_compile','pandoc_version'},uid=uid),
+            'citation_formatted': True}
 
 
-async def latex(client, api, peer, owner, recipe, scratch, *, aliases=False):
+async def latex(client, api, peer, owner, recipe, scratch, *, aliases=False, uid):
     token, case = owner
     route = f'/cases/{case}'
     main = f'E-report/latex/{recipe}.tex'
@@ -127,10 +128,10 @@ async def latex(client, api, peer, owner, recipe, scratch, *, aliases=False):
     assert sync['file'] == main and sync['line'] > 0, sync
     return {'job': job['id'], 'publication': publication, 'pdf': pdf_path, 'sha256': digest,
             'main': main, 'sync': {'file': sync['file'], 'line': sync['line']},
-            'children': child_receipts(job, COMPILE | {'latex_probe_linux'})}
+            'children': child_receipts(job, COMPILE | {'latex_probe_linux'},uid=uid)}
 
 
-async def cancel_latex(client, api, peer, owner, worker, old, scratch):
+async def cancel_latex(client, api, peer, owner, worker, old, scratch, *, uid):
     token, case = owner
     # Finite typesetting work, long enough to observe the actual pdfTeX engine.
     body = r'\newcount\fixture \loop\advance\fixture by 1 \ifnum\fixture<200000000 \repeat'
@@ -157,43 +158,51 @@ async def cancel_latex(client, api, peer, owner, worker, old, scratch):
     pdf = await artifact(client, peer, owner, 'latex', old['publication'], old['pdf'])
     assert hashlib.sha256(pdf).hexdigest() == old['sha256']
     return {'job': job['id'], 'observed_engine': child, 'previous_pdf_preserved': True,
-            'root_stop': job['attempt']['process_stop'], 'children': child_receipts(job, COMPILE)}
+            'root_stop': job['attempt']['process_stop'], 'children': child_receipts(job, COMPILE,uid=uid)}
 
 
-def requests_receipts(deployment):
+def requests_receipts(deployment, *, metered=False):
     data = docker('exec', deployment.label+'-postgres', 'psql', '-U', 'postgres', '-d', 'replicas',
                   '-Atc', 'SELECT children_json FROM native_requests')
     purposes = {'pandoc_cite', 'synctex_query_linux'}
+    if metered:
+        purposes.update(('pandoc_parse', 'latex_probe_linux'))
     receipts = []
     for row in data.splitlines():
         for child in json.loads(row).get('children', {}).values():
             if child['purpose'] in purposes:
                 stop = child['stop']
                 assert stop['verified'] and stop['scope_empty']
-                receipts.append({'purpose': child['purpose'], 'network': namespace(child['identity']), 'stop': stop})
+                if metered:
+                    usage = stop['linux_compute_usage']['usage']
+                    assert usage['cpu_used_ns'] >= 0 and usage['memory_peak_bytes'] > 0, usage
+                receipts.append({'purpose': child['purpose'], 'network': namespace(child['identity'],uid=0 if metered else 65534),
+                                 'stop': stop})
     assert {child['purpose'] for child in receipts} == purposes
     return receipts
 
 
 async def verify(api, peer, worker, scratch, evidence, recipes, do_cancel):
+    uid = 0 if evidence['metered'] else 65534
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=130)) as client:
         report_owner, latex_owner = await account(client, api), await account(client, peer)
-        evidence['report'] = await report(client, api, peer, report_owner, scratch)
+        evidence['report'] = await report(client, api, peer, report_owner, scratch,uid=uid)
         evidence['latex'] = {}
         for recipe in recipes:
             evidence['latex'][recipe] = await latex(client, api, peer, latex_owner, recipe, scratch,
-                                                     aliases=recipe=='xelatex')
+                                                     aliases=recipe=='xelatex',uid=uid)
         await request(client, peer, 'GET', f'/jobs/{evidence["report"]["job"]}', token=latex_owner[0], expected=404)
         if do_cancel:
             evidence['latex_cancel'] = await cancel_latex(client, api, peer, latex_owner, worker,
-                                                         evidence['latex']['pdflatex'], scratch)
+                                                         evidence['latex']['pdflatex'], scratch,uid=uid)
 
 
 def main(args):
     scratch = Path(tempfile.mkdtemp(prefix='j16-documents-', dir=Path(__file__).resolve().parents[2]/'tmp'))
     print('DOCUMENT_ISOLATION_EVIDENCE', scratch, flush=True)
     original = set(docker('ps', '-q', '--no-trunc').splitlines())
-    evidence = {'passed': False, 'storage': args.storage, 'actual_model_calls': 0, 'simulated_model_calls': 0}
+    evidence = {'passed': False, 'storage': args.storage, 'metered': args.metered,
+                'actual_model_calls': 0, 'simulated_model_calls': 0}
     try:
         with ExitStack() as stack:
             deployment = Deployment(stack, scratch, args.api_image, WEB_IMAGE)
@@ -202,8 +211,17 @@ def main(args):
                 deployment.configure_s3(scratch)
             docker('run', '--rm', '--network', 'none', '--mount', deployment.data, '--entrypoint', '/usr/bin/install',
                    args.api_image, '-d', '-o', '65534', '-g', '65534', '/work/data/files')
+            uid = '65534'
+            if args.metered:
+                uid = '0'
+                deployment.runtime[:] = ['0:0' if entry=='65534:65534' else entry for entry in deployment.runtime]
+                deployment.runtime.extend(('--cgroupns','private','--cap-add','SYS_ADMIN'))
+                variables = {'VIBEFLOW_EXECUTION_LINUX_CPU_LIMIT_SECONDS':'120',
+                             'VIBEFLOW_EXECUTION_LINUX_MEMORY_LIMIT_MB':'1024'}
+                deployment.env.update(variables)
+                deployment.flags.extend(flag for name in variables for flag in ('-e',name))
             deployment.worker = deployment.start_worker(deployment.label+'-isolated-worker')
-            assert docker('exec', deployment.worker, 'id', '-u') == '65534'
+            assert docker('exec', deployment.worker, 'id', '-u') == uid
             _, api = deployment.api(deployment.a)
             if args.storage == 's3':
                 cache = deployment.volume('cold-peer-cache', '/work/data/files')
@@ -220,7 +238,7 @@ def main(args):
                               '-Atc', 'SELECT children_json FROM native_requests')
                 (scratch/'native-requests.json').write_text(rows, encoding='utf-8')
                 raise
-            evidence['requests'] = requests_receipts(deployment)
+            evidence['requests'] = requests_receipts(deployment, metered=args.metered)
             evidence['passed'] = True
     except Exception as error:
         evidence['failure'] = type(error).__name__+': '+str(error)[:1200]
@@ -239,5 +257,6 @@ if __name__=='__main__':
     parser.add_argument('--recipes', nargs='+', choices=('pdflatex','xelatex','lualatex'),
                         default=('pdflatex','xelatex','lualatex'))
     parser.add_argument('--cancel', action='store_true')
+    parser.add_argument('--metered', action='store_true', help='Verify cgroup usage for each independent document request')
     parser.add_argument('--api-image', default=IMAGE)
     main(parser.parse_args())

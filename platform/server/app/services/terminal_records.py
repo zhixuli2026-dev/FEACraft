@@ -131,6 +131,8 @@ async def create(case_id,user_id,selected):
             assert_case_available(case)
             from .case_validation import assert_writable_locked
             await assert_writable_locked(db,case_id)
+        from .linux_account_capacity import admit
+        await admit(db, user_id)
         if 'credential' in selected:
             from .quota import admit_model
             await admit_model(db, user_id, 'terminal')

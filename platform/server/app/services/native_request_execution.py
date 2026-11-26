@@ -5,6 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+from fastapi import HTTPException
+
+from ..config import get_settings
 from .async_ops import finish_before_cancel
 from .native_execution import NativeExecutor
 from .native_execution_client import ChildExecutionError
@@ -13,6 +16,10 @@ from . import native_request_records as records
 
 class RequestExecutor(NativeExecutor):
     def __init__(self,owner,cwd,kind,settings):
+        self.document_compute = None
+        if kind in records.DOCUMENT_KINDS:
+            self.document_compute = records.document_compute_policy(kind, settings)
+            settings = {key: value for key, value in settings.items() if key != 'linux_compute_policy'}
         if kind=='job.finalize':
             argv=settings['argv'] or [sys.executable,str(Path(__file__).with_name('registered_report_worker.py')),
                 '--mode','markdown','--pandoc',sys.executable,'--execution-id',owner.id]
@@ -131,10 +138,12 @@ class RequestExecutor(NativeExecutor):
                     entry.owned.on_namespace = confirm_namespace
             return await entry.owned.prepare(argv,cwd=self.cwd,env=dict(env,PYTHONIOENCODING='utf-8'),runtime=self.runtime,
                 shell=False)
+        if self.document_compute is not None:
+            entry.owned.linux_compute_policy = self.document_compute
         return await super()._prepare(entry,argv,env)
 
     async def _cleanup(self,entry):
-        if self.kind=='agent.shell':
+        if self.kind=='agent.shell' or self.document_compute is not None:
             stop = entry.owned.stop_result
             if stop and stop['verified'] and entry.owned.linux_compute_usage is not None:
                 stop['linux_compute_usage'] = entry.owned.linux_compute_usage
@@ -219,6 +228,18 @@ async def scope(case_id,user_id,cwd,kind,settings,*,owner=None,before_release=No
         cancelled=cancelled or (isinstance(failure,asyncio.CancelledError) and not expired)
     try:
         if deadline is not None:deadline.check()
+        if owner is None and sys.platform == 'linux' and records.linux_document(kind, settings):
+            config = get_settings()
+            policy = {'cpu_limit_ns': config.execution_linux_cpu_limit_seconds * 1_000_000_000,
+                      'memory_limit_bytes': config.execution_linux_memory_limit_mb * 1024**2}
+            if any(policy.values()):
+                from .linux_gate_compute import check_available
+                try:
+                    await asyncio.to_thread(check_available, policy)
+                except (OSError, ValueError) as failure:
+                    raise HTTPException(503, {'code': 'document_compute_unverified',
+                                              'message': '原生文档请求的 Linux 资源控制器不可用'}) from failure
+                settings = {**settings, 'linux_compute_policy': policy}
         if owner is None:await finish_before_cancel(reserve_owner())
         if deadline is not None:deadline.check()
         executor=RequestExecutor(owner,cwd,kind,settings)

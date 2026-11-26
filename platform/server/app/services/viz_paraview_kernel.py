@@ -15,7 +15,7 @@ RAYTRACE_PROPERTIES = {'EnableRayTracing', 'OSPRayMaterial', 'BackEnd'}
 
 def load_simple():
     """Keep the stock material catalog available without decoding textures on startup."""
-    if sys.platform != 'linux' or 'PV_MATERIALS_PATH' in os.environ:
+    if sys.platform not in {'linux', 'win32'} or 'PV_MATERIALS_PATH' in os.environ:
         from paraview import simple
         return simple, None
 
@@ -23,7 +23,9 @@ def load_simple():
 
     version = servermanager.vtkSMProxyManager
     release = f'paraview-{version.GetVersionMajor()}.{version.GetVersionMinor()}'
-    stock = Path(sys.executable).resolve().parents[1] / 'share' / release / 'materials' / 'ospray_mats.json'
+    installation = Path(sys.executable).resolve().parents[1]
+    materials = installation / 'materials' if sys.platform == 'win32' else installation / 'share' / release / 'materials'
+    stock = materials / 'ospray_mats.json'
     try:
         catalog = json.loads(stock.read_text(encoding='utf-8'))
         if catalog['family'] != 'OSPRay' or catalog['version'] != '0.0':

@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     storage_fs_root: str = "./data/files"
     linux_shell_state_root: str = ""  # Dedicated volume for native Linux account homes.
     linux_shell_require_project_quota: bool = False
+    linux_account_max_active_executions: int = Field(default=0, ge=0)
     skills_storage_root: str = ""  # App-owned user/org skills; default server/data/skills.
     storage_measurement_timeout_seconds: float = Field(default=30, ge=.1, le=300)
     storage_measurement_max_entries: int = Field(default=1000000, ge=1, le=10000000)
@@ -121,6 +122,7 @@ class Settings(BaseSettings):
     acp_docker_image: str = ""  # Local, operator-selected image containing Linux ACP harnesses.
     acp_docker_deployment: str = ""  # Stable UUID for this deployment's Docker state volumes.
     acp_docker_entrypoints_in_image: bool = False
+    docker_cli_client: str = "docker"
 
     @model_validator(mode='after')
     def validate_acp_docker(self):

@@ -26,6 +26,7 @@ PURPOSES={'report.prepare':'pandoc_parse','latex.prepare':'latex_probe','synctex
 PURPOSES['job.finalize']=None
 NATIVE_KINDS={'latex.prepare','synctex.query','runtime.wsl_probe','terminal.export','terminal.recover','terminal.cleanup'}
 GLOBAL_KINDS={'runtime.wsl_probe','runtime.python_probe'}
+DOCUMENT_KINDS=('report.prepare','latex.prepare','synctex.query')
 
 
 @dataclass(frozen=True)
@@ -36,8 +37,25 @@ class Owner:
     nonce: str
 
 
+def linux_document(kind, value):
+    return kind == 'report.prepare' or (kind in DOCUMENT_KINDS and value.get('distro') == 'native-linux')
+
+
+def document_compute_policy(kind, value):
+    if 'linux_compute_policy' not in value:
+        return None
+    from .native_compute_v1 import validate_policy
+    policy = validate_policy(value['linux_compute_policy'])
+    if not linux_document(kind, value) or not any(policy.values()):
+        raise ValueError('Linux document compute policy differs from its runtime')
+    return policy
+
+
 def profile(kind,value):
     if not isinstance(value,dict):raise ValueError('Invalid native request profile')
+    if kind in DOCUMENT_KINDS:
+        document_compute_policy(kind, value)
+        value = {key: item for key, item in value.items() if key != 'linux_compute_policy'}
     if kind=='job.finalize':
         from .job_output_finalizing import native_profile
         return native_profile(value)
@@ -88,7 +106,12 @@ def document(request):
         private_network = selected.get('linux_network') == 'private'
         if request.conversation_id!=selected['conversation_id'] or request.tool_call_id!=selected['tool_call_id']:
             raise ValueError('Agent shell request crosses its tool binding')
-    elif request.conversation_id is not None or request.tool_call_id is not None:raise ValueError('Non-tool request has an Agent binding')
+    else:
+        if request.conversation_id is not None or request.tool_call_id is not None:
+            raise ValueError('Non-tool request has an Agent binding')
+        if request.kind in DOCUMENT_KINDS:
+            linux_compute_policy = document_compute_policy(request.kind, json.loads(request.profile_json))
+            private_network = linux_compute_policy is not None
     os_identity.validate(json.loads(request.owner_identity_json))
     value=json.loads(request.children_json)
     if value=={}:return {'schema':SCHEMA,'children':{}}
@@ -119,7 +142,7 @@ def document(request):
         if row['identity'] is not None:
             process_record.validate(row['identity'],bound=False)
             if private_network and row['phase'] in {'running','stopped'} and 'linux_network' not in row['identity']:
-                raise ValueError('Linux Agent child lacks its configured network namespace')
+                raise ValueError('Linux child lacks its configured network namespace')
             native=is_native(request)
             if row['identity']['runtime']!=('wsl' if native else 'windows') or (row['identity']['native'] is not None)!=native:
                 raise ValueError('Native request child runtime differs')
@@ -133,7 +156,7 @@ def document(request):
         if row['phase']=='stopped' and (row['stop'] is None or not row['stop']['verified'] or row['error'] is not None):
             raise ValueError('Stopped native request child lacks exit proof')
         if row['phase']=='stopped' and linux_compute_policy is not None and 'linux_compute_usage' not in row['stop']:
-            raise ValueError('Stopped Agent child lacks configured Linux compute usage')
+            raise ValueError('Stopped child lacks configured Linux compute usage')
     return value
 
 
@@ -169,6 +192,9 @@ async def create(case_id,user_id,kind,settings,*,db=None):
     async def insert(db):
         from .case_validation import admit_native_locked
         await admit_native_locked(db,case_id)
+        from .linux_account_capacity import REQUEST_KINDS, admit
+        if kind in REQUEST_KINDS:
+            await admit(db, user_id)
         if kind=='terminal.export':
             from .sandbox_export_execution import check_session
             await check_session(db,case_id,user_id,settings,birth)
@@ -329,7 +355,9 @@ async def finish(owner,nonce,identifier,identity,stop,error):
             row['identity']=identity
         if stop is not None:
             if row['identity'] is None:raise ValueError('Native request cleanup has no identity')
-            policy = json.loads(request.profile_json).get('linux_compute_policy') if request.kind=='agent.shell' else None
+            policy = None
+            if request.kind == 'agent.shell' or request.kind in DOCUMENT_KINDS:
+                policy = json.loads(request.profile_json).get('linux_compute_policy')
             process_stop.validate(stop,row['identity'],linux_compute_policy=policy)
         if request.kind=='terminal.cleanup' and error is None:
             from .sandbox_image_scope import require_closed

@@ -50,6 +50,12 @@ def catalyst_versions(executable):
 
 
 def visualizer_path(executable):
+    configured = os.environ.get('VIBEFLOW_PARAVIEW_VISUALIZER_DIR')
+    if configured:
+        root = Path(configured).expanduser()
+        if not root.is_absolute() or not (root/'index.html').is_file() or not (root/'Visualizer.js').is_file():
+            raise FileNotFoundError('Configured ParaView Web Visualizer directory is unavailable')
+        return root.resolve(strict=True)
     share = Path(executable).resolve().parent.parent/'share'
     candidates = [item for item in share.glob('paraview-*/web/visualizer/www')
                   if (item/'index.html').is_file() and (item/'Visualizer.js').is_file()]

@@ -123,8 +123,8 @@ async def finished(client, endpoint, token, job_id, scratch, *, expected='succee
     return job
 
 
-def namespace(record):
-    assert record['host']['uid']==65534 and record['namespace_init']['uid']==65534, record
+def namespace(record, *, uid=65534):
+    assert record['host']['uid']==uid and record['namespace_init']['uid']==uid, record
     assert record['namespace_init']['pid_namespace']!=record['host']['pid_namespace'], record
     assert record['linux_network']['host']!=record['linux_network']['init'], record
     return record['linux_network']

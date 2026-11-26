@@ -279,11 +279,14 @@ async def admit_capacity(db, user_id):
         await rows.close()
 
 
-async def create(identifier, selected, *, db,scope_owner=None):
+async def create(identifier, selected, *, db,scope_owner=None, transfer_request_id=None):
     from .job_execution import WORKER_ID
     profile(selected)
     from .case_validation import admit_native_locked
     await admit_native_locked(db,selected['case_id'])
+    if selected['runtime'] == 'docker':
+        from .linux_account_capacity import admit
+        await admit(db, selected['user_id'], docker=True, transfer_request_id=transfer_request_id)
     await admit_capacity(db, selected['user_id'])
     birth = await asyncio.to_thread(identity.observe, os.getpid())
     owner = Owner(identifier, secrets.token_hex(32), WORKER_ID, selected['nonce'], birth, digest(selected))

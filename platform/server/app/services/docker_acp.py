@@ -29,7 +29,8 @@ ROOT = Path(__file__).resolve().parent
 def command(*args):
     try:
         timeout = 25 if args[0] == 'info' else 18
-        result = subprocess.run(['docker', *args], capture_output=True, text=True, encoding='utf8', timeout=timeout)
+        result = subprocess.run([get_settings().docker_cli_client, *args], capture_output=True, text=True,
+                                encoding='utf8', timeout=timeout)
     except subprocess.TimeoutExpired as error:
         raise RuntimeError(f'Docker command {args[0]} timed out') from error
     if result.returncode:
@@ -156,7 +157,7 @@ class ScopeTransport:
         await finish_before_cancel(register())
 
     async def attach(self, ident, config, ready):
-        proc = await asyncio.create_subprocess_exec('docker','start','-ai',ident,
+        proc = await asyncio.create_subprocess_exec(get_settings().docker_cli_client,'start','-ai',ident,
             stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL, limit=MAX_LINE+1)
         self.processes[ident] = proc

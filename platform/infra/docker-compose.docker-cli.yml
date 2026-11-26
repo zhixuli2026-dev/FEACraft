@@ -8,6 +8,7 @@ services:
       VIBEFLOW_ACP_DOCKER_DEPLOYMENT: ${VIBEFLOW_ACP_DOCKER_DEPLOYMENT:?Set a stable deployment UUID}
       VIBEFLOW_ACP_DOCKER_ENTRYPOINTS_IN_IMAGE: "true"
       VIBEFLOW_CODEX_STATE_ROOT: ${VIBEFLOW_DOCKER_CLI_STATE_DIR:?Set the absolute private host directory}
+      VIBEFLOW_DOCKER_CLI_CLIENT: /run/vibeflow-docker/docker
       DOCKER_HOST: unix:///var/run/docker.sock
     volumes:
       - type: bind
@@ -17,7 +18,8 @@ services:
           create_host_path: false
       - type: bind
         source: ${VIBEFLOW_DOCKER_CLI_CLIENT:?Set the absolute path to the Linux Docker executable}
-        target: /usr/local/bin/docker
+        # Keep this bind outside the native job's read-only /usr runtime.
+        target: /run/vibeflow-docker/docker
         read_only: true
         bind:
           create_host_path: false

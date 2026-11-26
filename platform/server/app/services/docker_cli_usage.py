@@ -4,6 +4,8 @@ import json
 import re
 import subprocess
 
+from ..config import get_settings
+
 
 SCHEMA = 'vibeflow.docker-cli-usage.v1'
 COUNTERS = """
@@ -55,7 +57,7 @@ def _read(worker_id):
     if not re.fullmatch(r'[0-9a-f]{64}', worker_id):
         raise ValueError('Invalid Docker CLI worker ID')
     try:
-        result = subprocess.run(['docker', 'exec', worker_id, 'python', '-I', '-c', COUNTERS],
+        result = subprocess.run([get_settings().docker_cli_client, 'exec', worker_id, 'python', '-I', '-c', COUNTERS],
                                 capture_output=True, timeout=3, check=True)
         value = {'schema': SCHEMA, 'container_id': worker_id, **json.loads(result.stdout)}
         validate(value, worker_id)
