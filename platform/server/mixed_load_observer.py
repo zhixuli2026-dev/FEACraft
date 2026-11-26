@@ -11,6 +11,7 @@ import httpx
 
 from app.main import app
 from app.routers import agent
+from app.services import conversation_execution
 
 
 STATE = Path('/work/data')
@@ -18,6 +19,7 @@ RECEIPT = STATE / f'upstream-{gethostname()}.jsonl'
 send = httpx.AsyncClient.send
 lines = httpx.Response.aiter_lines
 read_case = agent.read_case
+renew = conversation_execution.renew
 
 
 def write(row):
@@ -87,6 +89,16 @@ async def observed_case_read(case_id, prefix, user_id, function, *args, **kwargs
                'single_file': kwargs.get('file_path') is not None})
 
 
+async def observed_renew(db, owner):
+    try:
+        return await renew(db, owner)
+    except Exception as error:
+        write({'kind': 'conversation_renew_failed', 'conversation_id': owner.conversation_id,
+               'reason': getattr(error, 'code', None) or type(error).__name__})
+        raise
+
+
 httpx.AsyncClient.send = observed_send
+conversation_execution.renew = observed_renew
 httpx.Response.aiter_lines = observed_lines
 agent.read_case = observed_case_read

@@ -48,21 +48,48 @@ DRAG_OBSERVATION = '''
 '''
 
 
+GPU_OBSERVATION = '''
+            window = view.GetClientSideObject().GetRenderWindow()
+            driver = next((line.split(':', 1)[1].strip() for line in window.ReportCapabilities().splitlines()
+                           if 'OpenGL renderer string:' in line), '')
+            adapter = os.environ['MESA_D3D12_DEFAULT_ADAPTER_NAME']
+            if (window.GetClassName() != 'vtkEGLRenderWindow' or not driver.startswith('D3D12 (')
+                    or adapter.casefold() not in driver.casefold()):
+                raise RuntimeError(f'Expected the configured WSL D3D12 adapter, got {driver!r}')
+            print('MIXED_WSL_GPU ' + driver, flush=True)
+'''
+
+
 class Deployment:
-    def __init__(self, stack, evidence, api_image, web_image, *, trace_drags=False, ccx_image=None):
+    def __init__(self, stack, evidence, api_image, web_image, *, trace_drags=False, ccx_image=None,
+                 wsl_gpu_adapter=None):
         self.api_image = api_image
         self.web_image = web_image
         self.ccx_image = ccx_image
         self.observer = Path(__file__).with_name('mixed_load_observer.py')
         self.render_mount = ()
-        if trace_drags:
+        self.api_gpu = (
+            '--device=/dev/dxg',
+            '--mount', 'type=bind,source=/usr/lib/wsl,target=/run/vibeflow-wsl,readonly',
+            '-e', 'LD_LIBRARY_PATH=/usr/lib/wsl/lib',
+            '-e', 'GALLIUM_DRIVER=d3d12',
+            '-e', f'MESA_D3D12_DEFAULT_ADAPTER_NAME={wsl_gpu_adapter}',
+        ) if wsl_gpu_adapter else ()
+        if trace_drags or wsl_gpu_adapter:
             relative = 'app/services/viz_paraview_kernel.py'
             source = (SERVER / relative).read_text(encoding='utf-8')
             anchor = '    class CaseImageDelivery(pv.ParaViewWebPublishImageDelivery):\n'
             if source.count(anchor) != 1:
                 raise RuntimeError('The ParaView drag observer needs an updated insertion point')
+            if trace_drags:
+                source = source.replace(anchor, anchor + DRAG_OBSERVATION)
+            if wsl_gpu_adapter:
+                render = '            simple.Render(view)\n'
+                if source.count(render) != 1:
+                    raise RuntimeError('The GPU observer needs an updated render insertion point')
+                source = source.replace(render, render + GPU_OBSERVATION)
             instrumented = evidence / 'observed-viz-kernel.py'
-            instrumented.write_text(source.replace(anchor, anchor + DRAG_OBSERVATION), encoding='utf-8')
+            instrumented.write_text(source, encoding='utf-8')
             self.render_mount = ('--mount', f'type=bind,source={instrumented},target=/workspace/server/{relative},readonly')
         self.stack = stack
         self.label = 'vf-j14-roll-' + uuid4().hex[:12]
@@ -222,7 +249,8 @@ print(json.dumps(values))
 
     def api(self, name):
         probe = f'type=bind,source={self.observer},target=/tests/mixed_load_observer.py,readonly'
-        container = self.run_container(name, *self.runtime, *self.flags, *self.render_mount, '--network-alias', 'api',
+        container = self.run_container(name, *self.runtime, *self.flags, *self.api_gpu, *self.render_mount,
+                    '--network-alias', 'api',
                     '--hostname', name, '--mount', probe, '--publish', '127.0.0.1::8000',
                     '--entrypoint', '/usr/local/bin/python', self.api_image, '-B', '-m', 'uvicorn',
                     '--app-dir', '/tests', 'mixed_load_observer:app', '--host', '0.0.0.0', '--port', '8000', '--no-access-log',

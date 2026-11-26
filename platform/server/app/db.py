@@ -82,6 +82,21 @@ if settings.database_url.startswith("sqlite"):
 
 SessionLocal = async_sessionmaker(engine, class_=ApplicationSession, expire_on_commit=False)
 
+# Short conversation-control transactions need a connection even when case I/O
+# is waiting with every business-pool connection checked out.
+conversation_control_engine = (
+    create_async_engine(engine.url, pool_size=2, max_overflow=0)
+    if engine.dialect.name == "postgresql" else engine
+)
+ConversationControlSession = async_sessionmaker(
+    conversation_control_engine, class_=ApplicationSession, expire_on_commit=False,
+)
+
+
+async def close_conversation_control_db():
+    if conversation_control_engine is not engine:
+        await conversation_control_engine.dispose()
+
 
 async def get_db():
     async with SessionLocal() as session:

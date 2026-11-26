@@ -46,7 +46,7 @@ async def prepare(client, semaphore, config, index):
 async def measure_one(client, account, model):
     headers, profile, conversation = account
     started = time.perf_counter()
-    result = {'first_text_ms': None, 'completed': False}
+    result = {'conversation_id': conversation, 'first_text_ms': None, 'completed': False}
     try:
         async with asyncio.timeout(120), client.stream('POST', f'/conversations/{conversation}/messages',
                 headers=headers, json={'content': '用不超过二十个汉字解释什么是固定时间步。不要调用工具。',
@@ -59,6 +59,8 @@ async def measure_one(client, account, model):
                         continue
                     event = json.loads(line[5:])
                     kind = event.get('type')
+                    if isinstance(kind, str) and re.fullmatch(r'[a-z_.]{1,60}', kind):
+                        result['last_event'] = kind
                     elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
                     if kind == 'ready':
                         result.setdefault('ready_ms', elapsed_ms)
@@ -76,6 +78,8 @@ async def measure_one(client, account, model):
                         code = event.get('code')
                         if isinstance(code, str) and re.fullmatch(r'[a-z_]{1,60}', code):
                             result['error_code'] = code
+                    elif kind in {'run.cancelled', 'run.interrupted'}:
+                        result['terminal_event'] = kind
                     elif kind == 'stream.done':
                         result.setdefault('stream_done_ms', elapsed_ms)
                         reason = event.get('reason')

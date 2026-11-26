@@ -1,0 +1,19 @@
+# Use after docker-compose.prod.yml and docker-compose.paraview.yml on Docker Desktop with WSL.
+x-paraview-wsl-gpu: &paraview-wsl-gpu
+  build:
+    args:
+      PARAVIEW_VARIANT: egl
+  devices:
+    - /dev/dxg:/dev/dxg
+  volumes:
+    - /usr/lib/wsl:/run/vibeflow-wsl:ro
+  environment:
+    LD_LIBRARY_PATH: /usr/lib/wsl/lib
+    GALLIUM_DRIVER: d3d12
+    MESA_D3D12_DEFAULT_ADAPTER_NAME: ${VIBEFLOW_PARAVIEW_GPU_ADAPTER:-NVIDIA}
+
+services:
+  api:
+    <<: *paraview-wsl-gpu
+  arq-worker:
+    <<: *paraview-wsl-gpu

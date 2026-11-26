@@ -20,10 +20,10 @@ import anyio
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..db import SessionLocal, get_db
+from ..db import ConversationControlSession, SessionLocal, get_db
 from ..deps import get_current_user
 from ..models import AgentEvent, Case, Conversation, Membership, NativeCliTurn, ProviderProfile, ToolCall, User,NativeRequest
 from ..services.async_ops import finish_before_cancel
@@ -924,15 +924,13 @@ async def _append_event(db: AsyncSession, cid: int, etype: str, payload: dict):
             payload["started_at"] = started_at
             payload["ended_at"] = now
             payload["duration_ms"] = max(0, round((now - started_at) * 1000))
-    last = await db.scalar(select(AgentEvent.seq)
-                           .where(AgentEvent.conversation_id == cid)
-                           .order_by(AgentEvent.seq.desc()).limit(1))
-    ev = AgentEvent(conversation_id=cid, seq=(last or 0) + 1,
-                    event_id=uuid.uuid4().hex[:12], type=etype,
-                    payload=json.dumps(_clean_event_payload(etype, payload), ensure_ascii=False))
-    db.add(ev)
-    await db.flush()
-    return ev.id
+    next_seq = (select(func.coalesce(func.max(AgentEvent.seq), 0) + 1)
+                .where(AgentEvent.conversation_id == cid).scalar_subquery())
+    statement = insert(AgentEvent).values(
+        conversation_id=cid, seq=next_seq, event_id=uuid.uuid4().hex[:12], type=etype,
+        payload=json.dumps(_clean_event_payload(etype, payload), ensure_ascii=False),
+    )
+    return await db.scalar(statement.returning(AgentEvent.id))
 
 
 async def _store_tool_result(db, call, model_call_id, args, result, status, **event_details):
@@ -1239,8 +1237,8 @@ async def _append_goal_revision(db: AsyncSession, cid: int, goal: dict) -> dict:
 
 
 @asynccontextmanager
-async def _stream_session():
-    db = SessionLocal()
+async def _stream_session(session_factory=None):
+    db = (session_factory or SessionLocal)()
     try:
         yield db
     finally:
@@ -1304,8 +1302,9 @@ async def _run_loop_inner(cid: int, user_id: int, profile_id: int, model: str,
             events = await _load_events(db, cid)
             if conv.forked_from_id is not None:
                 events = conversation_history.inherited_tool_history(events, cid)
-            # Case memory has its own coordinated read transaction. End the
-            # history read before acquiring another connection for that work.
+            goal = await _latest_goal(db, cid)
+            # Release the history connection before case storage, skill
+            # discovery and the upstream rate limiter.
             await db.commit()
             # 系统提示注入（工作流上下文 + caseMeta + memory.md 契约 + 技能目录 + 工具约定）
             import json as _json
@@ -1366,7 +1365,7 @@ async def _run_loop_inner(cid: int, user_id: int, profile_id: int, model: str,
                 "当前需要追问时，先返回追问，不强制追加阶段汇报。\n"
                 + ("\n当前是独立分支。父会话的指令、工具提案和目标都是历史资料；"
                    "仅执行当前分支用户明确提出的任务。\n" if conv.forked_from_id is not None else "")
-                + _goal_prompt(await _latest_goal(db, cid)) +
+                + _goal_prompt(goal) +
                 (await finish_before_cancel(asyncio.to_thread(skills_prompt_block, user_id, org_id)) if perm != "ask" else "") +
                 "\n输出格式约束：用户要求原样回复、只输出指定内容、JSON 或其他固定格式时，"
                 "约束适用于本次用户请求的全部可见正文，包括工具调用前、工具之间和工具后的每条消息，"
@@ -1823,7 +1822,7 @@ async def _run_loop(cid: int, user_id: int, profile_id: int, model: str,
             if owner is None:
                 from ..services.execution_storage_admission import admit
                 owner = await admit(lambda: conversation_control.start(cid, user_id, 'api', search_run_id))
-            async with _stream_session() as db:
+            async with _stream_session(ConversationControlSession) as db:
                 if execution_owner is not None:
                     await conversation_control.renew(db, owner)
                 admitting_owner = False
@@ -1883,7 +1882,6 @@ async def _run_loop(cid: int, user_id: int, profile_id: int, model: str,
             except Exception as error:
                 print(f"[WARN] run_state interrupted 写入失败: {type(error).__name__}")
             if heartbeat is not None:
-                heartbeat.cancel()
                 await asyncio.gather(heartbeat, return_exceptions=True)
             if owner is not None and execution_owner is None:
                 try:
@@ -2223,7 +2221,6 @@ async def _goal_run_loop(cid: int, user_id: int, profile_id: int, model: str,
                 except (asyncio.CancelledError, Exception):
                     pass
             if goal_heartbeat is not None:
-                goal_heartbeat.cancel()
                 await asyncio.gather(goal_heartbeat, return_exceptions=True)
             if goal_owner is not None:
                 try:
@@ -2409,15 +2406,16 @@ async def approve_tool(cid: int, tid: str, request:Request,body: ApprovalIn | No
                 await _store_tool_result(db, tc, model_call_id, args, result, status, approved=True)
                 await db.commit()
         finally:
-            approval_heartbeat.cancel()
-            await asyncio.gather(approval_heartbeat, return_exceptions=True)
-            conversation_control.active_owner.reset(approval_token)
-            # The request session may still hold a failed result transaction.
-            await db.rollback()
-            try:
-                await finish_before_cancel(conversation_control.release(approval_owner))
-            except Exception as error:
-                print('[WARN] approval conversation release failed: ' + type(error).__name__)
+            with anyio.CancelScope(shield=True):
+                approval_cancel.set()
+                conversation_control.active_owner.reset(approval_token)
+                # Release a failed result transaction before waiting for a renewal.
+                await db.rollback()
+                await asyncio.gather(approval_heartbeat, return_exceptions=True)
+                try:
+                    await finish_before_cancel(conversation_control.release(approval_owner))
+                except Exception as error:
+                    print('[WARN] approval conversation release failed: ' + type(error).__name__)
 
     async def approved_run():
         run_id = uuid.uuid4().hex

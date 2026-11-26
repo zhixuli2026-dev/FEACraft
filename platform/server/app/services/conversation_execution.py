@@ -11,7 +11,7 @@ from contextvars import ContextVar
 
 from sqlalchemy import select, update
 
-from ..db import SessionLocal
+from ..db import ConversationControlSession, SessionLocal
 from ..models import AcpTurn, AgentEvent, Conversation, ConversationExecution, NativeCliTurn, NativeRequest, ToolCall, User
 from . import process_identity_native as identity
 from .async_ops import finish_before_cancel
@@ -60,19 +60,19 @@ async def assert_idle(db, cid):
         if identity.probe(json.loads(row.owner_identity_json))['state'] != 'match':
             code = 'recovery_required'
         raise ExecutionConflict(code, 'Conversation already has an execution owner')
+    return row
 
 
 async def acquire(db, cid, backend, resource_id):
     """Caller holds the case coordinator; this method flushes without commit."""
     from .job_execution import WORKER_ID
-    await assert_idle(db, cid)
+    row = await assert_idle(db, cid)
     if backend != 'codex' and await unsafe_native(db, cid):
         raise ExecutionConflict('recovery_required', 'Previous native execution requires reconciliation')
     if backend not in {'api', 'goal', 'approval', 'codex'} or not isinstance(resource_id, str) or not 1 <= len(resource_id) <= 128:
         raise ValueError('Invalid conversation execution binding')
     owner = Owner(cid, resource_id, backend, secrets.token_hex(32), WORKER_ID,
                   await asyncio.to_thread(identity.observe, os.getpid()))
-    row = await db.get(ConversationExecution, cid)
     if row is None:
         row = ConversationExecution(conversation_id=cid)
         db.add(row)
@@ -87,15 +87,19 @@ async def acquire(db, cid, backend, resource_id):
 
 
 async def current(db, owner, *, launch=True):
-    found = await db.execute(update(ConversationExecution).where(
-        ConversationExecution.conversation_id == owner.conversation_id,
-        ConversationExecution.phase == 'active', ConversationExecution.backend == owner.backend,
-        ConversationExecution.resource_id == owner.resource_id, ConversationExecution.owner_id == owner.worker_id,
-        ConversationExecution.owner_token_sha256 == hashlib.sha256(owner.token.encode()).hexdigest()
-    ).values(version=ConversationExecution.version + 1))
-    if found.rowcount != 1:
+    claim = (
+        update(ConversationExecution).where(
+            ConversationExecution.conversation_id == owner.conversation_id,
+            ConversationExecution.phase == 'active', ConversationExecution.backend == owner.backend,
+            ConversationExecution.resource_id == owner.resource_id, ConversationExecution.owner_id == owner.worker_id,
+            ConversationExecution.owner_token_sha256 == hashlib.sha256(owner.token.encode()).hexdigest(),
+        ).values(version=ConversationExecution.version + 1)
+        .returning(ConversationExecution)
+        .execution_options(populate_existing=True)
+    )
+    row = await db.scalar(claim)
+    if row is None:
         raise ExecutionConflict('state_conflict', 'Conversation execution owner changed')
-    row = await db.get(ConversationExecution, owner.conversation_id, populate_existing=True)
     document(row)
     if json.loads(row.owner_identity_json) != owner.birth:
         raise ExecutionConflict('evidence_invalid', 'Conversation owner birth changed')
@@ -197,16 +201,21 @@ async def watch(owner, cancel, *, on_requested=None):
     loop = asyncio.get_running_loop()
     renew_at = loop.time() + 5
     try:
-        while True:
-            await asyncio.sleep(1)
-            async with SessionLocal() as db:
+        while not cancel.is_set():
+            try:
+                async with asyncio.timeout(1):
+                    await cancel.wait()
+                return
+            except TimeoutError:
+                pass
+            async with ConversationControlSession() as db:
                 if await _stop_pending(db, owner.conversation_id, stop_binding(owner)):
                     (on_requested or cancel.set)()
                     return
             # A slow query counts toward the renewal interval along with sleeps.
-            if loop.time() < renew_at:
+            if cancel.is_set() or loop.time() < renew_at:
                 continue
-            async with SessionLocal() as db:
+            async with ConversationControlSession() as db:
                 await renew(db, owner)
                 await db.commit()
             renew_at = loop.time() + 5

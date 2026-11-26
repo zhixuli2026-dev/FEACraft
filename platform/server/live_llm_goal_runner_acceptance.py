@@ -134,9 +134,8 @@ def execute(args, config):
 
     server = IsolatedServer("live-goal-runner", app="goal_runner_fixture:app")
     root = server.root
-    observer = FIXTURE.replace("if calls>8:", "if calls>16:").replace("eight-request", "sixteen-request")
-    assert observer != FIXTURE
-    (root / "goal_runner_fixture.py").write_text(observer+OBSERVE, encoding="utf8")
+    observer = "live_request_limit = 16\n" + FIXTURE + OBSERVE
+    (root / "goal_runner_fixture.py").write_text(observer, encoding="utf8")
     report = {"passed":False,"service":"api.deepseek.com","model":config["model"],"mock_llm_calls":0}
     print("LIVE_GOAL_RUNNER_EVIDENCE", root, flush=True)
 

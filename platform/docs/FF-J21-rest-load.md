@@ -244,3 +244,47 @@ Linux 双 API 的同规模复测完成 600/600 次 REST 检查、50 次真实 `d
 | 持续拖动匹配完成帧 | 476.4 ms | 200 ms |
 
 新增的连续操作提高了并发负载，上表记录该持续场景。SSE 和拖动性能目标仍待达到。两套 API cgroup 内存峰值分别为 5,977 和 5,030 MiB。隔离容器、卷和网络均已清理，原 11 个运行容器标识一致。C 盘可用空间由 39,755,595,776 B 变为 39,758,102,528 B，Docker 构建缓存 5.857 GB，回收 0 B。 [磁盘读数](../../tmp/ff-j21-sustained-overlap-20261126/disk-after.json) · [Docker 占用](../../tmp/ff-j21-sustained-overlap-20261126/docker-after.txt)
+
+
+### 2026-11-26 Agent 上下文数据库连接
+
+Agent 在读取会话历史时，同时读取该会话当前目标，随后提交只读事务。长期记忆、技能目录、提示词选择和模型限流检查继续按正式路径处理。终止会话和持久请求序号沿用原范围。 [请求入口](../server/app/routers/agent.py)
+
+隔离 Windows API 和临时 PostgreSQL 使用两个真实账户检验。两次目标读取当时 SQL 事务均打开，两次技能目录读取和两次模型限流检查时，同一 Agent 数据库会话均已结束事务。直接观察实际向 DeepSeek 发出的请求，两次都携带对应持久目标。两次真实 `deepseek-flash` 请求均为 HTTP 200 且流式回合完成，首段正文 p95 为 1,329.59 ms，模拟 0 次。临时数据库已删除。 [连接释放核验](../../tmp/ff-j21-goal-connection-20261126/result.json) · [原始 SSE 回执](../../tmp/live-j21-sse-mrsruxc0/live-result.json) · [数据库回收](../../tmp/terminal-agent-postgres-tlmcxx41/cleanup.json)
+
+同一修改用隔离 Windows API 和 PostgreSQL 复验 50 路独立 SSE。50/50 均收到首段正文及回合完成事件，网关得到 50 次真实 DeepSeek HTTP 200 和 50 个不同的完成标识，模拟 0 次。全部首段样本的 p95 为 5,118.07 ms。从请求发出到 HTTP 响应头、`ready` 和 `context.window` 的 p95 分别为 2,364.29、3,361.13 和 4,179.77 ms。本轮覆盖独立 SSE 并发，混合负载的 2,000 ms 目标继续验收。隔离 API 和 PostgreSQL 数据库均已回收。 [50 路 SSE 回执](../../tmp/live-j21-sse-aji27l96/live-result.json) · [真实上游回执](../../tmp/live-j21-sse-aji27l96/upstream.jsonl) · [数据库回收](../../tmp/terminal-agent-postgres-gi__efb3/cleanup.json)
+
+本次测试未构建镜像。50 会话 GPU 对照结束后原 11 个 Docker 服务的标识逐项一致。Docker 构建缓存回收 0 B。C 盘可用空间在阶段起止分别为 38,921,265,152 B 和 39,386,173,440 B。 [主机和 Docker 读数](../../tmp/ff-j21-goal-connection-20261126/stage-disk.json)
+
+
+### 2026-11-26 会话 SQL 与流结束回收
+
+Agent 续约的更新语句直接返回执行记录，并核对原令牌、宿主出生标记和过期状态。消息事件的编号与写入合为一条 SQL。50 路独立 PostgreSQL 压测中，每路记录的 SQL 条数中位数由 84 降到 73。将池上限从 15 增至 30 的对照也完成全部请求，同一并发下首段 p95 为 5,241.40 ms，现有连接池默认值继续使用。 [时序对照](../../tmp/ff-j21-agent-phases-20261126/comparison.json)
+
+收尾故障在两轮均表现为 50 个真实回合已提交完成，其中一条 SSE 连接等到约 120 秒读取期限。现场数据库有 49 个已释放会话和一个仍活动的会话。随后复现时，挂起请求已执行历史恢复检查，但续约任务又进入下一轮等待，使响应无法关闭。收尾改用原有取消事件唤醒续约任务，等待已发出的 SQL 结束后释放持久会话。审批流程先回滚可能持有的事务，再等待续约退出。 [数据库现场](../../tmp/ff-j21-agent-phases-20261126/pending-db.json) · [挂起调用栈](../../tmp/live-j21-sse-m5v3m2vz/late-stage.json) · [续约实现](../server/app/services/conversation_execution.py)
+
+最终轮使用默认连接池。50 次真实 DeepSeek HTTP 200 和 50 个不同的完成标识全部核验，50/50 条 SSE 均正常关闭，最慢整条连接为 5,573.55 ms。隔离库退出前读到 50 个完成的回合、50 个归还的会话和 50 组连续事件序号，随后数据库删除。独立 SSE 首段 p95 为 5,274.70 ms，混合负载 2,000 ms 目标继续验收。 [最终 SSE 回执](../../tmp/live-j21-sse-5yg1mv5q/live-result.json) · [会话台账](../../tmp/live-j21-sse-5yg1mv5q/verified-ledger.json) · [PostgreSQL 回收](../../tmp/terminal-agent-postgres-mafa73qb/cleanup.json)
+
+SQLite 另复验真实文件审批、重复批准保护、目标续跑及取消、断线和越权边界。审批用 2 次真实 DeepSeek HTTP 200，目标复验用 9 次。五轮独立 SSE 共 250 次真实 HTTP 200，合计 261 次，模拟 0 次。首轮探针参数签名错误在发出模型请求前被捕获，已修正后复跑。此阶段未构建镜像，原 11 个 Docker 服务均在运行，构建缓存回收 0 B。 [审批回执](../../tmp/live-deepseek-approval-fgn_7isj/live-result.json) · [目标复验](../../tmp/live-goal-runner-2vffaiwa/live-goal-runner-result.json) · [磁盘读数](../../tmp/ff-j21-agent-phases-20261126/stage-disk.json)
+
+
+### 2026-11-26 WSL GPU 与终端隔离的混合负载
+
+旧 GPU 配置在两轮双用户试跑都报告 `D3D12 (NVIDIA GeForce RTX 3060)`，但终端在非特权挂载命名空间中绑定 `/usr` 返回 `EINVAL`，两个终端均以 1 退出。失败发生在上游模型调用前，终端与渲染进程均有停止回执。隔离器绑定的是非递归的 `/usr`，直接在它下面嵌入驱动挂载触发了 Linux 的子挂载保护。 [实际失败回执](../../tmp/ff-j21-mixed-qnruk5i9/mixed-2.json) · [Linux mount 接口](https://man7.org/linux/man-pages/man2/mount.2.html)
+
+EGL 镜像将驱动目录只读挂到 `/run/vibeflow-wsl`。镜像内的 `/usr/lib/wsl` 链接为 D3D12 保留驱动入口。双用户复测中，两台渲染器均实际使用 RTX 3060。两个终端均执行真实命令并确认看不到显卡设备和驱动挂载。24 次读取检查全部通过，两个 CalculiX 作业通过数值核对，两个真实 `deepseek-flash` SSE 均完成，模拟 0 次。两组终端、可视化及求解进程停止均核验。 [修复后双用户回执](../../tmp/ff-j21-mixed-5kl9hggb/mixed-2.json) · [部署说明](linux-paraview-deployment.md#docker-desktop-wsl-gpu)
+
+
+首轮 50 用户中，50 个渲染进程均报告 RTX 3060，50 个终端都实际执行了驱动隔离命令。50 路真实 SSE、50 个 CalculiX 作业的数值与发布核对及 200 份停止证明均通过。另在 37 个作业已经成功时，从实际 PostgreSQL 查到 50 个完成回合和 50 个已归还的 Agent 会话。REST 容器未交付指标，本轮未取得五类负载实际交集。该轮首段 p95 为 16,078.34 ms，首轮拖动 p95 为 384.995 ms。 [首轮回执](../../tmp/ff-j21-mixed-ydfhmy_h/mixed-50.json) · [运行中会话台账](../../tmp/ff-j21-wsl-gpu-20261126/mixed-runtime-ledger.json)
+
+复跑的 k6 容器正常退出，600/600 次 REST 读取通过业务检查，成功率 100%。50 个终端和渲染器都收到首轮命令输出及匹配完成帧，持续共取得另 292 条终端回显、800 张图像。50 个真实 CalculiX 作业全部与独立位移计算比对，150 次成果读取成功，跨账户作业及文件读取各 50 次返回 404。50 路模型均收到正文，上游有 50 次真实 HTTP 200 和 50 个不同的完成标识。49 路客户端收到回合完成事件，一路在约 44.49 秒结束但缺少完成事件，故混合功能检查仍未通过。运行中 PostgreSQL 读到 50 个 Agent 会话已归还，缺失事件的原因待查。 [50 用户复跑](../../tmp/ff-j21-mixed-3jx3_gc9/mixed-50.json) · [k6 容器退出](../../tmp/ff-j21-wsl-gpu-20261126/retry-k6-docker.jsonl) · [运行中会话台账](../../tmp/ff-j21-wsl-gpu-20261126/retry-runtime-ledger.json)
+
+该轮有十段五类操作实际交集，累计 2,545 ms，覆盖 6 个已登记求解子进程。独立时间扫描器重算得到相同区间，裁去每条 Windows 交互区间两端各 2 ms 后累计 2,517 ms。首段正文 p95 为 42,539.43 ms，质量 50 首轮拖动 p95 为 432.087 ms，持续拖动为 507.377 ms。REST p95 为 12,391.51 ms。两轮 50 用户和双用户预检共 102 次真实 DeepSeek HTTP 200，模拟 0 次。原 11 个 Docker 服务标识一致，隔离资源已回收。构建缓存回收 0 B。 [独立交集核验](../../tmp/ff-j21-wsl-gpu-20261126/overlap-verification.json) · [磁盘和服务读数](../../tmp/ff-j21-wsl-gpu-20261126/stage-disk.json)
+
+### 2026-11-26 PostgreSQL 连接池占满时的 Agent 续约
+
+带诊断的 50 用户复跑在会话 6 启动时记录到 SQLAlchemy 连接池等待超时 `3o7r`，客户端最后收到 `stream.done`。隔离库中该会话已归还，未写入 `run_state`，也未向 DeepSeek 发出请求。其余 49 路真实回合完成。600 次 REST 检查、50 路隔离终端、50 个 GPU 渲染器与 50 个 CalculiX 作业均通过，五类操作实际交集 1,818 ms。这次查明的是新复跑中的启动故障，前一轮缺失完成事件的原因仍待核对。 [50 用户诊断](../../tmp/ff-j21-mixed-98dc1qcj/mixed-50.json) · [会话持久状态](../../tmp/ff-j21-mixed-98dc1qcj/lease-failure-lifecycle.json) · [SQLAlchemy 错误说明](https://docs.sqlalchemy.org/en/20/errors.html#error-3o7r)
+
+PostgreSQL API 为回合启动、续约和停止信号检查保留两个短事务连接。真实 PostgreSQL 测试占满全部 15 个普通连接后，实际回合仍写入启动状态，租约推进了 5.063 秒，并收到了绑定当前执行的停止信号。释放连接后核验会话回到 `idle`。随后用隔离 API 和 PostgreSQL 验证两路真实 `deepseek-flash` SSE，2 次 HTTP 200、2 个独立完成标识和双方完成事件齐全，首段 p95 为 954.28 ms。两个隔离数据库均已删除。本阶段 51 次真实 DeepSeek HTTP 200，模拟 0 次。修复后的 50 用户混合负载及性能目标仍待复验。 [连接池实测](../../tmp/ff-j21-lease-priority-20261126/postgres-saturation.json) · [真实模型复验](../../tmp/live-j21-sse-ox88tbtz/live-result.json) · [连接池实测库回收](../../tmp/terminal-agent-postgres-081hcsui/cleanup.json) · [SSE 实测库回收](../../tmp/terminal-agent-postgres-wiwehwqi/cleanup.json)
+
+本阶段未构建镜像。Docker 构建缓存回收 0 B，统计占用仍为 9.62 GB。初始诊断时 C 盘可用 38,911,680,512 B，回收检查后可用 39,210,323,968 B。11 个原有 Docker 服务继续运行。

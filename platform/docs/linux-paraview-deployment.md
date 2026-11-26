@@ -18,6 +18,25 @@ docker build -f platform/infra/Dockerfile.paraview --build-arg API_IMAGE=vibeflo
 
 正式入口仍是 `POST /api/v1/cases/{case_id}/paraview:run`，请求包含 `script_path` 和 `backend`。任意脚本实际执行于作业私有输入副本，后续按现有注册处理器发布文件变化与删除。详见 [ParaView 发布契约](paraview-publication.md)。
 
+## Docker Desktop WSL GPU
+
+Docker Desktop 的 WSL2 后端可以用可选的 EGL 镜像通过 D3D12 使用 Windows 显卡。依次叠加生产、ParaView 和 WSL GPU 三份 Compose 文件。可以用 `VIBEFLOW_PARAVIEW_GPU_ADAPTER` 设置 Mesa 要匹配的适配器名称，本机实测为 `NVIDIA`。
+
+```sh
+python platform/tools/fetch_paraview.py --variant egl
+export VIBEFLOW_PARAVIEW_IMAGE=vibeflow/api:paraview-wsl-gpu
+docker compose --env-file platform/infra/.env \
+  -f platform/infra/docker-compose.prod.yml \
+  -f platform/infra/docker-compose.paraview.yml \
+  -f platform/infra/docker-compose.paraview-wsl-gpu.yml up -d --build
+```
+
+EGL 包的固定 SHA-256 为 `819cebf5eba5e6555f9ac3114c7e334b32db424ce0cea215f9ce0452d3ed43bb`。可选配置映射 `/dev/dxg`，把宿主 `/usr/lib/wsl` 完整只读挂载到容器的 `/run/vibeflow-wsl`。EGL 镜像的 `/usr/lib/wsl` 符号链接仍为 D3D12 提供预期路径。该布置让终端沙箱可以继续单独绑定 `/usr` 到自己的挂载命名空间。离屏图像通过同一 ParaView WebSocket 会话返回。撤下 WSL GPU Compose 层并用默认变体构建即可切回 OSMesa。 [WSLg 显卡选择](https://github.com/microsoft/wslg/wiki/GPU-selection-in-WSLg) · [可视化实测](viz-load-acceptance.md#docker-desktop-wsl-gpu)
+
+隔离 Compose 进程通过 API 服务的运行配置实际输出 480×360 PNG，报告 `vtkEGLRenderWindow` 和 RTX 3060。API 镜像中原有的 Python VTK 也通过该 GPU 完成离屏像素读回。默认 OSMesa 镜像单独重建，`pvpython` 和 `pvbatch` 均识别为 5.11.2，并通过 `vtkOSOpenGLRenderWindow` 生成同尺寸 PNG。模型调用 0 次。 [Compose GPU 回执](../../tmp/ff-d22-gpu-20261126/compose-gpu-render.json) · [Python VTK 回执](../../tmp/ff-d22-gpu-20261126/vtk-wheel-wsl-gpu.json) · [默认 OSMesa 回执](../../tmp/ff-d22-gpu-20261126/osmesa-rebuild-render.json)
+
+修正挂载路径后的隔离 Compose 进程已核对 `/run/vibeflow-wsl` 为只读挂载，经 `/usr/lib/wsl` 链接使用 `vtkEGLRenderWindow` 在 RTX 3060 上实际出图。两轮 50 用户运行分别启动 50 个 GPU 渲染器和 50 路非特权终端，全部终端分别实测看不到 GPU 字符设备和驱动挂载。 [Compose 实际渲染](../../tmp/ff-j21-wsl-gpu-20261126/compose-relocated-mount.json) · [混合验收](FF-J21-rest-load.md#2026-11-26-wsl-gpu-与终端隔离的混合负载)
+
 ## 官方包与运行依赖
 
 包来自[ParaView 官方 5.11 下载目录](https://www.paraview.org/files/v5.11/)，文件为 `ParaView-5.11.2-osmesa-MPI-Linux-Python3.9-x86_64.tar.gz`，529753943 字节。固定 SHA-256 是本次官方 HTTPS 下载后计算并固定的摘要，未声称目录提供了发布者签名或独立摘要：

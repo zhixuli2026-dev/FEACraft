@@ -69,6 +69,9 @@ SECRETS = re.compile(rb'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|'
                      rb'AKIA[A-Z0-9]{16})\b')
 
 
+OPTIONAL_FILES = ('platform/infra/docker-compose.paraview-wsl-gpu.yml',)
+
+
 def allowed(name):
     p = PurePosixPath(name)
     if p.is_absolute() or '..' in p.parts or '\\' in name or ':' in name:
@@ -79,12 +82,13 @@ def allowed(name):
         return False
     if p.suffix.lower() in {'.pyc', '.pyo', '.log', '.db', '.sqlite', '.pem', '.key'}:
         return False
-    return (name in FILES or any(name.startswith(t + '/') for t in TREES)
+    return (name in FILES or name in OPTIONAL_FILES or any(name.startswith(t + '/') for t in TREES)
             or (str(p.parent) == 'platform/docs' and p.suffix in {'.md', '.json'}))
 
 
 def sources(root):
     names = set(FILES)
+    names.update(name for name in OPTIONAL_FILES if (root / name).is_file())
     for tree in TREES:
         for directory, dirs, files in os.walk(root / tree, followlinks=False):
             dirs[:] = sorted(d for d in dirs if d not in SKIP and not d.startswith('.')

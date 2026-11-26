@@ -1,19 +1,37 @@
-# Run: python platform/tools/fetch_paraview.py (or reuse --archive PATH).
+# Run: python platform/tools/fetch_paraview.py [--variant egl] [--archive PATH].
 ARG API_IMAGE=vibeflow/api:dev
 FROM ${API_IMAGE} AS unpack
 USER root
-COPY .build-inputs/ParaView-5.11.2-osmesa-MPI-Linux-Python3.9-x86_64.tar.gz /tmp/paraview.tar.gz
-RUN python -c "import hashlib,tarfile; from pathlib import Path; p=Path('/tmp/paraview.tar.gz'); assert hashlib.sha256(p.read_bytes()).hexdigest()=='657a44f53c61fb784340b65faa16e91a7b786e802820cf1a6aef35c4d30d4aeb'; tarfile.open(p).extractall('/opt',filter='data')"
-# Debian 13 no longer ships this ABI. Keep the pinned Debian 12 library private
-# to ParaView rather than changing system Mesa packages or global linker paths.
-RUN python -c "import hashlib,urllib.request; data=urllib.request.urlopen('https://deb.debian.org/debian/pool/main/m/mesa/libglapi-mesa_22.3.6-1+deb12u2_amd64.deb',timeout=60).read(); assert hashlib.sha256(data).hexdigest()=='2db5b13a6b7f4042f9a417ad7fa4338b6c47528dc64d7f89cfd5e53d07d76bc4'; open('/tmp/glapi.deb','wb').write(data)"
-RUN dpkg-deb -x /tmp/glapi.deb /tmp/glapi && cp -a /tmp/glapi/usr/lib/x86_64-linux-gnu/libglapi.so* /opt/ParaView-5.11.2-osmesa-MPI-Linux-Python3.9-x86_64/lib/ && cp /tmp/glapi/usr/share/doc/libglapi-mesa/copyright /opt/ParaView-5.11.2-osmesa-MPI-Linux-Python3.9-x86_64/share/licenses/libglapi-mesa-copyright
+ARG PARAVIEW_VARIANT=osmesa
+COPY .build-inputs/ParaView-5.11.2-${PARAVIEW_VARIANT}-MPI-Linux-Python3.9-x86_64.tar.gz /tmp/paraview.tar.gz
+RUN set -eu; \
+    case "$PARAVIEW_VARIANT" in \
+        osmesa) checksum=657a44f53c61fb784340b65faa16e91a7b786e802820cf1a6aef35c4d30d4aeb ;; \
+        egl) checksum=819cebf5eba5e6555f9ac3114c7e334b32db424ce0cea215f9ce0452d3ed43bb ;; \
+        *) exit 1 ;; \
+    esac; \
+    echo "$checksum  /tmp/paraview.tar.gz" | sha256sum --check; \
+    python -c "import tarfile; tarfile.open('/tmp/paraview.tar.gz').extractall('/opt',filter='data')"; \
+    mv "/opt/ParaView-5.11.2-$PARAVIEW_VARIANT-MPI-Linux-Python3.9-x86_64" /opt/paraview-release
+# Keep the OSMesa ABI private to ParaView on Debian 13.
+RUN if [ "$PARAVIEW_VARIANT" = osmesa ]; then \
+    python -c "import hashlib,urllib.request; data=urllib.request.urlopen('https://deb.debian.org/debian/pool/main/m/mesa/libglapi-mesa_22.3.6-1+deb12u2_amd64.deb',timeout=60).read(); assert hashlib.sha256(data).hexdigest()=='2db5b13a6b7f4042f9a417ad7fa4338b6c47528dc64d7f89cfd5e53d07d76bc4'; open('/tmp/glapi.deb','wb').write(data)" && \
+    dpkg-deb -x /tmp/glapi.deb /tmp/glapi && \
+    cp -a /tmp/glapi/usr/lib/x86_64-linux-gnu/libglapi.so* /opt/paraview-release/lib/ && \
+    cp /tmp/glapi/usr/share/doc/libglapi-mesa/copyright /opt/paraview-release/share/licenses/libglapi-mesa-copyright; \
+    fi
 
 FROM ${API_IMAGE}
-# The optional ParaView executable links libcurl even when serving local datasets.
-RUN apt-get update && apt-get install -y --no-install-recommends libcurl4t64 \
-    && rm -rf /var/lib/apt/lists/*
-COPY --from=unpack /opt/ParaView-5.11.2-osmesa-MPI-Linux-Python3.9-x86_64 /opt/paraview
+ARG PARAVIEW_VARIANT=osmesa
+# The vendor binaries link libcurl. EGL additionally uses the GLVND OpenGL library.
+RUN set -eu; \
+    set -- libcurl4t64; \
+    if [ "$PARAVIEW_VARIANT" = egl ]; then set -- "$@" libopengl0; fi; \
+    apt-get update && apt-get install -y --no-install-recommends "$@" \
+        && rm -rf /var/lib/apt/lists/*
+# Keep the WSL bind outside /usr so user-namespace sandboxes can bind /usr alone.
+RUN if [ "$PARAVIEW_VARIANT" = egl ]; then ln -sfnT /run/vibeflow-wsl /usr/lib/wsl; fi
+COPY --from=unpack /opt/paraview-release /opt/paraview
 ENV PATH="/opt/paraview/bin:${PATH}"
 ENV VIBEFLOW_VTK_OSMESA_DIR=/opt/paraview/lib/mesa
 RUN pvpython --version && pvbatch --version

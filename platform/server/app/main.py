@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
 from .config import get_settings, validate_storage_backend
-from .db import SessionLocal, init_db
+from .db import SessionLocal, close_conversation_control_db, init_db
 from .routers import agent, auth, cadscene, calculix, cite, code_aster, codex, completion, elmer, events, files, flotherm, geometry, index, jobs, llm, logs, mesh, moose, mpi, opencode_cfg, org, paraview, postprocess, remote, remote_hpc, reports, runtime, scnet, skills, su2, terminal, udf, viz, vizproxy, workflows, workspaces
 from .services import monitor_export, rate_limit
 from .routers import abaqus, acp, comsol, fluent, hypermesh, starccm, website_auth
@@ -226,6 +226,7 @@ async def shutdown():
     await rate_limit.close()
     from .services.eventbus import close as close_event_bus
     await close_event_bus()
+    await close_conversation_control_db()
     if shutdown_error is not None:raise shutdown_error
 
 

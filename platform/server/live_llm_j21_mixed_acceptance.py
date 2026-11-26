@@ -73,10 +73,14 @@ def k6_reads(deployment, accounts, starts, k6):
     except subprocess.TimeoutExpired:
         subprocess.run(['docker','rm','--force','--volumes',name], capture_output=True, timeout=12)
         raise
-    if not reply.stdout:
-        raise RuntimeError(f'Disposable k6 client returned {reply.returncode} without metrics')
     assert all(user['token'].encode() not in reply.stdout for user in accounts)
-    return {'exit_code': reply.returncode, **json.loads(reply.stdout)}
+    if reply.stdout:
+        return {'exit_code': reply.returncode, **json.loads(reply.stdout)}
+    detail = reply.stderr.decode('utf-8', errors='replace')
+    for user in accounts:
+        detail = detail.replace(user['token'], '[REDACTED]').replace(user['email'], '[REDACTED]')
+    return {'exit_code': reply.returncode, 'error': 'k6_metrics_missing', 'stderr_tail': detail[-3600:],
+            'metrics': {}, 'intervals': []}
 
 
 def first_origin_headers(deployment):
@@ -110,7 +114,7 @@ async def request(client, method, url, token=None, *, headers=None, **kwargs):
         return await response.json()
 
 
-async def prepare(client, public, owner, config, grid, account, load):
+async def prepare(client, public, owner, config, grid, account, load, *, verify_gpu_isolation=False):
     api = owner + '/api/v1'
     email = uuid4().hex + '@example.com'
     registered = await request(client, 'POST', api + '/auth/register', json={
@@ -157,13 +161,20 @@ async def prepare(client, public, owner, config, grid, account, load):
     ws, sid, row = await open_session(ws_root, account['model_account'][0], case)
     account.update(terminal=ws, terminal_id=sid, terminal_setup=row)
     assert ws is not None and sid is not None and 'command_ms' in row, row
+    if verify_gpu_isolation:
+        async with asyncio.timeout(85):
+            await terminal_command(ws, before='test ! -e /dev/dxg && test ! -e /run/vibeflow-wsl')
+        account['gpu_hidden_from_terminal'] = True
 
 
-async def terminal_command(socket):
+async def terminal_command(socket, *, before=''):
     nonce = uuid4().hex
     expected = ('MIXED_' + nonce).encode()
     seen = b''
-    await socket.send(json.dumps({'type':'input','data':f"printf '\\n%s%s\\n' 'MIXED_' '{nonce}'\r"}))
+    command = f"printf '\\n%s%s\\n' 'MIXED_' '{nonce}'\r"
+    if before:
+        command = f'{before} && {command}'
+    await socket.send(json.dumps({'type':'input','data':command}))
     while expected not in seen:
         message = await socket.recv()
         if isinstance(message, bytes):
@@ -228,6 +239,15 @@ async def cleanup(client, public, account):
                 await socket.close()
             continue
         url = public + '/api/v1' + path
+        if kind == 'terminal' and 'command_ms' not in account.get('terminal_setup', {}):
+            try:
+                failed = await request(client, 'GET', url, account['token'])
+                result['terminal_before_cleanup'] = {
+                    field: failed.get(field) for field in ('phase', 'error', 'exit_code', 'cleanup_verified', 'stop')
+                }
+                result['terminal_before_cleanup']['tail'] = (failed.get('tail') or '')[-1600:]
+            except (aiohttp.ClientError, RuntimeError, TimeoutError, ValueError) as error:
+                result['terminal_observation_error'] = type(error).__name__
         try:
             await request(client, 'DELETE', url, account['token'])
             row = await request(client, 'GET', url, account['token'])
@@ -249,11 +269,13 @@ async def run(deployment, addresses, public, config, users, receipt, k6, grids):
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=85), trust_env=False,
                                     connector=aiohttp.TCPConnector(limit=users * 5)) as client:
         ready = 0
+        verify_gpu_isolation = bool(receipt.get('wsl_gpu_adapter'))
         async def prepare_one(index):
             nonlocal ready
             async with setup:
                 grid = grids[1 if index % 12 == 0 else 0]
-                await prepare(client, public, addresses[index % 2], config, grid, accounts[index], 725 + 31 * index)
+                await prepare(client, public, addresses[index % 2], config, grid, accounts[index], 725 + 31 * index,
+                              verify_gpu_isolation=verify_gpu_isolation)
                 ready += 1
                 if ready % 5 == 0 or ready == users:
                     print('MIXED_READY', ready, '/', users, flush=True)
@@ -285,6 +307,8 @@ async def run(deployment, addresses, public, config, users, receipt, k6, grids):
             prepared = await asyncio.gather(*(prepare_one(index) for index in range(users)), return_exceptions=True)
             errors = [str(e).replace(config['key'], '[REDACTED]')[:180] for e in prepared if isinstance(e, BaseException)]
             receipt.update(prepared=ready, preparation_errors=errors)
+            if verify_gpu_isolation:
+                receipt['gpu_hidden_from_terminals'] = sum(row.get('gpu_hidden_from_terminal', False) for row in accounts)
             assert not errors and ready == users, errors
             stop_heartbeat.set()
             await keeping_connections
@@ -475,6 +499,9 @@ def summarize(report):
         and continued.get('overlapping_upstream_calls',0) > 0
         and (users != 50 or continued['all_five_total_ms'] > 0)
     )
+    if report.get('wsl_gpu_adapter'):
+        report['functional_passed'] = (report['functional_passed'] and report.get('gpu_renderers') == users
+                                       and report.get('gpu_hidden_from_terminals') == users)
     report['slo_passed'] = report['functional_passed'] and all(
         report['p95_ms'][key] < limit for key,limit in (('first_text',2000),('viz',200))
     ) and continued['viz_p95_ms'] < 200
@@ -494,12 +521,13 @@ def main(config, options):
     users = options.users
     report = {'users':users,'provider':'DeepSeek','model':config['model'],'simulated_model_calls':0,
               'viz_measurement':'matching_completed_jpeg_480x360',
+              'wsl_gpu_adapter':options.wsl_gpu_adapter,
               'api_image':options.api_image,'web_image':options.web_image,'ccx_image':options.ccx_image,
               'grids':[{'bytes':len(data),'sha256':digest} for data,digest in grids]}
     try:
         with ExitStack() as contexts:
             deployment = Deployment(contexts, evidence, options.api_image, options.web_image, trace_drags=True,
-                                    ccx_image=options.ccx_image)
+                                    ccx_image=options.ccx_image, wsl_gpu_adapter=options.wsl_gpu_adapter)
             report['expected_worker'] = deployment.label + '-worker'
             docker('exec', deployment.worker, '/usr/local/bin/python', '-B', '-c',
                          'from cryptography.fernet import Fernet; from pathlib import Path; '
@@ -515,6 +543,19 @@ def main(config, options):
                 asyncio.run(run(deployment, (a,b), public, config, users, report, options.k6, grids))
             finally:
                 report['resources_after_session_cleanup'] = deployment.resource_counters()
+                latest_runs = docker('exec', deployment.label + '-postgres', 'psql', '-U', 'postgres',
+                                     '-d', 'replicas', '-Atc',
+                                     "select coalesce(json_object_agg(conversation_id,status),'{}'::json) "
+                                     "from (select distinct on (conversation_id) conversation_id,"
+                                     "payload::jsonb->>'status' as status from agent_events "
+                                     "where type='run_state' order by conversation_id,id desc) latest")
+                report['agent_run_states'] = json.loads(latest_runs)
+                if options.wsl_gpu_adapter:
+                    logs = docker('exec', a_id, 'find', '/work/data/files', '-type', 'f', '-name',
+                                  'viz-*.log', '-exec', 'sed', '-n', 's/^MIXED_WSL_GPU //p', '{}', '+')
+                    drivers = logs.splitlines()
+                    report['gpu_renderers'] = len(drivers)
+                    report['gpu_drivers'] = dict(Counter(drivers))
                 report['upstream'] = []
                 for container, name in ((a_id,deployment.a),(b_id,deployment.b)):
                     output = docker('exec',container,'/bin/sh','-c',
@@ -539,6 +580,8 @@ def main(config, options):
         summary['jobs_overlapping_initial_load'] = report.get('jobs_overlapping_initial_load', 0)
         summary['job_submission_http'] = report['job_submission_http']
         summary['artifact_read_http'] = report['artifact_read_http']
+        if options.wsl_gpu_adapter:
+            summary['gpu_renderers'] = report.get('gpu_renderers', 0)
         print('MIXED_RESULT',json.dumps(summary,ensure_ascii=False),flush=True)
     return not report['functional_passed'] or not report['original_services']
 
@@ -558,6 +601,7 @@ if __name__ == '__main__':
     parser.add_argument('--small-grid', type=input_file, required=True, help='Ordinary VTP mesh')
     parser.add_argument('--large-grid', type=input_file, required=True, help='Million-cell VTP mesh')
     parser.add_argument('--api-image', default=API_IMAGE)
+    parser.add_argument('--wsl-gpu-adapter', help='D3D12 adapter matched by the Linux EGL API image')
     parser.add_argument('--web-image', default=WEB_IMAGE)
     parser.add_argument('--ccx-image', default=CCX_IMAGE, help='Local Linux worker image with /usr/local/bin/ccx')
     options = parser.parse_args()

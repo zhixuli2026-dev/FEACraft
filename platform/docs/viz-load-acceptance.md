@@ -144,6 +144,32 @@ Linux 原生实时视图在启动时注册已安装库中的材质名称和参�
 
 配置 Windows 原生可视化时，将 API 的 ParaView 路径指向完整发行包的 `bin/pvpython.exe`。若另行部署同版本的 Web Visualizer 静态资源，在 API 环境中将 `VIBEFLOW_PARAVIEW_VISUALIZER_DIR` 设为包含 `index.html` 和 `Visualizer.js` 的绝对目录。
 
+Windows 延迟加载配置另跑 8 会话。已核对全部八个进程使用 RTX 3060，包含一个 1,045,456 单元网格。八个会话在 15.08 秒内就绪，质量 50 与 100 各获 24 张匹配完成帧，p95 分别为 84.354 ms 和 83.822 ms。进程树私有内存峰值 4,115,415,040 B，回收到 426,192,896 B。经同 API 重连后，38.47 秒内取齐八份退出证明。模型调用 0 次。 [八会话回执](../../tmp/ff-d22-windows-20261126/run-d12a02c2/result.json)
+
+## Docker Desktop WSL GPU
+
+完整只读挂载 WSL 的驱动目录并映射 `/dev/dxg` 后，经过 Docker 的 surfaceless EGL 和 EGLDevice 都实际使用 Mesa D3D12 的 RTX 3060，并正确读回离屏像素。WSL 原生 GLX 和 EGL 也复验通过。官方 5.11.2 EGL 包在实际 `vtkEGLRenderWindow` 下连续完成十次球体旋转。 [GPU 像素探针](../../tmp/ff-d22-gpu-20261126/wsl-gpu-probes.json) · [可选部署](linux-paraview-deployment.md#docker-desktop-wsl-gpu)
+
+两套 Linux API 经同一 PostgreSQL 和真实 WebSocket 完成双会话验证。两个渲染进程均报告 RTX 3060，取得 12 张原尺寸匹配帧，质量 50 p95 为 59.531 ms。刷新、方向轴操作、跨副本重连和两份 36.95 秒内核验的停止回执均通过。模型调用 0 次。 [双 API GPU 回执](../../tmp/ff-d22-gpu-20261126/egl-d3d12-2.json)
+
+完整的 50 会话使用新构建的可选 EGL 镜像和两个隔离 API。50 个渲染进程均报告 RTX 3060，其中五个加载百万单元网格。78.34 秒内同时就绪，取得 300 张 480×360 的匹配完成帧，100 次主动刷新和 100 次方向轴操作均完成。跨 API 重连取得新的匹配帧，49.91 秒内核验全部 50 个进程范围停止。API cgroup 峰值 10,826,440,704 B，回收到 785,825,792 B。质量 50 p95 为 207.982 ms，质量 100 为 254.669 ms。可视化 200 ms 验收仍待通过。模型调用 0 次。 [50 会话回执](../../tmp/ff-d22-gpu-20261126/egl-d3d12-50.json) · [GPU 路径核对](../../tmp/ff-d22-gpu-20261126/egl-d3d12-preflight-50.json) · [镜像构建](../../tmp/ff-d22-gpu-20261126/build-wsl-gpu.log)
+
+质量 50 的 150 次移动均在首次捕获读到尚待编码的状态，随后的发布取得完成帧。首次捕获墙钟时间 p95 为 78.883 ms，CPU 时间 p95 为 10.979 ms。首次捕获结束到可发布完成帧的 p95 为 58.863 ms，覆盖编码与重试等待。端到端时间扣除渲染进程内区间的 p95 为 90.905 ms。各分位数独立统计。 [计时原始字段](../../tmp/ff-d22-gpu-20261126/egl-d3d12-50.json)
+
+同镜像同步编码对照取齐 300 张匹配帧、跨 API 重连和 50 个停止证明。质量 50 p95 为 263.137 ms，质量 100 为 372.982 ms。可选镜像沿用 ParaView 默认的异步编码。两轮退出后，原 11 个 Docker 容器标识逐项一致。阶段 C 盘可用由 39,095,300,096 B 变为 38,921,359,360 B，本轮 Docker 构建缓存回收 0 B。 [同步编码对照](../../tmp/ff-d22-gpu-20261126/egl-d3d12-event-sync-50.json) · [磁盘与容器读数](../../tmp/ff-d22-gpu-20261126/wsl-gpu-stage-disk.json)
+
+### 编码结果提前读取与 API 副本对照
+
+同一镜像和 RTX 3060 继续验证 50 会话。两轮各含 5 个百万单元算例，各通过 300 张匹配完成帧、两轮图像刷新、方向轴切换、跨副本重连及 50 份停止证明。四副本轮把会话分到四个真实 API，所有副本共用临时 PostgreSQL 和同一份文件卷。两个对照都继续采用 480×360 原尺寸和质量 50 / 100。模型调用为 0。
+
+| 同机 50 会话配置 | 质量 50 完成帧 p95 | 质量 100 完成帧 p95 | 全部 50 项停止核验 |
+| --- | ---: | ---: | ---: |
+| 双 API，沿用默认编码 | 207.982 ms | 254.669 ms | 49.91 s |
+| 双 API，编码未完成时追加一次 8 ms 后的读帧 | 296.004 ms | 284.559 ms | 50.05 s |
+| 四 API，沿用默认编码 | 314.686 ms | 227.371 ms | 45.06 s |
+
+质量 50 下，首次捕获墙钟 p95 在两个对照分别为 134.724 ms 和 136.788 ms，CPU 时间 p95 分别为 12.985 ms 和 12.647 ms。可选镜像沿用默认编码调度，当前已验证的最低质量 50 p95 仍为 207.982 ms。原 11 个 Docker 服务的标识逐项一致。 [提前读取回执](../../tmp/ff-d22-gpu-20261126/egl-d3d12-early8-50.json) · [四副本回执](../../tmp/ff-d22-gpu-20261126/egl-d3d12-4api-50.json) · [四副本显卡核对](../../tmp/ff-d22-gpu-20261126/egl-d3d12-4api-preflight-50.json) · [ParaView 原生编码缓存](https://github.com/Kitware/ParaView/blob/v5.11.2/Clients/Web/vtkPVWebApplication.cxx#L145)
+
 ## Linux 可视化会话内核额度
 
 ParaView 和 Trame 复用 Linux 作业的内核启动门。启用额度时，API 在持久登记前核对所需的控制器环境和挂载权限。每个会话冻结 CPU 累计时限和内存字节上限，登记该会话的 PID 命名空间后才放行渲染器。经核验的停止回执随会话返回 `stop.linux_compute_usage`，含配置、启动序号、实际 CPU 纳秒、内存峰值和 OOM 计数。CPU 与内存超额分别返回 `cpu_limit`、`memory_limit`。启用条件不满足时返回 `viz_compute_unverified`。 [部署配置](deployment.md#可视化会话内核额度) · [验收入口](../server/linux_viz_compute_acceptance.py)
