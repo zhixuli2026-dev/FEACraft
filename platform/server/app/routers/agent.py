@@ -1314,8 +1314,8 @@ async def _run_loop_inner(cid: int, user_id: int, profile_id: int, model: str,
             meta_bits = "、".join(str(meta[k]) for k in
                                   ("displayName", "discipline", "analysisType") if meta.get(k))
             try:
-                memory_text = await read_case(case.id, case.s3_prefix, user_id, read_prompt_memory, case.s3_prefix,
-                                              cancel=cancel_event, wait_for_writer=True)
+                memory_text = await read_case(case.id, case.s3_prefix, user_id, read_prompt_memory,
+                                              cancel=cancel_event, wait_for_writer=True, file_path=MEMORY_PATH)
             except Exception:
                 await _append_event(db, cid, 'run_state', {
                     'run_id': search_run_id, 'status': 'failed', 'reason': 'prompt_memory_read_failed'})

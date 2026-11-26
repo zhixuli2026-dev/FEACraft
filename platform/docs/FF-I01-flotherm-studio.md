@@ -39,6 +39,8 @@ python platform/server/flotherm2foam.py check case-output
 
 已追加 ECXML、V2310 PDML 和 XTXML/XTXMLA 配对的三维盒体导入。CLI 和网页均可生成 IR 后转换，实际求解和认证 S3 已验。Pack `export` 和 FloSCRIPT 阶段执行由 FF-I03 承接，复杂部件和物理映射由 FF-I04 承接。[ECXML 导入实测](FF-I01-I07-ecxml-import.md) · [PDML 与 XTXML](FF-I01-I07-paired-import.md) · [输入检查与输出保护](FF-I02-I10A-flotherm.md)
 
+工作台现可提交 Pack 导出作业，完成后选择 ECXML 继续预检和生成 IR。已在真实 Edge、Windows 进程及认证 SeaweedFS 验证提交、取消、文件发布与输出保护。持证 FloTHERM 原生 Pack 导出仍待联调。 [运行配置与协议回执](FF-I03-floscript-export.md#工作台-pack-导出)
+
 ## 辅助库版本
 
 展开 FloTHERM 的「辅助库」，可在「已发布版本」选择对应编译作业的版本，查看发布目录、OpenFOAM 版本及库的 SHA-256。每一版都可下载当时发布的 ELF 共享库、编译日志和加载日志。点击「打开编译作业」可定位对应作业的原日志。当前发布表示对应输出目录的有效发布。共享 OpenFOAM 用户库的安装与回退沿用已有 CLI。 [安装和回退](flotherm-library-publication.md#ff-i09-共享辅助库安装及回退)

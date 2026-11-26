@@ -311,6 +311,8 @@ async def _document(case_id, user, db, path, publication_id):
                 _, manifest = artifact_publication.read_manifest(case.s3_prefix, row)
                 stale = geometry_publication.source_snapshot(case.s3_prefix,
                     manifest['descriptor'].get('generated_paths', [])) != manifest['descriptor']['source']
+            except CaseWriteConflict:
+                raise
             except (OSError, ValueError, KeyError) as error:
                 raise HTTPException(409, '几何版本文件损坏或输入不可读') from error
             result['publication'] = {'id':row.id, 'generation':row.generation, 'status':row.status,

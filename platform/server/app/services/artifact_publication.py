@@ -591,7 +591,8 @@ def fallback_managed_paths(row, attempt):
     if row.kind.startswith('code-aster:'):
         selected = reservation['descriptor']['source']['plan']['outputs']
         return set(json.loads(attempt.output_manifest_json).get('files',{})) & set(selected)
-    if row.kind.startswith(('paraview:','mpi:','udf:','flotherm-convert:','flotherm-library:','case-command:')):
+    if row.kind.startswith(('paraview:','mpi:','udf:','flotherm-convert:','flotherm-library:',
+                            'flotherm-pack:','case-command:')):
         source=reservation['descriptor'].get('origin_source',reservation['descriptor']['source'])['files']
         return {path for path,record in json.loads(attempt.output_manifest_json).get('files',{}).items()
             if path.split('/')[0].casefold()!='.vibeflow' and source.get(path)!=record}

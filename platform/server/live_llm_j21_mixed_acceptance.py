@@ -5,12 +5,11 @@ import asyncio
 from collections import Counter
 from contextlib import ExitStack
 import hashlib
-import importlib.util
 import json
 import math
 from pathlib import Path
 import subprocess
-import sys
+import tempfile
 import time
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -20,16 +19,11 @@ import httpx
 
 from live_llm_acceptance import source
 from live_llm_j21_sse_load_acceptance import measure_one
+from mixed_load_test_support import API_IMAGE, WEB_IMAGE, Deployment, RenderClient, docker
 from terminal_load_50_acceptance import open_session
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / 'tmp/ff-j21-mixed-20261125'
-sys.path.insert(0, str(ROOT / 'tmp/ff-j14-ingress-drain-20261125'))
-import stack
-
-spec = importlib.util.spec_from_file_location('mixed_viewer', ROOT / 'tmp/ff-d22-viz-refresh-20261125/burst.py')
-viewer = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(viewer)
+READS = ROOT / 'platform/tools/k6-mixed-reads.js'
 
 
 def epoch():
@@ -41,19 +35,17 @@ def percentile(values):
     return values[math.ceil(len(values) * .95) - 1] if values else None
 
 
-def k6_reads(deployment, accounts, starts):
-    k6 = ROOT / 'tmp/ff-j21-rest-20261124/k6-linux-amd64'
-    assert k6.is_file()
+def k6_reads(deployment, accounts, starts, k6):
     name = deployment.label + '-mixed-k6'
     command = [
         'docker', 'run', '--rm', '-i', '--pull=never', '--name', name,
         '--network', deployment.network, '--user', '65534:65534',
         '--mount', f'type=bind,source={k6},target=/inputs/k6,readonly',
-        '--mount', f'type=bind,source={EVIDENCE / "reads.js"},target=/inputs/reads.js,readonly',
+        '--mount', f'type=bind,source={READS},target=/inputs/reads.js,readonly',
         '-e', 'K6_AUTO_EXTENSION_RESOLUTION=false', '-e', 'K6_NO_USAGE_REPORT=true',
         '-e', f'VIBEFLOW_MIXED_START={starts}',
         '-e', f'VIBEFLOW_MIXED_BASE=http://{deployment.label}-web/api/v1',
-        '--entrypoint', '/bin/sh', stack.API_IMAGE, '-c',
+        '--entrypoint', '/bin/sh', deployment.api_image, '-c',
         'set -e; umask 077; cat >/tmp/accounts.json; cp /inputs/k6 /tmp/k6; chmod 700 /tmp/k6; '
         'set +e; /tmp/k6 run --quiet /inputs/reads.js >&2; code=$?; cat /tmp/mixed-rest-summary.json; exit "$code"',
     ]
@@ -88,7 +80,7 @@ while time.monotonic()<deadline:
     time.sleep(.1)
 raise SystemExit(1)
 """
-    return int(stack.docker('exec',deployment.worker,'/usr/local/bin/python','-B','-c',code,timeout=85))
+    return int(docker('exec',deployment.worker,'/usr/local/bin/python','-B','-c',code,timeout=85))
 
 
 async def request(client, method, url, token=None, **kwargs):
@@ -99,7 +91,7 @@ async def request(client, method, url, token=None, **kwargs):
         return await response.json()
 
 
-async def prepare(client, public, owner, config, index, account):
+async def prepare(client, public, owner, config, grid, account):
     api = owner + '/api/v1'
     email = uuid4().hex + '@example.com'
     registered = await request(client, 'POST', api + '/auth/register', json={
@@ -119,12 +111,11 @@ async def prepare(client, public, owner, config, index, account):
         'provider_profile_id':profile, 'model':config['model'],
     }))['id']
     account['model_account'] = ({'Authorization':'Bearer ' + token}, profile, conversation)
-    large = index % 12 == 0
-    data = viewer.LARGE if large else viewer.SMALL
+    data, digest = grid
     path = 'D-post/mixed-view.vtp'
     upload_route = f'{api}/cases/{case}/uploads'
     upload = await request(client, 'POST', upload_route, token, json={
-        'path':path, 'size':len(data), 'sha256':hashlib.sha256(data).hexdigest(), 'overwrite':False,
+        'path':path, 'size':len(data), 'sha256':digest, 'overwrite':False,
     })
     upload_url = upload_route + '/' + upload['id']
     for offset in range(0, len(data), 8*1024*1024):
@@ -133,7 +124,7 @@ async def prepare(client, public, owner, config, index, account):
     await request(client, 'POST', upload_url + ':complete', token)
     opened = await request(client, 'POST', f'{api}/cases/{case}/viz:sessions', token,
                            json={'file_path':path,'engine':'paraview'})
-    view = viewer.RenderClient(client, public, token, case, opened['id'], large)
+    view = RenderClient(client, public, token, opened['id'])
     account['view'] = view
     await view.connect()
     await view.render()
@@ -200,7 +191,7 @@ async def cleanup(client, public, account):
     return result
 
 
-async def run(deployment, addresses, public, config, users, receipt):
+async def run(deployment, addresses, public, config, users, receipt, k6, grids):
     accounts = [{} for _ in range(users)]
     setup = asyncio.Semaphore(5)
     stop = asyncio.Semaphore(5)
@@ -211,7 +202,8 @@ async def run(deployment, addresses, public, config, users, receipt):
         async def prepare_one(index):
             nonlocal ready
             async with setup:
-                await prepare(client, public, addresses[index % 2], config, index, accounts[index])
+                grid = grids[1 if index % 12 == 0 else 0]
+                await prepare(client, public, addresses[index % 2], config, grid, accounts[index])
                 ready += 1
                 if ready % 5 == 0 or ready == users:
                     print('MIXED_READY', ready, '/', users, flush=True)
@@ -272,7 +264,7 @@ async def run(deployment, addresses, public, config, users, receipt):
                             'terminal':commands,'viz':frames}
 
                 groups = await asyncio.gather(
-                    asyncio.to_thread(k6_reads, deployment, accounts, starts),
+                    asyncio.to_thread(k6_reads, deployment, accounts, starts, k6),
                     asyncio.gather(*(measure(starts, lambda row=row: measure_one(streams, row['model_account'],
                                                                                   config['model'])) for row in accounts)),
                     terminal,viz,continued_load(),
@@ -310,8 +302,16 @@ def summarize(report):
         'terminal':percentile([row['command_ms'] for row in terminals if 'command_ms' in row]),
         'viz':percentile([row['image_ms'] for row in viz if 'image_ms' in row]),
     }
-    report['actual_upstream'] = dict(Counter(str(row.get('status', row['kind'])) for row in report.get('upstream',())
-                                             if row['kind'] != 'model'))
+    upstream = report.get('upstream', ())
+    report['actual_upstream'] = dict(Counter(str(row.get('status', row['kind'])) for row in upstream
+                                             if row['kind'] in ('http', 'transport_error')))
+    memory = [row for row in upstream if row['kind'] == 'prompt_memory']
+    report['agent_stages_p95_ms'] = {
+        stage: percentile([row[stage] for row in agents if row.get(stage) is not None])
+        for stage in ('response_headers_ms', 'ready_ms', 'context_window_ms')
+    }
+    report['agent_stages_p95_ms']['prompt_memory'] = percentile([row['elapsed_ms'] for row in memory])
+    report['prompt_memory_reads'] = {'total': len(memory), 'single_file': sum(row['single_file'] for row in memory)}
     rest_started = metrics.get('mixed_read_started_epoch_ms',{}).get('values',{}).get('min')
     rest_ended = metrics.get('mixed_read_ended_epoch_ms',{}).get('values',{}).get('max')
     sessions = (agents, terminals, viz)
@@ -348,17 +348,25 @@ def summarize(report):
     ) and continued['viz_p95_ms'] < 200
 
 
-def main(config, users):
+def main(config, options):
     upstream_url = urlsplit(config['base_url'])
     assert upstream_url.scheme == 'https' and upstream_url.hostname == 'api.deepseek.com'
     assert upstream_url.username is None and upstream_url.password is None
-    stack.root = EVIDENCE
-    live = set(stack.docker('ps','--no-trunc','-q').splitlines())
-    report = {'users':users,'provider':'DeepSeek','model':config['model'],'simulated_model_calls':0}
+    evidence_root = ROOT / 'tmp'
+    evidence_root.mkdir(exist_ok=True)
+    evidence = Path(tempfile.mkdtemp(prefix='ff-j21-mixed-', dir=evidence_root))
+    print('MIXED_EVIDENCE', evidence, flush=True)
+    grids = [(data, hashlib.sha256(data).hexdigest()) for data in
+             (options.small_grid.read_bytes(), options.large_grid.read_bytes())]
+    live = set(docker('ps','--no-trunc','-q').splitlines())
+    users = options.users
+    report = {'users':users,'provider':'DeepSeek','model':config['model'],'simulated_model_calls':0,
+              'api_image':options.api_image,'web_image':options.web_image,
+              'grids':[{'bytes':len(data),'sha256':digest} for data,digest in grids]}
     try:
         with ExitStack() as contexts:
-            deployment = stack.Deployment(contexts)
-            stack.docker('exec', deployment.worker, '/usr/local/bin/python', '-B', '-c',
+            deployment = Deployment(contexts, evidence, options.api_image, options.web_image)
+            docker('exec', deployment.worker, '/usr/local/bin/python', '-B', '-c',
                          'from cryptography.fernet import Fernet; from pathlib import Path; '
                          'Path("/work/data/live-vault").write_bytes(Fernet.generate_key()); '
                          f'Path("/work/data/llm-allowance").write_text("{users + 2}")')
@@ -368,23 +376,24 @@ def main(config, users):
             b_id,b = deployment.api(deployment.b)
             _,public = deployment.web()
             try:
-                asyncio.run(run(deployment, (a,b), public, config, users, report))
+                asyncio.run(run(deployment, (a,b), public, config, users, report, options.k6, grids))
             finally:
                 report['upstream'] = []
                 for container, name in ((a_id,deployment.a),(b_id,deployment.b)):
-                    output = stack.docker('exec',container,'/bin/sh','-c',
-                                          f'if test -f /work/data/upstream-{name}.jsonl; then cat /work/data/upstream-{name}.jsonl; fi')
+                    output = docker('exec',container,'/bin/sh','-c',
+                                    f'if test -f /work/data/upstream-{name}.jsonl; then cat /work/data/upstream-{name}.jsonl; fi')
                     report['upstream'].extend(json.loads(line) for line in output.splitlines())
     except Exception as error:
         report['failure'] = {'type':type(error).__name__,
                              'detail':str(error).replace(config['key'],'[REDACTED]')[:500]}
     finally:
-        report['original_services'] = live == set(stack.docker('ps','--no-trunc','-q').splitlines())
+        report['original_services'] = live == set(docker('ps','--no-trunc','-q').splitlines())
         summarize(report)
         data = json.dumps(report, indent=2, ensure_ascii=False)
         assert config['key'] not in data
-        (EVIDENCE / f'mixed-{users}.json').write_text(data + '\n', encoding='utf-8')
-        summary = {k:report[k] for k in ('counts','p95_ms','actual_upstream','functional_passed','slo_passed',
+        (evidence / f'mixed-{users}.json').write_text(data + '\n', encoding='utf-8')
+        summary = {k:report[k] for k in ('counts','p95_ms','agent_stages_p95_ms','prompt_memory_reads',
+                                         'actual_upstream','functional_passed','slo_passed',
                                          'original_services')}
         summary['during_provider'] = {k:report.get('during_provider',{}).get(k) for k in
                                       ('terminal_commands','viz_frames','viz_p95_ms','overlapping_upstream_calls')}
@@ -392,9 +401,21 @@ def main(config, users):
     return not report['functional_passed'] or not report['original_services']
 
 
+def input_file(value):
+    path = Path(value).resolve()
+    if not path.is_file() or path.stat().st_size == 0:
+        raise argparse.ArgumentTypeError(f'File is missing or empty: {path}')
+    return path
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source-profile-id', type=int, required=True)
     parser.add_argument('--users', type=int, choices=(2,50), default=50)
+    parser.add_argument('--k6', type=input_file, required=True, help='Linux amd64 k6 executable')
+    parser.add_argument('--small-grid', type=input_file, required=True, help='Ordinary VTP mesh')
+    parser.add_argument('--large-grid', type=input_file, required=True, help='Million-cell VTP mesh')
+    parser.add_argument('--api-image', default=API_IMAGE)
+    parser.add_argument('--web-image', default=WEB_IMAGE)
     options = parser.parse_args()
-    raise SystemExit(main(asyncio.run(source(options.source_profile_id)), options.users))
+    raise SystemExit(main(asyncio.run(source(options.source_profile_id)), options))

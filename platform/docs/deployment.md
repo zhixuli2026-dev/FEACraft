@@ -86,7 +86,19 @@ API/worker 通过 `indexdata` 卷共用 `/data/index`，由 `VIBEFLOW_INDEX_ROOT
 
 Linux 镜像已包含 Pandoc，正式 HTML/DOCX 报告生成、产物下载、重启保持和真实模型读取通过，见 [Docker 原生报告验收](docker-report-deployment.md)。OpenFOAM、TeX Live、原生 CLI 和可视化工具仍需在实际目标环境安装验收；不能仅凭容器健康认定完整 CAE 可用。`Dockerfile.sandbox` 不作为已接入的执行后端声明。
 
-S3 仍有显式启动保护：选择 s3 时同时设置 `VIBEFLOW_ALLOW_PARTIAL_S3=true`。该开关只解除启动保护，不代表所有功能已验收；命名场景和剩余范围以台账为准。Compose 的 SeaweedFS 是候选本地环境，认证、版本和条件操作需按目标服务配置。无需 S3 时保持 FS。
+### 认证 S3
+
+在私有 `infra/.env` 中设置 `VIBEFLOW_STORAGE_BACKEND=s3` 和 `VIBEFLOW_ALLOW_PARTIAL_S3=true`，填入 `VIBEFLOW_S3_ENDPOINT`、`VIBEFLOW_S3_BUCKET`、`VIBEFLOW_S3_REGION`、`VIBEFLOW_S3_ACCESS_KEY` 和 `VIBEFLOW_S3_SECRET_KEY`。生产 Compose 会将同一配置传给 API、对端副本和 worker。外部存储使用其实际 HTTPS endpoint、签名 region 和预建 bucket。API 启动通过 `HeadBucket` 检查目标桶，并保留获授权时自动创建缺失桶的行为。 [HeadBucket 所需权限](https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadBucket.html)
+
+使用随栈 SeaweedFS 时，endpoint 可用默认值 `http://seaweedfs:8333`。在私有身份 JSON 中给应用分配目标 bucket 的 `Read`、`List`、`Write` 和 `Tagging` 权限，并使凭据与 `.env` 一致。由存储管理员预先创建 bucket。将 JSON 路径填入 `VIBEFLOW_SEAWEEDFS_IDENTITY_FILE`，文件由认证覆盖配方只读挂载。 [SeaweedFS 身份结构](https://github.com/seaweedfs/seaweedfs/blob/master/weed/command/s3.go)
+
+```powershell
+$s3Compose = @('--env-file','infra/.env','-f','infra/docker-compose.prod.yml','-f','infra/docker-compose.s3-auth.yml','--profile','s3','--profile','distributed')
+docker compose @s3Compose config --quiet
+docker compose @s3Compose up -d postgres redis seaweedfs
+```
+
+数据库就绪后沿用上述迁移及 API、worker、Web 启动步骤，继续传同一组 Compose 参数。双副本运行时一并加载 `infra/docker-compose.replicas.yml`。已有部署先按一致快照备份数据库和文件。S3 功能范围及本机隔离验收见 [S3 部署验收](storage-version-operations.md#认证-s3-部署验收)。
 
 ## 日常检查和恢复
 

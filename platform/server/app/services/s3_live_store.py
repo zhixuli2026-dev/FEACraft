@@ -85,6 +85,7 @@ class Client:
         self._conditional_buckets = set()
 
     def list_buckets(self, **args):return self.raw.list_buckets(**args)
+    def head_bucket(self, **args):return self.raw.head_bucket(**args)
     def create_bucket(self, **args):return self.raw.create_bucket(**args)
     def close(self):return self.raw.close()
 

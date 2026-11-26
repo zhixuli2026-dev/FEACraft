@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     s3_access_key: str = "any"          # SeaweedFS 默认不校验；生产用 admin 配置
     s3_secret_key: str = "any"
     s3_bucket: str = "vibeflow"
+    s3_region: str = "us-east-1"
     allow_partial_s3: bool = False  # 仅限文件 API 测试；完整 CAE 链未接通前不得默认开启
 
     # --- 认证 ---

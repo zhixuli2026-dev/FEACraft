@@ -77,7 +77,24 @@ def run_launcher(launcher, stage, vendor_script, products):
         return subprocess.run(args, env=env, cwd=stage, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr).returncode
 
 
-def export_pack(source, destination, *, launcher_path, force, keep_stage, publish):
+def validate_products(products, return_code):
+    invalid = []
+    for name in EXPORTS:
+        product = products/name
+        try:
+            if product.is_symlink() or not product.is_file():
+                raise ValueError('缺少正常文件')
+            root = xml.parse(product).getroot().tag.rsplit('}', 1)[-1]
+            expected = 'neutralXML' if name.endswith('.ecxml') else 'xtxml_assembly'
+            if root != expected:
+                raise ValueError('导出文件根元素与目标格式不符')
+        except (OSError, ValueError, xml.ParseError, LookupError):
+            invalid.append(name)
+    if invalid:
+        raise ValueError(f'FloTHERM 退出码 {return_code}，缺少完整有效的导出 {invalid}')
+
+
+def export_pack(source, destination, *, launcher_path, force, keep_stage, publish, observe_logs=None):
     if os.name!='nt' and shutil.which('wslpath') is None:
         raise ValueError('Pack 导出需要可调用 Windows FloTHERM 的 Windows 或 WSL 环境')
     source = source.resolve(strict=True)
@@ -99,21 +116,12 @@ def export_pack(source, destination, *, launcher_path, force, keep_stage, publis
         products = stage/'exported'
         products.mkdir()
         vendor_script = script(stage, products)
-        result = run_launcher(launcher, stage, vendor_script, products)
-        invalid = []
-        for name in EXPORTS:
-            product = products/name
-            try:
-                if product.is_symlink() or not product.is_file():
-                    raise ValueError('缺少正常文件')
-                root = xml.parse(product).getroot().tag.rsplit('}', 1)[-1]
-                expected = 'neutralXML' if name.endswith('.ecxml') else 'xtxml_assembly'
-                if root != expected:
-                    raise ValueError('导出文件根元素与目标格式不符')
-            except (OSError, ValueError, xml.ParseError, LookupError):
-                invalid.append(name)
-        if invalid:
-            raise ValueError(f'FloTHERM 退出码 {result}，缺少完整有效的导出 {invalid}')
+        try:
+            result = run_launcher(launcher, stage, vendor_script, products)
+        finally:
+            if observe_logs is not None:
+                observe_logs(products)
+        validate_products(products, result)
         with staged_source.open('rb') as stream:
             sha256 = hashlib.file_digest(stream, 'sha256').hexdigest()
         shutil.copyfile(vendor_script, products/'export.floscript.xml')

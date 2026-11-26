@@ -1,0 +1,13 @@
+# Use with docker-compose.prod.yml and --profile s3.
+services:
+  api:
+    environment:
+      VIBEFLOW_S3_ACCESS_KEY: ${VIBEFLOW_S3_ACCESS_KEY:?Set the SeaweedFS access key in the private environment}
+      VIBEFLOW_S3_SECRET_KEY: ${VIBEFLOW_S3_SECRET_KEY:?Set the SeaweedFS secret key in the private environment}
+  seaweedfs:
+    command: server -s3 -s3.port=8333 -filer -filer.port=8888 -dir=/data -s3.config=/run/secrets/seaweedfs_s3_identity
+    secrets: [seaweedfs_s3_identity]
+
+secrets:
+  seaweedfs_s3_identity:
+    file: ${VIBEFLOW_SEAWEEDFS_IDENTITY_FILE:?Set the path to the private SeaweedFS identity JSON}

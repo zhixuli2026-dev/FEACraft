@@ -49,7 +49,7 @@ def s3():
             aws_access_key_id=s.s3_access_key,
             aws_secret_access_key=s.s3_secret_key,
             config=BotoConfig(signature_version="s3v4", s3={"addressing_style": "path"},retries={'total_max_attempts':1}),
-            region_name="us-east-1",
+            region_name=s.s3_region,
         )
         raw.meta.events.register("before-sign.s3.PutObject", _send_small_s3_body)
         from .services.s3_live_store import Client
@@ -263,12 +263,29 @@ def _use_s3() -> bool:
 
 
 def ensure_bucket():
-    if _use_s3():
-        buckets = [b["Name"] for b in s3().list_buckets().get("Buckets", [])]
-        if get_settings().s3_bucket not in buckets:
-            s3().create_bucket(Bucket=get_settings().s3_bucket)
-    else:
+    if not _use_s3():
         _fs_root()  # 确保目录存在
+        return
+
+    from botocore.exceptions import ClientError
+
+    settings = get_settings()
+    client = s3()
+    try:
+        client.head_bucket(Bucket=settings.s3_bucket)
+        return
+    except ClientError as error:
+        if error.response.get('ResponseMetadata', {}).get('HTTPStatusCode') != 404:
+            raise
+    configuration = {}
+    if settings.s3_region != 'us-east-1':
+        configuration['CreateBucketConfiguration'] = {'LocationConstraint': settings.s3_region}
+    try:
+        client.create_bucket(Bucket=settings.s3_bucket, **configuration)
+    except ClientError as error:
+        if error.response.get('Error', {}).get('Code') != 'BucketAlreadyOwnedByYou':
+            raise
+        client.head_bucket(Bucket=settings.s3_bucket)
 
 
 def put_bytes(s3_prefix, path, data: bytes, content_type="application/octet-stream"):

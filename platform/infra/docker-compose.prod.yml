@@ -3,6 +3,13 @@
 # distributed profile 启用 Redis/worker；API 同时设置 VIBEFLOW_DISTRIBUTED_JOBS=true。
 name: vibeflow-prod
 
+x-s3-environment: &s3-environment
+  VIBEFLOW_S3_ENDPOINT: ${VIBEFLOW_S3_ENDPOINT:-http://seaweedfs:8333}
+  VIBEFLOW_S3_BUCKET: ${VIBEFLOW_S3_BUCKET:-vibeflow}
+  VIBEFLOW_S3_REGION: ${VIBEFLOW_S3_REGION:-us-east-1}
+  VIBEFLOW_S3_ACCESS_KEY: ${VIBEFLOW_S3_ACCESS_KEY:-any}
+  VIBEFLOW_S3_SECRET_KEY: ${VIBEFLOW_S3_SECRET_KEY:-any}
+
 services:
   postgres:
     image: postgres:16-alpine@sha256:81e77a4833487b8132fe4b00bedd39dc3f74b8641e387f19312a48f7de218c2e
@@ -31,7 +38,7 @@ services:
       retries: 20
 
   seaweedfs:
-    image: chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59
+    image: ${VIBEFLOW_SEAWEEDFS_IMAGE:-chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59}
     profiles: ["s3"]
     container_name: vibeflow-s3
     command: server -s3 -s3.port=8333 -filer -filer.port=8888 -dir=/data
@@ -50,12 +57,12 @@ services:
     # default seccomp profile denies unshare; the gate still controls execution.
     security_opt: ["seccomp=unconfined"]
     environment:
+      <<: *s3-environment
       VIBEFLOW_DATABASE_URL: postgresql+asyncpg://vibeflow:${PG_PASSWORD:?Set PG_PASSWORD in infra/.env or the process environment}@postgres:5432/vibeflow
       VIBEFLOW_STORAGE_BACKEND: ${VIBEFLOW_STORAGE_BACKEND:-fs}
       VIBEFLOW_STORAGE_FS_ROOT: /data/files
       VIBEFLOW_INDEX_ROOT: /data/index
       VIBEFLOW_ALLOW_PARTIAL_S3: ${VIBEFLOW_ALLOW_PARTIAL_S3:-false}
-      VIBEFLOW_S3_ENDPOINT: http://seaweedfs:8333
       VIBEFLOW_CORS_ORIGINS: ${WEB_ORIGIN:-http://localhost:8080}
       VIBEFLOW_JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in infra/.env or the process environment}
       VIBEFLOW_VAULT_KEY_PATH: /run/secrets/provider_vault
@@ -92,6 +99,7 @@ services:
     command: ["python", "-m", "app.services.distributed_worker"]
     stop_grace_period: 2m
     environment:
+      <<: *s3-environment
       VIBEFLOW_DATABASE_URL: postgresql+asyncpg://vibeflow:${PG_PASSWORD:?Set PG_PASSWORD in infra/.env or the process environment}@postgres:5432/vibeflow
       VIBEFLOW_STORAGE_BACKEND: ${VIBEFLOW_STORAGE_BACKEND:-fs}
       VIBEFLOW_STORAGE_FS_ROOT: /data/files
@@ -99,7 +107,6 @@ services:
       VIBEFLOW_VAULT_KEY_PATH: /run/secrets/provider_vault
       VIBEFLOW_RUNTIME_CONFIG: /data/runtime/runtime-config.json
       VIBEFLOW_ALLOW_PARTIAL_S3: ${VIBEFLOW_ALLOW_PARTIAL_S3:-false}
-      VIBEFLOW_S3_ENDPOINT: http://seaweedfs:8333
       VIBEFLOW_DISTRIBUTED_JOBS: "true"
       VIBEFLOW_REDIS_HOST: redis
       VIBEFLOW_REDIS_PORT: 6380

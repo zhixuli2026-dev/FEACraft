@@ -82,11 +82,12 @@ def registered():
     from .workflow_udf_handler import WorkflowUdfHandler
     from .flotherm_convert_handler import FlothermConvertHandler
     from .flotherm_library_handler import FlothermLibraryHandler
+    from .flotherm_pack_handler import FlothermPackHandler
     from .case_command_handler import CaseCommandHandler, TYPES as COMMAND_TYPES
     handlers = (GeometryHandler('preview'), GeometryHandler('export'), MeshHandler(), SolveHandler(), PreparedSolveHandler(), ResumeHandler(), PostprocessHandler(), ReportHandler(),
         ComposeHandler('E-report/report.md'), ComposeHandler('E-report/report.generated.md'), LatexHandler(), PdfNumberHandler(), PptHandler(), LegacyPostprocessHandler(), CalculixHandler(), Su2Handler(), ParaViewHandler(), MpiHandler(), WorkflowMpiHandler(), UdfHandler('build'), UdfHandler('integrate'), WorkflowUdfHandler('build'), WorkflowUdfHandler('integrate'), FlothermConvertHandler(), FlothermLibraryHandler())
     handlers += (ElmerHandler(), MooseHandler(), CodeAsterHandler()) + tuple(CaseCommandHandler(kind) for kind in sorted(COMMAND_TYPES))
-    handlers += (PptMediaHandler(),)
+    handlers += (PptMediaHandler(), FlothermPackHandler())
     return {(handler.key, handler.version):handler for handler in handlers}
 
 
@@ -120,6 +121,8 @@ def publication_handler(descriptor):
         return get_handler('flotherm.build-library',descriptor.get('handler_version','1'))
     if descriptor.get('handler')=='flotherm-convert.v1':
         return get_handler('flotherm.convert',descriptor.get('handler_version','1'))
+    if descriptor.get('handler')=='flotherm-pack.v1':
+        return get_handler('flotherm.export-pack',descriptor.get('handler_version','1'))
     if descriptor.get('handler')=='udf.v1' and descriptor.get('mode') in {'build','integrate'}:
         return get_handler('udf.'+descriptor['mode'],descriptor.get('handler_version','1'))
     if descriptor.get('handler')=='mpi.v1':
@@ -225,7 +228,8 @@ async def bind(db, case, job, attempt, prepared, *, deliver_intent=True):
                                 'report.compose','report.compose-generated','latex.build','pdf.number','ppt.build','ppt.video',
                                 'postprocess.case','calculix.solve','su2.solve','elmer.solve','moose.solve','code-aster.solve',
                                 'paraview.run','mpi.openfoam','solve.openfoam.mpi',
-                                'udf.build','udf.integrate','udf.build.workflow','solve.openfoam.udf','flotherm.convert','flotherm.build-library'}:
+                                'udf.build','udf.integrate','udf.build.workflow','solve.openfoam.udf',
+                                'flotherm.convert','flotherm.build-library','flotherm.export-pack'}:
             raise ExecutionConflict('runtime_unavailable','This professional handler has not completed its S3 integration')
         from .s3_case_files import require_conditions
         await finish_before_cancel(asyncio.to_thread(require_conditions,case.s3_prefix))

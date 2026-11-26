@@ -6,7 +6,9 @@
 """
 from __future__ import annotations
 
+from functools import lru_cache
 import json
+import os
 from pathlib import Path
 from typing import AsyncIterator
 from urllib.parse import urlsplit
@@ -99,6 +101,20 @@ def use_env_proxy(endpoint: str) -> bool:
     return urlsplit(endpoint).hostname not in {"localhost", "127.0.0.1", "::1"}
 
 
+@lru_cache(maxsize=1)
+def _default_model_tls():
+    return httpx.create_ssl_context(trust_env=False)
+
+
+def model_http_client(endpoint: str, *, timeout: float, connect: float) -> httpx.AsyncClient:
+    trust_env = use_env_proxy(endpoint)
+    # Share the default CA context across the request-local clients. An explicit
+    # certificate path is reloaded so a deployment can replace its CA bundle.
+    custom_trust = trust_env and (os.environ.get("SSL_CERT_FILE") or os.environ.get("SSL_CERT_DIR"))
+    verify = httpx.create_ssl_context() if custom_trust else _default_model_tls()
+    return httpx.AsyncClient(verify=verify, trust_env=trust_env, timeout=httpx.Timeout(timeout, connect=connect))
+
+
 def _identity_encoding(response):
     if response.headers.get('content-encoding', 'identity').lower() != 'identity':
         raise ValueError('上游响应使用了不受支持的压缩编码')
@@ -163,13 +179,17 @@ async def stream_chat_openai(
     payload: dict = {"model": model, "messages": messages, "stream": True}
     if max_tokens is not None:
         payload['max_tokens'] = max_tokens
-    if urlsplit(endpoint).hostname == 'api.openai.com':
+    hostname = urlsplit(endpoint).hostname
+    if hostname == 'api.openai.com':
         payload['stream_options'] = {'include_usage': True}
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
     if reasoning_effort != "off":
         payload["reasoning_effort"] = reasoning_effort
+    elif hostname == "api.deepseek.com" and model in {"deepseek-flash", "deepseek-v4-pro"}:
+        # Official DeepSeek models default to thinking when effort is omitted.
+        payload["reasoning_effort"] = "none"
 
     # tool_calls 累积器：index -> {id, name, arguments}
     tc_acc: dict[int, dict] = {}
@@ -180,8 +200,7 @@ async def stream_chat_openai(
     received_done = False
     usage = None
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=20.0),
-                                     trust_env=use_env_proxy(endpoint)) as client:
+        async with model_http_client(endpoint, timeout=180.0, connect=20.0) as client:
             async with client.stream("POST", endpoint, json=payload, headers=headers) as resp:
                 if resp.status_code != 200:
                     raw = await read_response(resp, ERROR_PREVIEW_BYTES, preview=True)
@@ -307,8 +326,7 @@ async def stream_chat_anthropic(
     finish_reason = None
     usage = {}
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=20.0),
-                                     trust_env=use_env_proxy(endpoint)) as client:
+        async with model_http_client(endpoint, timeout=180.0, connect=20.0) as client:
             async with client.stream("POST", endpoint, json=payload, headers=headers) as resp:
                 if resp.status_code != 200:
                     raw = await read_response(resp, ERROR_PREVIEW_BYTES, preview=True)
@@ -438,7 +456,7 @@ async def complete(*, provider: str, endpoint: str, api_key: str, model: str,
     else:
         payload = {'model': model, 'messages': messages, 'stream': False}
         headers['Authorization'] = 'Bearer ' + api_key
-    async with httpx.AsyncClient(timeout=httpx.Timeout(120, connect=20), trust_env=use_env_proxy(endpoint)) as client:
+    async with model_http_client(endpoint, timeout=120.0, connect=20.0) as client:
         async with client.stream('POST', endpoint, json=payload, headers=headers) as response:
             if response.status_code != 200:
                 preview = await read_response(response, ERROR_PREVIEW_BYTES, preview=True)

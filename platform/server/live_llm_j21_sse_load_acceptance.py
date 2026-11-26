@@ -52,22 +52,32 @@ async def measure_one(client, account, model):
                 headers=headers, json={'content': '用不超过二十个汉字解释什么是固定时间步。不要调用工具。',
                                        'provider_profile_id': profile, 'model': model}) as response:
             result['http'] = response.status_code
+            result['response_headers_ms'] = round((time.perf_counter() - started) * 1000, 2)
             if response.is_success:
                 async for line in response.aiter_lines():
                     if not line.startswith('data:'):
                         continue
                     event = json.loads(line[5:])
                     kind = event.get('type')
-                    if kind == 'text.delta' and event.get('text', '').strip() and result['first_text_ms'] is None:
-                        result['first_text_ms'] = round((time.perf_counter() - started) * 1000, 2)
+                    elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
+                    if kind == 'ready':
+                        result.setdefault('ready_ms', elapsed_ms)
+                    elif kind == 'context.window':
+                        result.setdefault('context_window_ms', elapsed_ms)
+                    elif kind == 'reasoning.delta' and event.get('text', '').strip():
+                        result.setdefault('first_reasoning_ms', elapsed_ms)
+                    elif kind == 'text.delta' and event.get('text', '').strip() and result['first_text_ms'] is None:
+                        result['first_text_ms'] = elapsed_ms
                     if kind == 'run.completed':
                         result['completed'] = True
+                        result.setdefault('run_completed_ms', elapsed_ms)
                     elif kind in {'stream.error', 'request.failed', 'request.timed_out', 'run.failed'}:
                         result['error_event'] = kind
                         code = event.get('code')
                         if isinstance(code, str) and re.fullmatch(r'[a-z_]{1,60}', code):
                             result['error_code'] = code
                     elif kind == 'stream.done':
+                        result.setdefault('stream_done_ms', elapsed_ms)
                         reason = event.get('reason')
                         if isinstance(reason, str) and re.fullmatch(r'[a-z_]{1,60}', reason):
                             result['end_reason'] = reason

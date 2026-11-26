@@ -9,14 +9,17 @@ FILE_TOOLS = frozenset({'propose_file_update', 'propose_text_replacement', 'upda
 
 
 async def read_case(case_id, prefix, user_id, function, *args, cancel=None, wait_for_writer=False,
-                    code='agent_file_read', label='Agent 文件读取'):
-    """Run the body outside the case transaction and verify its read snapshot."""
+                    code='agent_file_read', label='Agent 文件读取', file_path=None):
+    """Read a bounded file under the case lock, or verify a tree-wide snapshot."""
+    from .. import storage
     from ..db import SessionLocal
     from ..models import User
     from ..routers.files import _case_for_file_request, _read_file_tree
+    from ..routers.workspaces import get_owned_case
     from .agent_file_reads import stop_signal
-    from .case_read_capacity import file_read_deadline
-    from .case_write import CaseWriteConflict
+    from .case_read_capacity import file_read_deadline, reading
+    from .case_write import CaseWriteConflict, bounded_case_read
+    from .file_read import FileRead
 
     stop = Event()
 
@@ -29,6 +32,13 @@ async def read_case(case_id, prefix, user_id, function, *args, cancel=None, wait
         finally:
             stop_signal.reset(token)
 
+    def execute_file(selected):
+        try:
+            reader = FileRead(selected, file_path)
+        except FileNotFoundError:
+            reader = None
+        return execute(selected, reader, *args)
+
     async def read():
         async with file_read_deadline(code, label), SessionLocal() as db:
             while True:
@@ -39,7 +49,19 @@ async def read_case(case_id, prefix, user_id, function, *args, cancel=None, wait
                     selected = await _case_for_file_request(case_id, user, db, write=False)
                     if selected.s3_prefix != prefix:
                         raise ValueError('Case storage location changed')
-                    result, _ = await _read_file_tree(db, selected, user, execute, *args, code=code, label=label)
+                    if file_path is None:
+                        result, _ = await _read_file_tree(db, selected, user, execute, *args, code=code, label=label)
+                        return result
+                    async with reading(db, selected, defer_journal=True):
+                        actor = await db.get(User, user_id, populate_existing=True)
+                        if actor is None or actor.status != 'active':
+                            raise ValueError('文件读取用户已不可用')
+                        checked = await get_owned_case(case_id, actor, db, write=False)
+                        if checked.s3_prefix != prefix:
+                            raise ValueError('Case storage location changed')
+                        result = await bounded_case_read(execute_file, prefix, code=code, label=label,
+                                                         wait_for_capacity=not storage._use_s3())
+                    await finish_before_cancel(db.rollback())
                     return result
                 except CaseWriteConflict as error:
                     if not wait_for_writer or error.code != 'file_sync_busy':

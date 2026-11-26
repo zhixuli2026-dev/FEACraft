@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { api, ApiError, isCaseReadOnly } from "../api";
 import { activatePanel } from "../shell/dock";
 import { useStore } from "../store";
@@ -17,7 +17,13 @@ interface Inspection {
 type Submission = { key: string; jobId?: number } & (
   | { action: "convert"; body: { ir_path: string; settings_path: string | null; output_dir: string } }
   | { action: "build-library"; body: { source_dir: string; destination_dir: string } }
+  | { action: "export-pack"; body: { pack_path: string; output_dir: string } }
 );
+
+interface PackCapability {
+  available: boolean;
+  message: string | null;
+}
 
 interface FloThermJob {
   id: number;
@@ -35,10 +41,15 @@ const statusLabels: Record<string, string> = {
 const terminalStates = new Set(["succeeded", "failed", "cancelled", "interrupted"]);
 const defaultOutput = "C-run/flotherm";
 const defaultLibrary = "UDF/flotherm-helper";
+const defaultPackOutput = "Ref/flotherm-export";
+const actionLabels = {
+  "convert": "IR 转换", "build-library": "辅助库编译", "export-pack": "Pack 导出",
+};
 
 function rejectedBeforeAdmission(error: ApiError) {
   if (error.status === 409) {
-    return typeof error.detail === "string" || error.code === "output_exists" || error.code === "idempotency_conflict";
+    return typeof error.detail === "string" || ["output_exists", "idempotency_conflict", "flotherm_export_unavailable"]
+      .includes(error.code ?? "");
   }
   return [400, 401, 403, 404, 413, 422].includes(error.status);
 }
@@ -52,6 +63,8 @@ function readSubmission(key: string): Submission | null {
         typeof receipt.body.output_dir === "string") return receipt;
     if (receipt.action === "build-library" && typeof receipt.body.source_dir === "string" &&
         typeof receipt.body.destination_dir === "string") return receipt;
+    if (receipt.action === "export-pack" && typeof receipt.body.pack_path === "string" &&
+        typeof receipt.body.output_dir === "string") return receipt;
   } catch { /* Ignore an unreadable local receipt. */ }
   return null;
 }
@@ -95,6 +108,7 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
   const endpoint = `/cases/${caseId}/flotherm`;
   const paths = fileTree.filter(entry => entry.kind !== "directory").map(entry => entry.path).sort();
   const raw = paths.filter(path => /\.(ecxml|pdml|xtxmla?)$/i.test(path));
+  const packs = paths.filter(path => /\.pack$/i.test(path));
   const json = paths.filter(path => /\.json$/i.test(path));
   const available = new Set(paths);
   const libraryDirectories = paths.filter(path => path.endsWith("/Make/files"))
@@ -116,6 +130,12 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
   const [source, setSource] = useState("");
   const [library, setLibrary] = useState(defaultLibrary);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showPack, setShowPack] = useState(false);
+  const [pack, setPack] = useState("");
+  const [packOutput, setPackOutput] = useState(defaultPackOutput);
+  const [packCapability, setPackCapability] = useState<PackCapability | null>(null);
+  const [packError, setPackError] = useState("");
+  const [packCheck, setPackCheck] = useState(0);
   const [receipt, setReceipt] = useState(() => readSubmission(receiptKey));
   const [job, setJob] = useState<FloThermJob | null>(null);
   const [working, setWorking] = useState(false);
@@ -123,6 +143,7 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
   const [actionError, setActionError] = useState("");
   const [readError, setReadError] = useState("");
   const [fileError, setFileError] = useState("");
+  const preflightSection = useRef<HTMLElement>(null);
   const jobId = receipt?.jobId;
   const finished = job?.id === jobId && !job?.completion_pending && terminalStates.has(job?.status ?? "");
   const locked = working || Boolean(receipt && !finished);
@@ -157,6 +178,25 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
     void refresh();
     return () => { controller.abort(); window.clearTimeout(timer); };
   }, [caseId, jobId]);
+
+  useEffect(() => {
+    if (!showPack) return;
+    const controller = new AbortController();
+    void jobRecoveryRequest<PackCapability>(`${endpoint}/pack-export-capability`, {
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(12000)]),
+    }).then(next => {
+      if (!controller.signal.aborted) setPackCapability(next);
+    }).catch(() => {
+      if (!controller.signal.aborted) setPackError("暂时无法检查 Pack 导出环境。");
+    });
+    return () => controller.abort();
+  }, [endpoint, packCheck, showPack]);
+
+  function checkPackEnvironment() {
+    setPackCapability(null);
+    setPackError("");
+    setPackCheck(value => value + 1);
+  }
 
   function save(next: Submission | null) {
     try {
@@ -272,9 +312,14 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
     }
   }
 
-  const target = receipt?.action === "convert" ? receipt.body.output_dir : receipt?.body.destination_dir;
+  const target = receipt?.action === "build-library" ? receipt.body.destination_dir : receipt?.body.output_dir;
   const published = finished && job?.status === "succeeded" && target;
   const outputs = published ? paths.filter(path => path.startsWith(`${target}/`)) : [];
+  const exportedEcxml = receipt?.action === "export-pack" ? outputs.find(path => path === `${target}/model.ecxml`) : undefined;
+  const packDirectory = relativeDirectory(packOutput);
+  const packDirectoryOccupied = paths.some(path => path.toLowerCase() === packDirectory.toLowerCase() ||
+    path.toLowerCase().startsWith(`${packDirectory.toLowerCase()}/`));
+  const packEnabled = Boolean(packCapability?.available) && !locked && !readOnly;
   const invalidInputs = inputPaths.filter(Boolean).some(path => !raw.includes(path));
   const importInput = !invalidInputs && inspection?.ok ? inspection : null;
   const needsImportConfig = importInput?.files.some(file => file.format === "PDML") &&
@@ -286,7 +331,44 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
     <header className="flotherm-heading"><h1>FloTHERM</h1><span>{caseName}</span></header>
     {readOnly && <p role="status">当前以只读权限查看算例。</p>}
     {projectLoadError && <p role="alert">项目文件加载失败，请在项目面板重试。</p>}
-    <section className="flotherm-section" aria-label="输入预检">
+    <details className="flotherm-section" onToggle={event => {
+      const opened = event.currentTarget.open;
+      setShowPack(opened);
+      if (opened) checkPackEnvironment();
+    }}>
+      <summary>Pack 导出</summary>
+      {!packCapability && !packError && <p role="status">正在检查导出环境…</p>}
+      {packCapability?.message && <p role="status">{packCapability.message}</p>}
+      {packError && <p role="alert" className="flotherm-error">{packError}</p>}
+      {(packError || packCapability?.available === false) && <button type="button"
+        onClick={checkPackEnvironment}>重新检查导出环境</button>}
+      {packCapability?.available && <>
+        <p>从算例中的 .pack 导出 ECXML 和 XTXMLA。</p>
+        <form onSubmit={event => {
+          event.preventDefault();
+          if (!packEnabled || !packs.includes(pack) || !packDirectory || packDirectoryOccupied) return;
+          void launch({ key: crypto.randomUUID(), action: "export-pack",
+            body: { pack_path: pack, output_dir: packDirectory } });
+        }}>
+          <fieldset disabled={!packEnabled}>
+            <div className="flotherm-fields">
+              <FileSelect label="Pack 文件" paths={packs} value={pack} change={setPack} />
+              <label className="flotherm-field">Pack 导出目录
+                <input value={packOutput} onChange={event => setPackOutput(event.target.value)} required />
+              </label>
+            </div>
+            {!packs.length && <p>请在项目面板上传 .pack 文件。</p>}
+            {packOutput && (!packDirectory || packDirectoryOccupied) &&
+              <p className="flotherm-error">请选择算例中的新目录或空目录。</p>}
+            <button type="submit" disabled={!packs.includes(pack) || !packDirectory || packDirectoryOccupied}>
+              提交 Pack 导出
+            </button>
+          </fieldset>
+        </form>
+      </>}
+    </details>
+
+    <section className="flotherm-section" aria-label="输入预检" ref={preflightSection} tabIndex={-1}>
       <h2>输入预检</h2>
       <form onSubmit={event => { event.preventDefault(); void inspect(); }}>
         <fieldset disabled={inspecting || importing || readOnly}>
@@ -390,7 +472,7 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
     {(receipt || actionError) && <section className="flotherm-section" aria-label="作业与输出">
       <h2>作业与输出</h2>
       {receipt && <p role="status" className="flotherm-job-state">
-        <strong>{receipt.action === "convert" ? "IR 转换" : "辅助库编译"}{jobId ? ` #${jobId}` : ""}</strong>
+        <strong>{actionLabels[receipt.action]}{jobId ? ` #${jobId}` : ""}</strong>
         <span>{working && !jobId ? "提交中…" : job?.completion_pending ? "输出发布中" : job
           ? statusLabels[job.status] ?? job.status : jobId ? "读取作业状态…" : "等待确认提交结果"}</span>
       </p>}
@@ -411,6 +493,14 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
       </div>
       {published && <div className="flotherm-output">
         <h3>项目输出文件</h3>
+        {exportedEcxml && !readOnly && <button type="button" onClick={() => {
+          setInputPaths([exportedEcxml, "", ""]);
+          setInspection(null);
+          setInspectError("");
+          setImportError("");
+          setImportedPath("");
+          preflightSection.current?.focus();
+        }}>用 ECXML 预检</button>}
         <ul className="flotherm-file-list">
           {outputs.map(file => <li key={file}><button type="button" title={file}
             onClick={() => void openOutput(file)}>{file.slice(target.length + 1)}</button></li>)}

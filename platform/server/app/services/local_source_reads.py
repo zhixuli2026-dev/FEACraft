@@ -19,7 +19,7 @@ _active=ContextVar('local_source_reads',default=None)
 SCOPED={'geometry.preview','geometry.export','mesh.generate','solve.openfoam','solve.openfoam.resume',
         'pdf.number','ppt.build','postprocess.run','postprocess.case','moose.solve','code-aster.solve'}
 # These contracts discover their dependencies within the complete public tree.
-WHOLE={'calculix.solve','elmer.solve','flotherm.convert','flotherm.build-library','latex.build','mpi.openfoam',
+WHOLE={'calculix.solve','elmer.solve','flotherm.convert','flotherm.build-library','flotherm.export-pack','latex.build','mpi.openfoam',
        'paraview.run','report.build','report.compose','report.compose-generated','solve.openfoam.mpi',
        'solve.openfoam.prepared','solve.openfoam.udf','su2.solve','udf.build','udf.build.workflow','udf.integrate'}
 

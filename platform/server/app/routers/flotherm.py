@@ -7,7 +7,7 @@ from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import storage
@@ -74,6 +74,35 @@ class ConvertIn(BaseModel):
 class LibraryIn(BaseModel):
     source_dir: str
     destination_dir: str = "UDF/flotherm-helper"
+
+
+class PackExportIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    pack_path: str = Field(min_length=1, max_length=512)
+    output_dir: str = Field(min_length=1, max_length=512)
+
+
+@router.get('/pack-export-capability')
+async def pack_export_capability(case_id: int, user: User = Depends(get_current_user),
+                                 db: AsyncSession = Depends(get_db)):
+    from ..services.flotherm_pack_handler import configured_launcher
+    from ..services.workflow_state import ExecutionConflict
+    await get_owned_case(case_id, user, db, write=False)
+    try:
+        configured_launcher()
+    except ExecutionConflict as error:
+        return {'available': False, 'message': error.detail}
+    return {'available': True, 'message': None}
+
+
+@router.post(':export-pack')
+async def export_pack(case_id: int, body: PackExportIn, request: Request, user: User = Depends(get_current_user),
+                      db: AsyncSession = Depends(get_db),
+                      idempotency_key: str | None = Header(default=None, alias='Idempotency-Key')):
+    case = await get_owned_case(case_id, user, db)
+    return await _registered_flotherm(db, case, user, body, idempotency_key,
+        'flotherm.export-pack', {'output_dir': _safe(body.output_dir)}, request)
 
 
 @router.get('/libraries')

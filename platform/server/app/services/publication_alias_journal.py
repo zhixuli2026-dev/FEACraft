@@ -29,7 +29,8 @@ def operations(manifest):
             [{'path':p,'source':p,'allowed_before':[before.get(p)]} for p in files])
     if descriptor.get('handler')=='postprocess-case.v1' and 'targets_before' in descriptor:
         return [{'path':p,'source':p,'allowed_before':[descriptor['targets_before'].get(p)]} for p in files]
-    if descriptor.get('handler') in {'prepared-solve.v1','paraview.v1','mpi.v1','udf.v1','flotherm-convert.v1','flotherm-library.v1','case-command.v1'}:
+    if descriptor.get('handler') in {'prepared-solve.v1','paraview.v1','mpi.v1','udf.v1','flotherm-convert.v1',
+                                     'flotherm-library.v1','flotherm-pack.v1','case-command.v1'}:
         origin=descriptor.get('origin_source',descriptor['source'])
         before={p:{k:r[k] for k in ('size','sha256')} for p,r in origin['files'].items()}
         return ([{'path':p,'source':None,'allowed_before':[before[p]]} for p in descriptor['deleted_files']]+

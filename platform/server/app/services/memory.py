@@ -57,15 +57,9 @@ def read_memory(prefix: str):
     return data.decode('utf8'), {'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
 
 
-def read_prompt_memory(prefix: str) -> str:
+def read_prompt_memory(selected) -> str:
     """Only admit the retained, version-pinned part of memory to the prompt."""
-    from .file_read import FileRead
-
-    try:
-        selected = FileRead(prefix, MEMORY_PATH)
-    except FileNotFoundError:
-        return ''
-    if not selected.size:
+    if selected is None or not selected.size:
         return ''
     if selected.size <= MAX_MEMORY_BYTES:
         return selected.read().decode('utf8')

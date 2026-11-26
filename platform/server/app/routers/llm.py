@@ -17,7 +17,7 @@ from ..deps import get_current_user
 from ..models import Membership, ProviderProfile, User
 from ..services import audit, profile_sharing, provider_kms, rate_limit
 from ..services.llm import (MAX_RESPONSE_BODY_BYTES, PROVIDERS, complete, encrypt_key,
-                            read_response, resolve_endpoint, unseal_profile_key, use_env_proxy)
+                            model_http_client, read_response, resolve_endpoint, unseal_profile_key)
 from ..services.redaction import redact_text
 from ..services.quota import admit_model
 from ..services.request_lifecycle import wait
@@ -85,8 +85,7 @@ async def _fetch_models(provider: str, base_url: str, api_key: str) -> list[dict
                if PROVIDERS[provider]["api"] == "anthropic"
                else {"Authorization": f"Bearer {api_key}"})
     headers['Accept-Encoding'] = 'identity'
-    async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=12.0),
-                                 trust_env=use_env_proxy(endpoint)) as client:
+    async with model_http_client(endpoint, timeout=20.0, connect=12.0) as client:
         async with client.stream('GET', endpoint, headers=headers) as response:
             if response.status_code != 200:
                 raise RuntimeError(f"上游返回 {response.status_code}")

@@ -37,7 +37,7 @@ platform/server/.venv/Scripts/python.exe platform/scripts/maintain-s3-versions.p
 
 `--retention-days 0` 允许回收所有未引用的已存在旧版本，包括刚生成的版本；仅在明确需要、完成备份和停机的场景使用。默认不会如此运行。预览不迁移旧无清单命名空间、不写 HEAD、不删除数据。应用时重新计算候选、核对原摘要/ETag，并实际验证后端的条件删除能力；清单变化须重新预览。
 
-容器镜像中同一工具位于 `/app/maintain-s3-versions.py`。停止业务服务后，可用共享相同存储配置的临时 API 镜像运行 `python maintain-s3-versions.py ...`；计划/结果目录需显式挂载。目标 Docker 整栈仍需实际验收，不能把本机工具通过当成镜像启动通过。
+容器镜像中同一工具位于 `/app/maintain-s3-versions.py`。停止业务服务后，可用共享相同存储配置的临时 API 镜像运行 `python maintain-s3-versions.py ...`，计划和结果目录需显式挂载。容器内停机回收仍待目标环境验收。
 
 ## 压缩、重试与混合版本
 
@@ -60,3 +60,13 @@ platform/server/.venv/Scripts/python.exe platform/scripts/maintain-s3-versions.p
 `tmp/s3-attempt-store-mbm5j_rm/version-resume-result.json` 另有5项检查：真实条件删除后注入响应丢失、旧计划拒绝重放、新预览只选剩余对象、续做后当前字节一致、无剩余孤立版本。这是明确标识的通信故障注入，未声称真实进程崩溃；模型调用0。两套自建对象服务均已退出。源码与辅助代码分别由640/641项哈希审查覆盖，旧模型模拟集合未执行。
 
 以上完成 N7-05 原“存储恢复/版本保留回收/删除清单压缩手册与混合版本边界”交付组，并补齐对应 live-store 实现；FF-J15 整项不关闭。Docker 整栈、其他对象存储后端、跨物理主机以及全部私有版本淘汰仍按原任务保留。
+
+## 认证 S3 部署验收
+
+2026-11-26，生产 Compose 的 API、对端副本和 worker 统一读取部署选择的 endpoint、bucket、签名 region 与凭据。认证覆盖配方为 SeaweedFS 挂载私有身份文件，缺少凭据时 Compose 拒绝启动。本机隔离栈使用 SeaweedFS 4.52、共享 PostgreSQL、Redis、两套 Linux API 和 Nginx。管理员预建隔离桶，业务身份只获准访问这一个桶。其他桶和匿名访问均被拒绝。默认 FS 配方及镜像内 FS 初始化另行通过。 [配置步骤](deployment.md#认证-s3) · [认证覆盖配方](../infra/docker-compose.s3-auth.yml)
+
+API 启动直接检查配置指定的桶。分开的实际 SeaweedFS 探针分别以 `us-east-1` 和 `us-west-2` 自动创建缺失桶，第二次启动只执行 `HeadBucket`。错误身份返回 403，未发出创建请求。探针模型调用 0 次。 [桶初始化回执](../../tmp/ff-j15-auth-compose-20261126/bucket-bootstrap.json)
+
+隔离整栈通过跨副本原件读取及 Nginx HTTP 206。S3 不可变成员的 SHA-256 与 API 原件一致。两个真实 CadQuery 作业经 Redis worker 发布两代几何。对端本地缓存剩余空间不足时，几何接口返回 `node_storage_full`。扩充试验缓存后重建对端容器，当前文件和两代几何成果均从认证存储读回。真实 DeepSeek 在重建的对端用 `read_text_file` 读回算例标识并完成回答，2 次 `deepseek-flash` HTTP 200，模拟 0 次。 [整栈回执](../../tmp/j15-auth-compose-jr4g6_0u/result.json) · [验收脚本](../server/live_llm_authenticated_s3_compose_acceptance.py)
+
+本机重建复用了已安装的运行层。隔离容器、网络、卷、临时凭据和两个候选镜像均已清理，原 11 个 Docker 容器 ID 一致。构建缓存由 5.819 GB 变为 5.85 GB，C 盘可用由 39,844,429,824 B 变为 39,835,971,584 B。FF-J15 仍待在目标环境复核其实际 S3 服务，并完成跨物理宿主验收。 [磁盘读数](../../tmp/ff-j15-auth-compose-20261126/disk-after.json) · [Docker 占用](../../tmp/ff-j15-auth-compose-20261126/docker-after.txt)

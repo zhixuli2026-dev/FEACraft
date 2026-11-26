@@ -87,3 +87,44 @@ Windows API 换用独立 PostgreSQL 后，49 次实际 DeepSeek HTTP 200，29 �
 第三轮 k6 的 600 次已登录读取都走本机 Docker 网桥。连接建立 p95 为 0.15 ms，等待首字节 p95 为 4,424.6 ms。用户公网网速处于这条 REST 测量路径之外。Agent 的第一条实际出站请求在起跑后 7.051 秒发出。从出站到上游 HTTP 响应头 p95 为 1.054 秒，到观测到模型首段正文 p95 为 14.616 秒。后一项包含公网传输、供应商排队和生成以及本机客户端读取调度，现有计时无法拆出公网延迟的单独贡献。各项分位数按各自样本计算。 [第三轮原始回执](../../tmp/ff-j21-mixed-20261125/mixed-50.json) · [阶段数据](../../tmp/ff-j21-mixed-20261125/phase-review.json)
 
 本机混合场景的功能与退出核对通过，三项原性能目标未达到。联通试验和三轮 50 账号合计 152 次真实 DeepSeek HTTP 200，模拟 0 次。三轮的隔离栈已回收，原 11 个运行容器身份相同。第三轮前后 C 盘可用字节为 40,724,660,224 与 40,726,949,888，Docker 构建缓存维持 5.819 GB，本阶段回收 0 B。03:00 定时维护因空间高于触发线跳过。 [C 盘与 D 盘读数](../../tmp/ff-j21-mixed-20261125/sustained-disk-after.json) · [Docker 占用](../../tmp/ff-j21-mixed-20261125/sustained-docker-after.txt)
+
+### 2026-11-26 流式首段正文复验
+
+本机 Windows 配置了系统代理。原实现每个模型 HTTP 客户端初始化时重复载入 CA 证书，12 次只构造客户端的本机对照中位数为 447.04 ms。现在复用默认 CA 验证上下文，仍为每个请求创建独立 HTTP 客户端。复用涵盖两种流式协议、非流式补全和模型目录。HTTPS 仍验证主机名。显式配置的 CA 路径在请求时重新加载，回环访问沿用直连。预热后的 49 次客户端初始化中位数为 0.37 ms，首次为 211.59 ms。 [模型客户端](../server/app/services/llm.py)
+
+同时修复工作台选择「关闭」推理时官方 DeepSeek 仍可能执行推理的问题。对官方 `deepseek-flash` 和 `deepseek-v4-pro` 的 Chat Completions 请求显式传入 `reasoning_effort=none`。仅复用 TLS 的分段轮有 14/50 个请求返回推理，修复后为 0/50。显式选择 `low` 的单独请求实际返回推理和正文。首次低档探针的 PowerShell 管道将中文输入转换为问号，保留该次回执，改用英文探针后通过。 [DeepSeek Chat Completions 参数](https://api-docs.deepseek.com/api/create-chat-completion/) · [低档复验](../../tmp/ff-j21-sse-tls-20261126/deepseek-low-retry.json)
+
+四轮均使用 Windows 隔离 API、临时 PostgreSQL 数据库及 50 个独立账号。每轮实际 DeepSeek HTTP 200 和唯一完成标识均为 50，首段正文样本均为 50。
+
+| 场景 | 完整 SSE | 首段正文 p95 | 回执 |
+| --- | ---: | ---: | --- |
+| 修复前 | 49/50 | 30,606.12 ms | [基线](../../tmp/live-j21-sse-hz8rz34k/live-result.json) |
+| 复用 TLS 验证上下文 | 50/50 | 5,903.07 ms | [对照](../../tmp/live-j21-sse-4a46i0t3/live-result.json) |
+| 复用 TLS，增加阶段计时 | 50/50 | 6,579.14 ms | [分段](../../tmp/live-j21-sse-40sy7kxj/live-result.json) |
+| 复用 TLS，显式关闭推理 | 50/50 | 6,049.07 ms | [最终](../../tmp/live-j21-sse-k4mlufpw/live-result.json) |
+
+基线有一路已收到 `run.completed`，其 HTTP 连接仍等到客户端期限。最终轮从提交到 HTTP 响应头、`ready` 和 `context.window` 的 p95 分别为 1,918.39、3,596.74 和 4,968.97 ms。同一请求从 `context.window` 至首段正文的 p95 从分段轮的 2,959.77 ms 变为 1,622.95 ms。该段包含上游连接、生成及平台转发。端到端 2,000 ms 目标仍待达到。本轮覆盖单独 SSE 压力，Linux 混合压测沿用上文历史回执。 [分段验收脚本](../server/live_llm_j21_sse_load_acceptance.py)
+
+模型目录、非流式翻译、流式问答持久化、实际文件工具读取及续答复验通过。四轮负载、常规回归和两次低档探针合计 206 次真实推理 HTTP 200，另有一次模型目录 HTTP 200，模拟 0 次。四个隔离数据库均已删除，原 11 个 Docker 服务继续运行，本轮未构建镜像。 [常规回归](../../tmp/live-deepseek-n19f17pd/live-result.json) · [最终轮临时库清理](../../tmp/terminal-agent-postgres-du2fzhgu/cleanup.json)
+
+### 2026-11-26 Linux 混合复跑与算例记忆
+
+旧读取入口按整棵文件树的快照验证 Agent 所需的长期记忆。现在在算例协调锁内重新检查账号和访问权限，只读取受版本校验的 `0-caseDict/memory.md`。读取上限仍为 64 KiB，文件缺失时记忆为空。读取其他工具输入和目录依然使用各自原有的快照路径。独立 PostgreSQL 与本地文件系统对同一文件交替执行两种读取各 16 次。每次 SQL 从 17 条降为 11 条，服务端中位数从 29.14 ms 降为 15.82 ms。实际删除后的读取为空，其他账号返回 404。此对照没有请求模型。 [读取实现](../server/app/services/agent_storage_capacity.py) · [本地对照回执](../../tmp/prompt-memory-snapshot-isds46wt/read-paths.json)
+
+认证 SeaweedFS 与独立 PostgreSQL 验证了真实模型追加记忆、在新会话召回，以及从 147,081 字节的记忆文件中按版本读取末尾的 65,508 字节。发给 DeepSeek 的上下文包含保留标识，过期标识已裁掉，模型答复复现保留标识。四次真实模型请求均为 HTTP 200，模拟 0 次。存储额度已结算，临时库已删除，S3 进程退出及临时身份文件的移除均已核验。 [S3 实测](../../tmp/live-deepseek-edit-memory-7fn40fdp/live-result.json) · [数据库清理](../../tmp/live-approval-postgres-24v2euqd/cleanup.json)
+
+三轮在两套隔离 Linux API、Nginx、本机 PostgreSQL 和 Redis 上分别使用 50 个独立账号。每轮均完成 600/600 次 REST 读取、50/50 个 DeepSeek 回合、50/50 条 PTY 命令、50/50 张拖动画面和 100 条会话停止证明。每轮有 50 次真实 `deepseek-flash` HTTP 200，模拟 0 次。
+
+| 50 用户场景 | REST p95 | 首段正文 p95 | 拖动画面 p95 | 模型请求期间拖动画面 p95 |
+| --- | ---: | ---: | ---: | ---: |
+| TLS 与推理设置修复后 | 3,825.9 ms | 14,119.7 ms | 291.3 ms | 369.8 ms |
+| 记忆按单文件读取 | 4,008.5 ms | 14,755.2 ms | 323.3 ms | 268.0 ms |
+| 仓库内验收入口复跑 | 3,970.0 ms | 14,541.4 ms | 310.6 ms | 410.7 ms |
+
+最后一轮核对 50 次单文件读取，读取本身的 p95 为 2,824.5 ms。HTTP 响应头、`ready` 和 `context.window` 的 p95 分别为 5,587.16、11,324.21 和 13,177.81 ms。20 条真实上游请求与 REST、终端及可视化共同活动窗口重叠。整轮首段正文未出现稳定改善，仍需达到 2,000 ms，拖动仍需达到 200 ms。原 11 个容器标识逐项一致，临时栈已回收。C 盘阶段前约 39.9 GB 可用，结束实测约 39.8 GB，未构建镜像。 [修复后首轮](../../tmp/ff-j21-mixed-20261126/mixed-50.json) · [单文件首轮](../../tmp/ff-j21-mixed-memory-20261126/mixed-50.json) · [最终混合复跑](../../tmp/ff-j21-mixed-3yby2821/mixed-50.json)
+
+混合验收所需的双副本启动、实际渲染连接、上游观测和 k6 脚本均在仓库。命令接收本机 Linux amd64 k6 与两份 VTP 文件。可用 `--api-image` 和 `--web-image` 指定已准备的 ParaView API 和 Nginx 镜像，默认沿用本轮已验的镜像。每次生成独立的 `tmp/ff-j21-mixed-*` 回执目录。
+
+```powershell
+& platform/server/.venv/Scripts/python.exe -B -u platform/server/live_llm_j21_mixed_acceptance.py --source-profile-id 26 --users 50 --k6 tmp/ff-j21-rest-20261124/k6-linux-amd64 --small-grid tmp/FF-D01-native-viewport-20261123/sample.vtp --large-grid tmp/FF-D22-viz-load-20261123/million-cells.vtp
+```
