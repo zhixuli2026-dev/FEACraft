@@ -3,8 +3,10 @@ from functools import partial
 import json
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Annotated
+from urllib.parse import quote
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,11 +14,16 @@ from .. import storage
 from ..db import get_db
 from ..deps import get_current_user
 from ..models import User
+from ..raw_download import begin
+from ..services import flotherm_library_history as history
 from ..services import legacy_job_admission as admission
 from ..services.flotherm_import import import_sources, read_source
 from ..services.flotherm_inputs import MAX_INPUT_BYTES, inspect_inputs
 from ..services.case_read_view import inspect as read_view
+from ..services.case_read_capacity import file_read_deadline, reading
 from ..services.case_write import CaseWriteConflict, bounded_case_read
+from ..services.file_read import FileReadConflict
+from .files import _verified_publication_response
 from .workspaces import get_owned_case
 
 router = APIRouter(prefix="/api/v1/cases/{case_id}/flotherm", tags=["flotherm"])
@@ -67,6 +74,61 @@ class ConvertIn(BaseModel):
 class LibraryIn(BaseModel):
     source_dir: str
     destination_dir: str = "UDF/flotherm-helper"
+
+
+@router.get('/libraries')
+async def library_versions(case_id: int, before: UUID | None = None, limit: int = Query(default=20, ge=1, le=50),
+                           user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    case = await get_owned_case(case_id, user, db, write=False)
+    return await history.list_versions(db, case.id, str(before) if before else None, limit)
+
+
+@router.get('/libraries/{publication_id}')
+async def library_version(case_id: int, publication_id: UUID, user: User = Depends(get_current_user),
+                          db: AsyncSession = Depends(get_db)):
+    case = await get_owned_case(case_id, user, db, write=False)
+    try:
+        async with file_read_deadline('flotherm_library_history', '辅助库版本读取'):
+            async with reading(db, case):
+                prefix = case.s3_prefix
+                row, summary = await history.version(db, case.id, str(publication_id))
+            return await bounded_case_read(history.details, prefix, row, summary,
+                code='flotherm_library_history', label='辅助库版本读取')
+    except CaseWriteConflict:
+        raise
+    except (FileReadConflict, OSError, ValueError, KeyError, TypeError) as error:
+        raise HTTPException(409, {'code':'evidence_invalid','message':'辅助库发布记录缺失或损坏'}) from error
+
+
+def _library_artifact(prefix, row, path, byte_range, version, download):
+    response = _verified_publication_response(history.artifact(prefix, row, path), path, byte_range, version, download,
+        version_message='辅助库文件版本不一致，请重新读取')
+    response.headers['Content-Disposition'] = "attachment; filename*=UTF-8''" + quote(path.rsplit('/', 1)[-1], safe='')
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
+@router.get('/libraries/{publication_id}/artifact')
+@router.head('/libraries/{publication_id}/artifact')
+async def library_artifact(case_id: int, publication_id: UUID, request: Request,
+                           path: str = Query(min_length=1, max_length=512),
+                           byte_range: str | None = Header(default=None, alias='Range'),
+                           version: str | None = Header(default=None, alias='X-Vibeflow-File-Version',
+                                                        pattern=r'^[0-9a-f]{64}$'),
+                           user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    case = await get_owned_case(case_id, user, db, write=False)
+    download = begin(request) if request.method == 'GET' else None
+    try:
+        async with file_read_deadline('flotherm_library_artifact', '辅助库原件下载'):
+            async with reading(db, case):
+                prefix = case.s3_prefix
+                row, _ = await history.version(db, case.id, str(publication_id))
+            return await bounded_case_read(_library_artifact, prefix, row, path, byte_range, version, download,
+                code='flotherm_library_artifact', label='辅助库原件下载')
+    except CaseWriteConflict:
+        raise
+    except (FileReadConflict, OSError, ValueError, KeyError, TypeError) as error:
+        raise HTTPException(409, {'code':'evidence_invalid','message':'辅助库原件缺失或损坏'}) from error
 
 
 @router.post(":build-library")

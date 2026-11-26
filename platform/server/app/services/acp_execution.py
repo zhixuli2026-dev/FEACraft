@@ -19,7 +19,7 @@ from ..config import get_settings
 from ..db import SessionLocal
 from ..models import AcpThread, AcpTurn, AgentEvent, Conversation, ProviderProfile, User
 from . import acp_approval, acp_case_files, acp_runtime, audit, cli_contracts, conversation_execution as control
-from . import docker_acp
+from . import docker_acp, docker_cli_usage
 from . import process_identity_native, process_record, process_stop
 from .acp_session import AcpSession
 from .async_ops import finish_before_cancel
@@ -58,29 +58,43 @@ async def owned_case(db, cid, user, *, write=True):
     return await get_owned_case(conversation.case_id, user, db, write=write)
 
 
-def verified_cleanup(turn):
+def cleanup_evidence(turn):
     if turn.process_json is None or turn.stop_json is None:
-        return False
+        return None
     try:
         raw = json.loads(turn.process_json)
         stop = json.loads(turn.stop_json)
         if isinstance(raw, dict) and raw.get('schema') == docker_acp.SCHEMA:
-            return docker_acp.verified(raw, stop, turn)
+            return stop if docker_acp.verified(raw, stop, turn) else None
         receipt = process_record.validate(raw, bound=False)
         cleanup = process_stop.validate(stop, receipt)
     except (AttributeError, KeyError, TypeError, ValueError):
-        return False
-    return cleanup['verified'] and cleanup['scope_empty']
+        return None
+    return cleanup if cleanup['verified'] and cleanup['scope_empty'] else None
+
+
+def verified_cleanup(turn):
+    return cleanup_evidence(turn) is not None
 
 
 def public(turn, thread):
-    return {'id': turn.id, 'thread_id': thread.id, 'harness': thread.harness, 'runtime': thread.runtime,
+    cleanup = cleanup_evidence(turn)
+    result = {'id': turn.id, 'thread_id': thread.id, 'harness': thread.harness, 'runtime': thread.runtime,
             'execution_backend': 'docker' if thread.host_id.startswith('docker:') else 'host',
             'provider_profile_id': thread.profile_id,
             'phase': turn.phase, 'client_message_id': turn.client_message_id, 'error': turn.error,
-            'cleanup_verified': verified_cleanup(turn),
+            'cleanup_verified': cleanup is not None,
             'created_at': turn.created_at.replace(tzinfo=timezone.utc).isoformat(),
             'contract_applied':thread.contract_text is not None, 'allow_drafts':thread.allow_drafts}
+    if cleanup and cleanup.get('schema') == docker_acp.SCHEMA and 'resource_usage' in cleanup:
+        usage = cleanup['resource_usage']
+        try:
+            docker_cli_usage.validate(usage, cleanup['containers']['worker']['id'])
+        except (KeyError, TypeError, ValueError):
+            pass
+        else:
+            result['resource_usage'] = usage
+    return result
 
 
 async def lookup(db, identifier, user):

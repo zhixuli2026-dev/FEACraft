@@ -38,3 +38,11 @@ python platform/server/flotherm2foam.py check case-output
 真实 Windows 和非特权 WSL 子进程均通过命令链，实际读回 7.5 W 覆盖值和 5 W 重建值。非法 IR、默认已有输出和带用户文件的目标均拒绝且保留原结果。修改或删除 `constant/fvOptions` 后，静态检查分别报告对应问题。两端模型调用 0，模拟 0。[CLI 实现](../server/app/services/flotherm_cli.py) · [验收入口](../server/flotherm_cli_acceptance.py) · [Windows](../../tmp/flotherm-cli-windows-20261120.json) · [WSL](../../tmp/flotherm-cli-wsl-20261120.json)
 
 已追加 ECXML、V2310 PDML 和 XTXML/XTXMLA 配对的三维盒体导入。CLI 和网页均可生成 IR 后转换，实际求解和认证 S3 已验。Pack `export` 和 FloSCRIPT 阶段执行由 FF-I03 承接，复杂部件和物理映射由 FF-I04 承接。[ECXML 导入实测](FF-I01-I07-ecxml-import.md) · [PDML 与 XTXML](FF-I01-I07-paired-import.md) · [输入检查与输出保护](FF-I02-I10A-flotherm.md)
+
+## 辅助库版本
+
+展开 FloTHERM 的「辅助库」，可在「已发布版本」选择对应编译作业的版本，查看发布目录、OpenFOAM 版本及库的 SHA-256。每一版都可下载当时发布的 ELF 共享库、编译日志和加载日志。点击「打开编译作业」可定位对应作业的原日志。当前发布表示对应输出目录的有效发布。共享 OpenFOAM 用户库的安装与回退沿用已有 CLI。 [安装和回退](flotherm-library-publication.md#ff-i09-共享辅助库安装及回退)
+
+在独立 RustFS 环境中，对同一目录完成两次非特权 WSL 编译。两版摘要不同，重新编译后仍能下载与首版摘要一致的 ELF，并通过范围响应读取 ELF 文件头。测试也核对了错误文件版本被拒和其他账号无法读取历史列表及原件。模型调用 0 次。原始回执位于 `tmp/flotherm-history-rustfs-_xmoqjfm/publication-history.json`。
+
+在本地文件存储的真实 Edge 复验中，修改 C++ 源码后在同一目录完成两次实际编译。工作台区分当前与历史发布，确认分页游标，下载首版并核对摘要，打开对应的历史编译作业。跨算例版本和未列为产物的源码路径均返回 404。1536、1280 和 390 像素视口均检查了版本区域，390 像素无横向溢出。原预检、转换、丢失响应后的同键找回、取消和配对装配回归均通过。出现短时存储写锁时，验收沿用原幂等键，工作台在作业完成后继续刷新尚未成功读取的文件树。模型调用 0 次。回执和截图位于 `tmp/flotherm-studio-browser-1h6p0nyg/`。

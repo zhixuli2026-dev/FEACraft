@@ -28,6 +28,7 @@ PDML = 'Ref/thermal.pdml'
 XTXMLA = 'Ref/thermal.xtxmla'
 DOMAIN_CONFIG = 'Ref/domain.json'
 SOURCE = 'Ref/helper'
+SOURCE_CODE = 'extern "C" double vfFlothermPowerScale() { return 1.0; }\n'
 OUTPUT = 'C-run/flotherm'
 CANCELLED = 'C-run/cancelled'
 LIBRARY = 'UDF/flotherm-helper'
@@ -50,6 +51,7 @@ async def browser(data):
             storage_state={'cookies': [], 'origins': [{'origin': base, 'localStorage': [
                 {'name': 'vf_token', 'value': data['token']}]}]})
         page = await ctx.new_page()
+        authorization = {'Authorization': 'Bearer '+data['token']}
 
         def observe(request):
             parts = urlsplit(request.url)
@@ -64,14 +66,23 @@ async def browser(data):
             await page.locator('.dv-tab').filter(has_text=re.compile(r'^FloTHERM$')).click(timeout=20000)
 
         async def post(button, path, statuses=(200,), expected_key=None):
-            async with page.expect_response(lambda response: response.request.method == 'POST' and
-                    urlsplit(response.url).path == path, timeout=35000) as pending:
-                await studio.get_by_role('button', name=button, exact=True).click()
-            response = await pending.value
-            assert response.status in statuses, (response.status, await response.text())
-            if expected_key is not None:
-                assert response.request.headers.get('idempotency-key') == expected_key
-            return await response.json()
+            for _ in range(12):
+                async with page.expect_response(lambda response: response.request.method == 'POST' and
+                        urlsplit(response.url).path == path, timeout=35000) as pending:
+                    await studio.get_by_role('button', name=button, exact=True).click()
+                response = await pending.value
+                key = response.request.headers.get('idempotency-key')
+                if expected_key is not None:
+                    assert key == expected_key
+                if response.status in statuses:
+                    return await response.json()
+                assert response.status == 409 and path.endswith((':convert', ':build-library')), (
+                    response.status, await response.text())
+                code = (await response.json()).get('detail', {}).get('code')
+                assert code in ('storage_quota_busy', 'case_write_busy') and key, await response.text()
+                expected_key, button = key, '用原请求确认提交'
+                await asyncio.sleep(.65)
+            raise AssertionError(f'Storage admission remained busy for {path}')
 
         async def detail(identifier):
             response = await ctx.request.get(base+f'/api/v1/jobs/{identifier}',
@@ -108,11 +119,20 @@ async def browser(data):
             await expect(studio.get_by_role('button', name='提交转换')).to_be_disabled()
             await studio.get_by_label('输出目录', exact=True).fill(OUTPUT)
             intercepted = []
+            initial_busy = []
             convert_route = '**/flotherm:convert'
 
             async def drop_response(route):
-                reply = await route.fetch(timeout=30000)
-                assert reply.ok
+                for _ in range(10):
+                    reply = await route.fetch(timeout=30000)
+                    if reply.ok:
+                        break
+                    assert reply.status == 409, (reply.status, await reply.text())
+                    code = (await reply.json()).get('detail', {}).get('code')
+                    assert code in ('storage_quota_busy', 'case_write_busy'), (reply.status, await reply.text())
+                    initial_busy.append(code)
+                    await asyncio.sleep(.65)
+                assert reply.ok, (reply.status, await reply.text())
                 intercepted.append(((await reply.json())['job_id'], route.request.headers['idempotency-key']))
                 await route.abort('connectionreset')
 
@@ -149,10 +169,13 @@ async def browser(data):
             await expect(page.get_by_role('button', name=re.compile(fr'#{convert_id} FloTHERM IR conversion'))
                          ).to_have_attribute('aria-pressed', 'true', timeout=20000)
             result['convert_job'] = {'id': convert_id, 'state': conversion['status'],
-                'same_job_after_replay': True, 'transient_replay_codes': transient_codes}
+                'same_job_after_replay': True, 'transient_admission_codes': initial_busy,
+                'transient_replay_codes': transient_codes}
 
             await show_studio()
             await studio.get_by_text('辅助库', exact=True).click()
+            history = studio.get_by_role('region', name='已发布的辅助库')
+            await expect(history.get_by_text(re.compile('尚未发布辅助库'))).to_be_visible()
             await studio.get_by_label('辅助库源码目录', exact=True).select_option(SOURCE)
             library = await post('编译辅助库', route_prefix+'build-library')
             library_id = library['job_id']
@@ -161,6 +184,68 @@ async def browser(data):
             await expect(job_section.get_by_role('button', name='flotherm-load.log', exact=True)).to_be_visible()
             await expect(job_section.get_by_role('button', name='libflothermHelper.so', exact=True)).to_be_visible()
             result['library_job'] = {'id': library_id, 'state': (await detail(library_id))['status']}
+            picker = history.get_by_label('发布版本', exact=True)
+            await expect(picker.locator('option')).to_have_count(1, timeout=20000)
+            original = await picker.input_value()
+            assert original
+            history_url = base+f"/api/v1/cases/{data['case_id']}/flotherm/libraries"
+            original_version = await ctx.request.get(history_url+'/'+original, headers=authorization)
+            assert original_version.ok, await original_version.text()
+            original_file = next(file for file in (await original_version.json())['files'] if file['role']=='library')
+
+            source_path = LIBRARY+'/flothermHelper.C'
+            replacement = await ctx.request.put(base+f"/api/v1/cases/{data['case_id']}/file",
+                headers=authorization, data={'path':source_path, 'content':SOURCE_CODE.replace('1.0','2.0'),
+                                             'expected_sha256':hashlib.sha256(SOURCE_CODE.encode()).hexdigest()})
+            assert replacement.ok, await replacement.text()
+            await studio.get_by_label('辅助库源码目录', exact=True).select_option(LIBRARY, timeout=20000)
+            recompiled = await post('编译辅助库', route_prefix+'build-library')
+            second_id = recompiled['job_id']
+            await expect(job_section.get_by_text(f'辅助库编译 #{second_id}')).to_be_visible()
+            await expect(job_section.get_by_text('已完成', exact=True)).to_be_visible(timeout=65000)
+            await expect(picker.locator('option')).to_have_count(2, timeout=20000)
+            oldest = picker.locator('option').filter(has_text=re.compile(r'历史发布'))
+            await expect(oldest).to_have_attribute('value', original)
+            await picker.select_option(original)
+            await expect(history.get_by_text('SHA-256 '+original_file['sha256'], exact=True)).to_be_visible()
+            button = history.get_by_role('button', name='下载辅助库 libflothermHelper.so')
+            async with page.expect_download(timeout=45000) as pending_file:
+                await button.click()
+            legacy = (await (await pending_file.value).path()).read_bytes()
+            assert legacy.startswith(b'\x7fELF') and hashlib.sha256(legacy).hexdigest() == original_file['sha256']
+
+            newest_response = await ctx.request.get(history_url+'?limit=1', headers=authorization)
+            assert newest_response.ok
+            newest_page = await newest_response.json()
+            newest = newest_page['items'][0]
+            assert newest['current'] and newest['generation'] == 2 and newest['job_id'] == second_id
+            older_response = await ctx.request.get(history_url+'?limit=1&before='+newest_page['next'], headers=authorization)
+            assert older_response.ok
+            assert [item['id'] for item in (await older_response.json())['items']] == [original]
+            newest_response = await ctx.request.get(history_url+'/'+newest['id'], headers=authorization)
+            assert newest_response.ok
+            current_file = next(file for file in (await newest_response.json())['files'] if file['role']=='library')
+            assert current_file['sha256'] != original_file['sha256']
+            wrong = await ctx.request.get(history_url+'/'+original+'/artifact', params={'path':LIBRARY+'/Make/files'},
+                                          headers=authorization)
+            assert wrong.status == 404
+            other = await ctx.request.get(base+f"/api/v1/cases/{data['empty_case_id']}/flotherm/libraries/{original}",
+                                          headers=authorization)
+            assert other.status == 404
+            await history.get_by_role('heading', name='已发布版本').scroll_into_view_if_needed()
+            await page.screenshot(path=root/'library-history-desktop.png')
+            await page.set_viewport_size({'width':1280, 'height':900})
+            await history.get_by_role('heading', name='已发布版本').scroll_into_view_if_needed()
+            await page.screenshot(path=root/'library-history-1280.png')
+            await page.set_viewport_size({'width':1536, 'height':1060})
+            await history.get_by_role('button', name='打开编译作业').click()
+            await expect(page.get_by_role('button', name=re.compile(fr'#{library_id} FloTHERM helper-library compilation'))
+                         ).to_have_attribute('aria-pressed', 'true', timeout=20000)
+            await show_studio()
+            result['library_history'] = {'archive': original, 'current': newest['id'], 'original_job': library_id,
+                'new_job': second_id, 'original_sha256': original_file['sha256'],
+                'current_sha256': current_file['sha256'], 'verified_download': True,
+                'foreign_case_rejected': True, 'unlisted_file_rejected': True, 'cursor_verified': True}
 
             (root/'hold').touch()
             await studio.get_by_label('FloTHERM IR JSON', exact=True).select_option(IR)
@@ -234,6 +319,16 @@ async def browser(data):
             result['mobile_widths'] = await studio.evaluate('(panel) => [panel.clientWidth, panel.scrollWidth]')
             assert result['mobile_widths'][1] <= result['mobile_widths'][0] + 1, result['mobile_widths']
             await page.screenshot(path=root/'mobile.png')
+            library_toggle = studio.get_by_text('辅助库', exact=True)
+            if not await library_toggle.evaluate('(summary) => summary.parentElement.open'):
+                await library_toggle.click()
+            await expect(studio.get_by_label('发布版本', exact=True).locator('option')).to_have_count(2)
+            library_region = studio.get_by_role('region', name='已发布的辅助库')
+            await expect(library_region.get_by_role('button', name='下载辅助库 libflothermHelper.so')).to_be_visible()
+            await library_region.get_by_role('heading').scroll_into_view_if_needed()
+            widths = await studio.evaluate('(panel) => [panel.clientWidth, panel.scrollWidth]')
+            assert widths[1] <= widths[0] + 1, widths
+            await page.screenshot(path=root/'library-history-mobile.png')
             assert not model_paths and not result['page_errors'], (model_paths, result['page_errors'])
             result['passed'] = True
         except BaseException as error:
@@ -286,11 +381,11 @@ app.mount('/', StaticFiles(directory={str(bundle)!r}, html=True))
             SETTINGS: json.dumps({'power': {'chip': {'value': 7500, 'unit': 'mW'}}}),
             SOURCE+'/Make/files': 'flothermHelper.C\n\nLIB = $(PWD)/libflothermHelper\n',
             SOURCE+'/Make/options': 'EXE_INC =\nLIB_LIBS =\n',
-            SOURCE+'/flothermHelper.C': 'extern "C" double vfFlothermPowerScale() { return 1.0; }\n',
+            SOURCE+'/flothermHelper.C': SOURCE_CODE,
         }.items():
             api.put(path, content)
         workspace = api.call('GET', '/workspaces')[0]
-        api.call('POST', f"/workspaces/{workspace['id']}/cases", {'name': EMPTY_CASE})
+        empty_case = api.call('POST', f"/workspaces/{workspace['id']}/cases", {'name': EMPTY_CASE})
         raw_case = api.call('POST', f"/workspaces/{workspace['id']}/cases", {'name': RAW_CASE})
         api.call('PUT', f"/cases/{raw_case['id']}/file", {'path': NEUTRAL, 'content': NEUTRAL_ECXML, 'expected_sha256': None})
         pair_case = api.call('POST', f"/workspaces/{workspace['id']}/cases", {'name': PAIRED_CASE})
@@ -299,7 +394,7 @@ app.mount('/', StaticFiles(directory={str(bundle)!r}, html=True))
         api.call('PUT', pair_prefix+'/file', {'path': DOMAIN_CONFIG, 'content': json.dumps(CONFIG), 'expected_sha256': None})
         upload_binary(api, pair_case['id'], PDML, pdml_fixture())
         subprocess.run([str(browser_python), '-B', '-X', 'utf8', str(Path(__file__).resolve()), '--browser'],
-            input=json.dumps({'base': api.base, 'case_id': case['id'], 'raw_case_id': raw_case['id'],
+            input=json.dumps({'base': api.base, 'case_id': case['id'], 'raw_case_id': raw_case['id'], 'empty_case_id': empty_case['id'],
                               'pair_case_id': pair_case['id'],
                               'root': str(api.root), 'token': api.token}),
             text=True, timeout=220, check=True)
@@ -311,8 +406,8 @@ app.mount('/', StaticFiles(directory={str(bundle)!r}, html=True))
         assert (case_root/IR).read_text(encoding='utf8') == raw_ir
         assert not (case_root/CANCELLED).exists()
         jobs = api.call('GET', f"/cases/{case['id']}/jobs")
-        assert len(jobs) == 3
-        assert sorted(job['status'] for job in jobs) == ['cancelled', 'succeeded', 'succeeded']
+        assert len(jobs) == 4
+        assert sorted(job['status'] for job in jobs) == ['cancelled', 'succeeded', 'succeeded', 'succeeded']
         raw_root = case_root.parent/str(raw_case['id'])
         assert_case(raw_root/OUTPUT)
         assert (raw_root/NEUTRAL).read_bytes() == NEUTRAL_ECXML.encode()

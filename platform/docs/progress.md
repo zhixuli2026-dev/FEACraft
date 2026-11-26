@@ -1,5 +1,9 @@
 # 进度记录
 
+2026-11-26，FF-I01 接入 FloTHERM 辅助库的发布版本、摘要、原件下载及编译作业入口。真实 Edge 和 RustFS 各通过两次非特权 WSL 实际编译，历史 ELF 下载与首版摘要一致。修复了作业完成后文件树遇到短时写锁便停止刷新。真实模型与模拟均为 0 次。**全功能 268/279，剩 11 项。主线 51/53，剩 2 项。** [工作台与验收](FF-I01-flotherm-studio.md#辅助库版本)
+
+2026-11-26，恢复未完成功能交付。FF-F58 的 Docker Codex 图片已通过实际 RustFS、Edge 上传与刷新、原始字节校验及原生线程续答。FF-J16 已接入工作容器原生 cgroup 计量，核对 7 条 Codex 停止回执和 6 条 ACP 回合回执。最终 Codex、Kimi 与 OpenCode 复验共记录 21 次真实 DeepSeek HTTP 200，模拟 0 次。**全功能 268/279，剩 11 项。主线 51/53，剩 2 项。** [本轮验收](FF-F58-docker-cli.md#2026-11-26-容器资源计量)
+
 2026-11-25 06:47，FF-F58／FF-J16 的 Codex 容器算例写入与发布已通过本地文件存储和实际 RustFS。测试核对并发修改时整批拒绝、写入期间 API 强退后保留副本，以及 Edge 批准 Plan 后沿同一原生线程写入。最终的本地与 RustFS 两轮共 25 次真实 DeepSeek HTTP 200，模拟 0 次。**全功能 268/279，剩 11 项。主线 51/53，剩 2 项。** [验收](FF-F58-docker-cli.md#codex-算例写入与发布)
 
 2026-11-25 06:33，Codex 正式 Docker 问答与计划已接入 Agent，真实 API 验证算例读取、原线程重启续聊、API 强退回收及后续提交。Edge 核对只读计划和刷新后同会话历史。SQLite 与 PostgreSQL 迁移、Windows 原生问答及 Kimi／OpenCode 回归通过。最终 Docker Codex 7 次、ACP 回归 11 次真实 DeepSeek HTTP 200，模拟 0 次。Codex 写入与发布正在推进。**全功能 268/279，剩 11 项。主线 51/53，剩 2 项。** [容器入口](FF-F58-docker-cli.md#正式-codex-容器入口)

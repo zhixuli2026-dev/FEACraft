@@ -56,6 +56,10 @@ def verify(harnesses, model_config, *, storage_env=None, bundle=None, browser_py
         assert origin['schema'] == 'vibeflow.acp.docker.v1' and stop['origin'] == origin
         assert stop['verified'] and stop['scope_empty']
         assert set(stop['containers']) == {'worker','relay'}
+        if 'resource_usage' in stop:
+            fetched = api.call('GET','/acp/turns/'+turn['id'])
+            assert fetched['cleanup_verified'] and fetched['resource_usage'] == stop['resource_usage']
+            report.setdefault('resource_samples', []).append(fetched['resource_usage'])
         requests = [row for row in stop['upstream'] if row['method']=='POST']
         report['model_receipts'].extend(requests)
         assert requests and all(r['status']==200 and (r['complete'] or r['parts']>0) for r in requests), requests

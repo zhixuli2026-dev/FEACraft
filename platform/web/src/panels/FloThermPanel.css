@@ -46,6 +46,14 @@
 .flotherm-file-list li + li { border-top: 1px solid var(--vf-border); }
 .flotherm-output button { max-width: 100%; text-align: left; }
 .flotherm-path code { color: var(--vf-text); }
+.flotherm-library-history { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--vf-border); }
+.flotherm-library-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.flotherm-library-heading h3 { margin: 0; }
+.flotherm-library-selection { margin: 8px 0; }
+.flotherm-library-files li { justify-content: space-between; gap: 6px 12px; padding: 6px 0; }
+.flotherm-library-files li > div { flex: 1 1 240px; }
+.flotherm-library-files strong, .flotherm-library-files code { display: block; }
+.flotherm-library-files code { font-size: 12px; margin-top: 2px; }
 @container (max-width: 385px) {
   .flotherm-fields { grid-template-columns: minmax(0, 1fr); }
   .flotherm-section :is(input, select, button, summary) { min-height: 44px; }

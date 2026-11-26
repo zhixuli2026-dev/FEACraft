@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 from uuid import UUID, uuid5
 
-from . import docker_acp
+from . import docker_acp, docker_cli_usage
 from .async_ops import finish_before_cancel
 from .codex_images import DOCKER_INPUTS
 from .docker_cli_state import StateVolume
@@ -56,7 +56,7 @@ def ids(value, *, partial=False):
 
 
 def validate_stop(value, origin, committed):
-    if (not isinstance(value,dict) or set(value) != {'schema','origin','reason','verified','scope_empty',
+    if (not isinstance(value,dict) or set(value)-{'resource_usage'} != {'schema','origin','reason','verified','scope_empty',
             'containers','provider','model','upstream'} or value['schema'] != SCHEMA or value['origin'] != origin
             or value['reason'] not in {'root_exit','owner_exited'}
             or value['verified'] is not True or value['scope_empty'] is not True
@@ -72,6 +72,8 @@ def validate_stop(value, origin, committed):
         raise ValueError('Codex Docker stop crosses its registered container IDs')
     if value['reason'] == 'root_exit' and committed is not None and committed != stopped:
         raise ValueError('Codex Docker normal exit lacks a registered container status')
+    if 'resource_usage' in value:
+        docker_cli_usage.validate(value['resource_usage'],stopped.get('worker'))
 
 
 def launch_profile(argv, nonce, runtime):

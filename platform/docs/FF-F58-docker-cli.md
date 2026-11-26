@@ -91,3 +91,15 @@ SQLite 实际执行迁移和回滚，保留既有 Windows 会话及退出记录�
 工作台沿用原生对话的图片附件入口和历史。私有副本按账户、API 配置版本与算例保存，容器将该算例的附件以只读方式挂载到 `/inputs`，原线程恢复时沿用地址。算例中的原始图片仍走现有下载授权。 [附件准备](../server/app/services/codex_images.py) · [容器挂载](../server/app/services/codex_docker.py)
 
 本地文件存储验证三张随机纯色 PNG，真实 DeepSeek 按顺序答对，新的 Docker 容器恢复同一条线程并复述三色。验证文件摘要、授权下载原始字节、其他账户拒绝访问及实际只读挂载。该轮包含 7 次真实 DeepSeek HTTP 200，6 次完整转发，1 次随 API 强退结束，模拟 0 次。 [本地验收](../../tmp/docker-codex-api-9k5hl9gs/codex-docker-result.json) · [源码审查](../../tmp/ff-f58-codex-images-20261125/review.json)
+
+2026-11-26，在实际 RustFS 上复验三张随机数字图像。测试验证原始字节、附件摘要、只读 Docker 挂载、跨账户拒绝读取，以及在新容器中沿同一原生线程复述。实际 Edge 验证了工作台上传、真实模型回答和页面刷新后的三张原始图片。首轮在会话加载时选文件，附件卡片计数为 0。验收脚本等待附件按钮可用后，复验通过。首轮停止回执记录 17 次真实 DeepSeek HTTP 200，最终复验记录 10 次，均使用 `deepseek-flash`，模型模拟 0 次。回执分别位于 `tmp/docker-codex-api-cv9khav3` 和 `tmp/docker-codex-api-iwvc6eo0`。
+
+## 2026-11-26 容器资源计量
+
+CLI 关闭输入前读取所属工作容器的 cgroup CPU 累计用量、内存峰值、CPU 节流次数和 PID 限额触发次数。API 归属恢复时，仍在运行的工作容器也会在停止前采样。仅随已经核验的停止回执保存，并绑定原工作容器 ID。控制器无法读取或容器已退出时省略读数。旧停止回执仍可读取。Codex 会话接口返回 `stop.resource_usage`，ACP 回合接口返回 `resource_usage`。读数对应采样时刻。 [采样实现](../server/app/services/docker_cli_usage.py)
+
+隔离容器运行了实际 CPU 循环并分配 24 MiB，关闭流程记录 CPU 385,953 微秒、内存峰值 35,942,400 字节，原容器停止及回收通过。旧回执通过兼容检查，资源读数绑定其他容器 ID 时被拒。该轮使用实际 Docker cgroup v1，模型调用 0 次。原始回执位于 `tmp/ff-f58-codex-rustfs-edge-20261126/cgroup-counters.json`。
+
+上述 Codex 最终复验的持久化会话中，有 7 条停止回执同时保存了实际 cgroup 读数。
+
+Kimi 与 OpenCode 在同一 Docker 镜像及实际 RustFS 上分别完成算例读取、原生线程恢复、退出核验和后续回合。ACP 接口返回 6 份采样，逐条与持久化停止回执中的工作容器 ID 和用量一致。共记录 11 次真实 `deepseek-flash` HTTP 200，模型模拟 0 次。原 11 个 Docker 服务的容器 ID 一致，清理可再生成的 Docker 构建缓存回收 0 B，C 盘阶段结束可用 39,901,700,096 字节。原始模型和用量回执位于 `tmp/docker-acp-api-k3jcvll8/docker-acp-api-result.json`，磁盘与 Docker 记录位于 `tmp/ff-f58-codex-rustfs-edge-20261126/`。

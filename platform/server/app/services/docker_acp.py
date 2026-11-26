@@ -13,7 +13,7 @@ import subprocess
 import sys
 from uuid import UUID, uuid5
 
-from . import acp_case_files
+from . import acp_case_files, docker_cli_usage
 from .async_ops import finish_before_cancel
 from .docker_cli_profile import container_flags
 from .docker_cli_state import StateVolume
@@ -142,6 +142,8 @@ class ScopeTransport:
         self.max_output_bytes = max_output_bytes
         self.resource_limit_reason = None
         self.container_ids = None
+        self.worker_id = None
+        self.resource_usage = None
 
     async def admit(self, callback):
         async def register():
@@ -180,6 +182,7 @@ class ScopeTransport:
                           'VF_ACP_RELAY_READY')
         self.key = None
         self.stream = await self.attach(worker, {'capability':self.capability,'model':self.model,**config}, ready)
+        self.worker_id = worker
 
     async def write(self, data):
         if not self.stream or self.stream.stdin.is_closing():
@@ -198,8 +201,12 @@ class ScopeTransport:
         return data
 
     async def finish_input(self):
-        if self.stream:
-            self.stream.stdin.close()
+        if self.stream and not self.stream.stdin.is_closing():
+            try:
+                if self.worker_id is not None:
+                    self.resource_usage = await docker_cli_usage.sample(self.worker_id)
+            finally:
+                self.stream.stdin.close()
 
     async def verify_volume(self):
         records = json.loads(await docker('volume','inspect',self.volume))
@@ -227,6 +234,8 @@ class ScopeTransport:
         if self.container_ids is not None and any(self.container_ids.get(role) != ident
                                                   for role,ident in containers.items()):
             raise ValueError('Docker cleanup differs from the registered container IDs')
+        if reason == 'owner_exited' and 'worker' in containers:
+            self.resource_usage = await docker_cli_usage.sample(containers['worker'])
         results = {}
         for role,ident in sorted(containers.items(), reverse=True):
             if role == 'worker' and self.stream is not None:
@@ -256,8 +265,11 @@ class ScopeTransport:
         if await self.containers():
             raise ValueError('Docker ACP containers reappeared after stopping')
         await self.clean_scope()
-        return {'schema':self.receipt['schema'],'origin':self.receipt,'reason':reason,'verified':True,'scope_empty':True,
+        evidence = {'schema':self.receipt['schema'],'origin':self.receipt,'reason':reason,'verified':True,'scope_empty':True,
                 'containers':results,'provider':'api.deepseek.com','model':self.model,'upstream':events}
+        if self.resource_usage is not None and self.resource_usage['container_id'] == containers.get('worker'):
+            evidence['resource_usage'] = self.resource_usage
+        return evidence
 
     async def clean_scope(self):
         pass

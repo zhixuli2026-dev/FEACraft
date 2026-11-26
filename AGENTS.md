@@ -1,6 +1,6 @@
 # 用户明确要求
 
-- 2026-11-25：原交付工作继续暂停。后续开发使用 `D:\FEACraft`，`D:\vibeflow_reverse` 保留为原工作区和历史档案。
+- 2026-11-26：用户恢复未完成功能的交付。开发使用 `D:\FEACraft`，`D:\vibeflow_reverse` 保留为原工作区和历史档案。
 
 - 2026-11-25：用户决定暂不接入 Semantic Scholar（FF-E07），从本次交付移出。保留原实现与历史回执，Crossref、arXiv 和原有引用功能继续交付。
 

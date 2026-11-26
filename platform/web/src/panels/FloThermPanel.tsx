@@ -1,8 +1,9 @@
 import { useEffect, useId, useState } from "react";
-import { api, ApiError } from "../api";
+import { api, ApiError, isCaseReadOnly } from "../api";
 import { activatePanel } from "../shell/dock";
 import { useStore } from "../store";
 import { jobRecoveryRequest } from "../utils/jobRecovery";
+import FloThermLibraryHistory from "./FloThermLibraryHistory";
 import "./FloThermPanel.css";
 
 interface Inspection {
@@ -89,7 +90,7 @@ export default function FloThermPanel() {
 function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; caseName: string }) {
   const fileTree = useStore(state => state.fileTree);
   const projectLoadError = useStore(state => state.projectLoadError?.target === "case");
-  const readOnly = useStore(state => state.currentWs?.access_role === "viewer");
+  const readOnly = useStore(state => isCaseReadOnly(state.currentCase, state.currentWs));
   const receiptKey = `vf:flotherm:submission:${userId}:${caseId}`;
   const endpoint = `/cases/${caseId}/flotherm`;
   const paths = fileTree.filter(entry => entry.kind !== "directory").map(entry => entry.path).sort();
@@ -114,6 +115,7 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
   const [output, setOutput] = useState(defaultOutput);
   const [source, setSource] = useState("");
   const [library, setLibrary] = useState(defaultLibrary);
+  const [showLibrary, setShowLibrary] = useState(false);
   const [receipt, setReceipt] = useState(() => readSubmission(receiptKey));
   const [job, setJob] = useState<FloThermJob | null>(null);
   const [working, setWorking] = useState(false);
@@ -144,8 +146,8 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
         setJob(next);
         setReadError("");
         if (!settled && !next.completion_pending && terminalStates.has(next.status)) {
-          settled = true;
           await useStore.getState().loadTree();
+          settled = true;
         }
       } catch (error) {
         if (!controller.signal.aborted) setReadError(`作业状态暂时无法更新。${String(error)}`);
@@ -361,7 +363,7 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
       </form>
     </section>
 
-    <details className="flotherm-section">
+    <details className="flotherm-section" onToggle={event => setShowLibrary(event.currentTarget.open)}>
       <summary>辅助库</summary>
       <form onSubmit={event => {
         event.preventDefault();
@@ -381,6 +383,8 @@ function Studio({ userId, caseId, caseName }: { userId: number; caseId: number; 
           <button type="submit" disabled={!libraryDirectories.includes(source) || !relativeDirectory(library)}>编译辅助库</button>
         </fieldset>
       </form>
+      {showLibrary && <FloThermLibraryHistory caseId={caseId}
+        latestJob={finished && job?.status === "succeeded" && receipt?.action === "build-library" ? job.id : undefined} />}
     </details>
 
     {(receipt || actionError) && <section className="flotherm-section" aria-label="作业与输出">

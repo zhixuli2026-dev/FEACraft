@@ -93,6 +93,7 @@ def verify(config):
                 expect(backend).to_have_value('api')
                 backend.select_option('docker')
                 expect(backend).to_have_value('docker')
+                expect(native.get_by_role('button',name='添加图片')).to_be_enabled(timeout=85_000)
                 native.get_by_test_id('native-image-input').set_input_files([
                     {'name': asset['name'], 'mimeType': asset['mime'], 'buffer': base64.b64decode(asset['data'])}
                     for asset in examples['assets']])
