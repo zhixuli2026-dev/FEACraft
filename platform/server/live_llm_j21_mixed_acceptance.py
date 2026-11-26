@@ -361,11 +361,12 @@ def main(config, options):
     live = set(docker('ps','--no-trunc','-q').splitlines())
     users = options.users
     report = {'users':users,'provider':'DeepSeek','model':config['model'],'simulated_model_calls':0,
+              'viz_measurement':'matching_completed_jpeg_480x360',
               'api_image':options.api_image,'web_image':options.web_image,
               'grids':[{'bytes':len(data),'sha256':digest} for data,digest in grids]}
     try:
         with ExitStack() as contexts:
-            deployment = Deployment(contexts, evidence, options.api_image, options.web_image)
+            deployment = Deployment(contexts, evidence, options.api_image, options.web_image, trace_drags=True)
             docker('exec', deployment.worker, '/usr/local/bin/python', '-B', '-c',
                          'from cryptography.fernet import Fernet; from pathlib import Path; '
                          'Path("/work/data/live-vault").write_bytes(Fernet.generate_key()); '

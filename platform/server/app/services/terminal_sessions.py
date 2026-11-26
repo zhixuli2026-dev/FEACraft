@@ -4,6 +4,7 @@ import base64
 import codecs
 import copy
 import json
+import sys
 import time
 from collections import deque
 
@@ -21,6 +22,9 @@ RESOURCE_LIMIT_MESSAGES={
     'log_limit':'终端已达到累计输出限额',
     'disk_limit':'终端工作目录用量或所在卷可用空间已达到限制',
     'disk_unverified':'无法核验终端工作目录的磁盘用量',
+    'cpu_limit':'终端已达到累计 CPU 限额',
+    'memory_limit':'终端已达到内存限额',
+    'compute_unverified':'无法启用终端的 Linux 内核额度',
 }
 
 
@@ -62,6 +66,19 @@ class TerminalSession:
             selected=self.transport.configure(shell,cwd=cwd,cols=cols,rows=rows,distro=distro,disk_root=disk_root)
             selected.update(source_prefix=self.source_prefix,staging_prefix=self.staging_prefix)
             if credential is not None:selected['credential']=credential
+            owned = self.transport.owned
+            if sys.platform == 'linux' and shell == 'cmd':
+                policy = {'cpu_limit_ns': settings.terminal_session_linux_cpu_limit_seconds * 1_000_000_000,
+                          'memory_limit_bytes': settings.terminal_session_linux_memory_limit_mb * 1024**2}
+                if any(policy.values()):
+                    from .linux_gate_compute import check_available
+                    try:
+                        await asyncio.to_thread(check_available, policy)
+                    except (OSError, ValueError) as error:
+                        raise CaseWriteConflict('terminal_compute_unverified', RESOURCE_LIMIT_MESSAGES['compute_unverified']) from error
+                    selected['linux_compute_policy'] = policy
+                    owned.linux_compute_policy = policy
+                    owned.on_namespace = lambda root, _init: records.register_root(self.owner, root)
             workspace_limit=settings.terminal_session_workspace_limit_mb
             if ordinary and workspace_limit and self.case_id is not None:
                 from . import execution_storage
@@ -78,7 +95,14 @@ class TerminalSession:
                 await self._check_storage_admission()
             await finish_before_cancel(allocate())
             self._heartbeat_task=asyncio.create_task(self._renew())
-            root=await self.transport.prepare_configured(environment);await records.register_root(self.owner,root)
+            try:
+                root=await self.transport.prepare_configured(environment)
+            except Exception as error:
+                if owned.on_namespace is not None and owned.namespace_init is None:
+                    raise CaseWriteConflict('terminal_compute_unverified', RESOURCE_LIMIT_MESSAGES['compute_unverified']) from error
+                raise
+            if owned.on_namespace is None:
+                await records.register_root(self.owner,root)
             await self.transport.start_bridge();await records.register_gate(self.owner,self.transport)
             if self.exporter is not None:
                 # The registered outer gate completed the fixed-size image
@@ -107,10 +131,13 @@ class TerminalSession:
             return self
         except BaseException as error:
             reason=getattr(error,'code',None)
-            storage_failure=reason in {'terminal_disk_limit','terminal_disk_unverified'}
-            try:await finish_before_cancel(self.close(reason.removeprefix('terminal_') if storage_failure else 'executor_error',
-                error=RESOURCE_LIMIT_ERROR if storage_failure else type(error).__name__))
+            resource_failure=reason in {'terminal_disk_limit','terminal_disk_unverified','terminal_compute_unverified'}
+            try:await finish_before_cancel(self.close(reason.removeprefix('terminal_') if resource_failure else 'executor_error',
+                error=RESOURCE_LIMIT_ERROR if resource_failure else type(error).__name__))
             except BaseException as cleanup_error:error.add_note('Terminal startup cleanup: '+type(cleanup_error).__name__)
+            if self.resource_limit_reason in {'cpu_limit','memory_limit'}:
+                limit = self.resource_limit_reason
+                raise CaseWriteConflict('terminal_'+limit, RESOURCE_LIMIT_MESSAGES[limit]) from error
             raise
 
     async def _check_storage_admission(self):
@@ -272,6 +299,12 @@ class TerminalSession:
             except BaseException as cleanup_error:
                 stop=self.transport.owned.stop_result;failure=failure or type(cleanup_error).__name__
             self.cleanup_verified=stop.get('verified') if stop is not None else None
+            usage = self.transport.owned.linux_compute_usage
+            if self.cleanup_verified and usage is not None:
+                stop['linux_compute_usage'] = usage
+                if reason in {'root_exit','executor_error'} and usage['violation']:
+                    stop['reason'] = usage['violation']
+                    failure = RESOURCE_LIMIT_ERROR
             if self.cleanup_verified is True:self.alive=False
             if self.cleanup_verified is not True:failure=failure or 'RuntimeError'
             if self._storage_task is not None:

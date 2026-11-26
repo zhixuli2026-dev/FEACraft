@@ -26,12 +26,40 @@ API_IMAGE = 'vibeflow/api:j14-release-paraview-20261125'
 WEB_IMAGE = 'vibeflow/web:j14-ingress-drain-offline-20261125'
 opener = build_opener(ProxyHandler({}))
 
+DRAG_OBSERVATION = '''
+        @rpc('viewport.mouse.interaction')
+        def mouseInteraction(self, event):
+            self.observed_move = None
+            changed = super().mouseInteraction(event)
+            if changed and event.get('action') == 'move':
+                self.observed_move = event.get('mixed_load_move')
+            return changed
+
+        def stillRender(self, options):
+            reply = super().stillRender(options)
+            move = getattr(self, 'observed_move', None)
+            if reply and move is not None:
+                reply['mixed_load_move'] = move
+            return reply
+
+'''
+
 
 class Deployment:
-    def __init__(self, stack, evidence, api_image, web_image):
+    def __init__(self, stack, evidence, api_image, web_image, *, trace_drags=False):
         self.api_image = api_image
         self.web_image = web_image
         self.observer = Path(__file__).with_name('mixed_load_observer.py')
+        self.render_mount = ()
+        if trace_drags:
+            relative = 'app/services/viz_paraview_kernel.py'
+            source = (SERVER / relative).read_text(encoding='utf-8')
+            anchor = '    class CaseImageDelivery(pv.ParaViewWebPublishImageDelivery):\n'
+            if source.count(anchor) != 1:
+                raise RuntimeError('The ParaView drag observer needs an updated insertion point')
+            instrumented = evidence / 'observed-viz-kernel.py'
+            instrumented.write_text(source.replace(anchor, anchor + DRAG_OBSERVATION), encoding='utf-8')
+            self.render_mount = ('--mount', f'type=bind,source={instrumented},target=/workspace/server/{relative},readonly')
         self.stack = stack
         self.label = 'vf-j14-roll-' + uuid4().hex[:12]
         network = docker('network', 'create', self.label)
@@ -120,7 +148,7 @@ class Deployment:
 
     def api(self, name):
         probe = f'type=bind,source={self.observer},target=/tests/mixed_load_observer.py,readonly'
-        container = self.run_container(name, *self.runtime, *self.flags, '--network-alias', 'api',
+        container = self.run_container(name, *self.runtime, *self.flags, *self.render_mount, '--network-alias', 'api',
                     '--hostname', name, '--mount', probe, '--publish', '127.0.0.1::8000',
                     '--entrypoint', '/usr/local/bin/python', self.api_image, '-B', '-m', 'uvicorn',
                     '--app-dir', '/tests', 'mixed_load_observer:app', '--host', '0.0.0.0', '--port', '8000', '--no-access-log',
@@ -201,42 +229,41 @@ class RenderClient:
         await self.rpc('viewport.mouse.interaction',[event])
         # A separate list round trip drains the camera-down notifications.
         await self.rpc('pv.proxy.manager.list',[])
-        changed = {**event,'action':'move','x':.68+.015*index,'y':.56}
-        latency, frame = await self.call_for_image('viewport.mouse.interaction',[changed])
+        move = self.number + 1
+        changed = {**event,'action':'move','x':.68+.015*index,'y':.56,'mixed_load_move':move}
+        latency, frame = await self.call_for_image('viewport.mouse.interaction',[changed], move=move)
         await self.rpc('viewport.mouse.interaction',[{**changed,'action':'up','buttonLeft':False}])
         if quality != 100:
             await self.rpc('viewport.image.push.quality', ['-1', 100, 1])
         return latency,frame
 
-    async def call_for_image(self,method,args):
+    async def call_for_image(self, method, args, *, move=None):
         started = time.perf_counter()
-        pixels = None
-        measured = {'ack_ms': None, 'jpeg_ms': None, 'publication_ms': None, 'jpeg_count': 0,
-                    'publication_count': 0, 'method': method}
+        attachment = frame = None
+        acknowledged = False
         identifier = await self.send(method,args)
         async with asyncio.timeout(6):
-            while (measured['jpeg_ms'] is None or measured['ack_ms'] is None
-                   or measured['publication_ms'] is None):
+            while frame is None or not acknowledged:
                 message = await self.socket.receive()
-                elapsed = round((time.perf_counter() - started)*1000, 3)
                 if message.type==aiohttp.WSMsgType.BINARY and message.data.startswith(b'\xff\xd8\xff'):
-                    measured['jpeg_count'] += 1
-                    if pixels is None:
-                        measured['jpeg_ms'] = elapsed
-                    pixels = message.data
+                    attachment = message.data
                 elif message.type==aiohttp.WSMsgType.TEXT:
                     row = json.loads(message.data)
                     if row.get('id')==identifier:
                         if 'error' in row:
                             raise RuntimeError(str(row['error']))
-                        measured['ack_ms'] = elapsed
+                        if move is not None and not row.get('result'):
+                            raise RuntimeError('ParaView did not accept the measured camera move')
+                        acknowledged = True
                     if (row.get('id') or '').startswith('publish:viewport.image.push.subscription:'):
-                        measured['publication_count'] += 1
                         info = row['result']
                         if isinstance(info, list):
                             info = info[0]
-                        measured.update(publication_ms=elapsed, render_ms=info.get('workTime'),
-                                        dimensions=info.get('size'), stale=info.get('stale'))
+                        if (frame is None and attachment is not None and
+                                (move is None or (info.get('mixed_load_move') == move and
+                                 info.get('stale') is False and info.get('size') == [480,360]))):
+                            frame = (round((time.perf_counter() - started)*1000, 3), attachment)
+                        attachment = None
                 elif message.type not in (aiohttp.WSMsgType.BINARY,aiohttp.WSMsgType.PING,aiohttp.WSMsgType.PONG):
                     raise OSError(f'Visualization socket closed: message={message.type.name}, code={self.socket.close_code}')
-        return measured['publication_ms'],pixels
+        return frame

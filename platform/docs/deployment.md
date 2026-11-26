@@ -100,6 +100,16 @@ docker compose @s3Compose up -d postgres redis seaweedfs
 
 数据库就绪后沿用上述迁移及 API、worker、Web 启动步骤，继续传同一组 Compose 参数。双副本运行时一并加载 `infra/docker-compose.replicas.yml`。已有部署先按一致快照备份数据库和文件。S3 功能范围及本机隔离验收见 [S3 部署验收](storage-version-operations.md#认证-s3-部署验收)。
 
+### 隔离 CLI 工作容器
+
+Linux 单 API 部署可加载 `infra/docker-compose.docker-cli.yml`，从正式 Agent API 启动 Codex、Kimi 和 OpenCode 的隔离执行容器。覆盖文件配置可信引擎、本地私有工作目录和打包后的工作镜像。 [部署步骤](linux-node-cli-deployment.md#linux-compose-内的隔离-cli)
+
+### 可视化会话内核额度
+
+在具备私有 cgroup v1 控制组命名空间的 Linux API 上，可设置 `VIBEFLOW_VIZ_SESSION_LINUX_CPU_LIMIT_SECONDS` 和 `VIBEFLOW_VIZ_SESSION_LINUX_MEMORY_LIMIT_MB`。生产 Compose 将同名 `.env` 配置传给 API，默认均为 `0`，分别表示关闭对应额度。共享的内核启动门需要可信根进程具备 `SYS_ADMIN`，其已有控制器挂载保持只读。隔离验证采用 Docker 的 `--cgroupns private --cap-add SYS_ADMIN`。 [可视化内核额度及验收](viz-load-acceptance.md#linux-可视化会话内核额度)
+
+同一 Linux 部署可用 `VIBEFLOW_TERMINAL_SESSION_LINUX_CPU_LIMIT_SECONDS` 和 `VIBEFLOW_TERMINAL_SESSION_LINUX_MEMORY_LIMIT_MB` 设置普通 PTY 会话的独立额度。配置默认为 `0`。启用后，API 在会话登记前核验控制器，成功终止时在 `stop.linux_compute_usage` 写入内核计量。 [终端内核额度及验收](owned-pty-sessions.md#linux-pty-内核额度)
+
 ## 日常检查和恢复
 
 使用 `infra/docker-compose.monitoring.yml` 时，独立采集器依照节点配置保存时序、请求日志和告警投递状态。监控数据卷和正常业务卷分别备份。 [配置与实测](FF-J20-central-monitoring.md)

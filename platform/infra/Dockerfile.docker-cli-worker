@@ -1,0 +1,5 @@
+ARG CLI_IMAGE=vibeflow/api:node-cli
+FROM ${CLI_IMAGE}
+
+COPY server/app/services/docker_acp_entry.py /vf-runtime/entry.py
+COPY server/app/services/acp_configuration.py /vf-runtime/acp_configuration.py

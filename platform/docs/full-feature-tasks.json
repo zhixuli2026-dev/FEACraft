@@ -4869,7 +4869,7 @@
       "work_package": "WP07",
       "domain": "D",
       "target_wave": "R3",
-      "delivery_status": "实施中｜原尺寸 50 会话出图、刷新、重连与回收有回执，关闭 llvmpipe 渲染线程后 p95 403.3 ms，沿用原设置",
+      "delivery_status": "实施中｜原尺寸 50 会话完成帧、刷新、重连与回收通过，质量 50 完成帧 p95 310.8 ms，首捕获耗时已分段，继续验收 200 ms 目标",
       "required_work": "完成真实 50 用户可视化、大数据、内存曲线、交互 p95、空闲回收和故障验收。",
       "acceptance_pack": "T06",
       "completion_rule": "全功能交付计划第 5 节及第 7 节",
@@ -4902,7 +4902,8 @@
         "../../tmp/ff-d22-cadence-20261125/event-sync-50.json",
         "../../tmp/ff-d22-cadence-20261125/timing-comparison.json",
         "../../tmp/ff-d22-llvmpipe-20261125/comparison.json",
-        "../../tmp/ff-d22-llvmpipe-20261125/llvmpipe-0-50.json"
+        "../../tmp/ff-d22-llvmpipe-20261125/llvmpipe-0-50.json",
+        "../../tmp/ff-d22-phase-20261126/phase-comparison.json"
       ],
       "completed": false
     },
@@ -9440,7 +9441,7 @@
       "work_package": "WP12",
       "domain": "F",
       "target_wave": "R5",
-      "delivery_status": "实施中｜Codex Docker 算例写入、冲突、强退恢复及 Edge 批准 Plan 后写入通过，RustFS 与 Edge 图像上传、续答和刷新通过，目标部署继续",
+      "delivery_status": "已验收｜Codex、Kimi、OpenCode Docker 正式入口、私有状态、隔离出站和审批审计通过；Linux 并发整批写回、运行中强退与线程恢复通过",
       "required_work": "补用户长期隔离环境、egress、审计、并发 staging 和全部 CLI 入口接入。",
       "acceptance_pack": "T08",
       "completion_rule": "全功能交付计划第 5 节及第 7 节",
@@ -9519,6 +9520,10 @@
         "file-mode-continuity.md",
         "attempt-mode-continuity.md",
         "FF-F58-docker-cli.md",
+        "../infra/docker-compose.docker-cli.yml",
+        "../server/live_llm_docker_cli_compose_acceptance.py",
+        "../../tmp/f58-linux-compose-aix2j1_7/cli-compose-result.json",
+        "../../tmp/f58-linux-compose-5mnmfgn4/cli-compose-result.json",
         "../server/app/services/acp_case_files.py",
         "../server/app/services/codex_docker.py",
         "../server/app/services/codex_docker_stage.py",
@@ -9548,7 +9553,7 @@
         "../../tmp/live-acp-approval-kimi-zf7183vr/acp-approvals.json",
         "../../tmp/ff-f58-docker-acp-20261125/review-drafts.json"
       ],
-      "completed": false,
+      "completed": true,
       "implementation_note": "\n2026-11-03：PTY持久NativeSession、根及实际gate登记后放行、同根重连、实际退出与缺回执保留通过SQLite/临时PG各44项；覆盖真实cmd/WSL/原有WSL沙箱、2MiB实际输入哈希/超限不关会话/resize合并/不读取输入仍可关闭、脱离子进程与API猝死。S3可控适配各9项覆盖同步、冲突/来源重绑、原生退出后待提交、清理锁/禁止重传及无owner复制取消；没有宣称真实远端S3验收。12个PTY后真实LaTeX仍成功，迁移各53约束、请求各14、runtime各25、core14及前端构建通过。完整终端UI/IME/主题/截图、统一活动/预算/停机、每用户硬容器与cgroup/网络策略及N5恢复仍待，不能据此关闭完整功能。\n2026-11-05：继续CLI各入口的长期用户隔离环境、并发staging与权限/网络策略。\n2026-11-06：PTY/viz准备额度增量已验证，但实际wsl-sandbox写入后DELETE关闭返回成功而项目输出404。旧路由同样复现；tmpfs副本只在正常退出时复制，强制停止绕过复制。完整交付未通过；优先建立退出与输出保存分别核验的协议。\n2026-11-07：沙箱终端强制关闭丢输出已接入独立受控导出、文件事务和持久发布证明，并修复并发沙箱共用PPID根目录。FS/S3实际新增、修改、删除及冲突验证通过；78条基础设施、3条数据库协议检查，0模型调用、0模拟LLM。持有者猝死/恢复、空目录、大批量及完整资源矩阵仍待。主线33/53、剩20；资源11/17、剩6。见[沙箱导出与剩余工作](sandbox-export-lifecycle.md)。\n2026-11-07（持久卷）：新沙箱改用固定128MiB ext4镜像，实际nobody写满、SIGKILL和FS/SQLite及S3/PostgreSQL的API猝死后只读读回通过；普通/强制关闭文件发布兼容通过。本轮45条实际基础设施、0模型和0模拟LLM。恢复API/界面、WSL重启、卷清理、目录/权限/大批量事务仍待；主线33/53、剩20，资源11/17、剩6。见[持久卷与实际猝死证据](sandbox-persistent-volume.md)。\n2026-11-07（恢复快照 API）：已实现独立持久恢复请求、状态/列表及 ZIP 下载；真实 FS/SQLite 和 S3/PostgreSQL API 猝死后读回文件、空目录、0600 权限，重启仍可下载，镜像不变，原项目未被覆盖。本轮33条实际基础设施、9条协议/故障、0真实模型和0模拟LLM。界面、确认写回冲突、旧会话收尾、清理及完整故障矩阵仍待。主线33/53、剩20，资源11/17、剩6。见[恢复快照 API](sandbox-recovery-api.md)。\n2026-11-07恢复界面增量：实际隔离浏览器30条断言通过，其中28条交互/基础设施和2条归档损坏故障；ZIP随机内容/空目录/0600/清单哈希一致，API重启后再次下载字节相同。真实LLM0、模拟LLM0。修复对话框焦点及关闭重开自动刷新。清理55个进程已退出，另1个Windows PID复用，出生时间证明原身份不存在。界面提供核验、创建、列表分页和下载；确认写回冲突、旧执行收尾、卷清理及完整资源矩阵继续。主线33/53、剩20；资源11/17、剩6；295项全功能最终验收仍待。\n2026-11-07（选中文件内容写回）：恢复界面已提供选择/筛选、预览新增与覆盖、显式确认、持久回执和同UUID重试。项目在预览后变化时整批拒绝，重复确认不覆盖后续编辑。FS与真实SeaweedFS各12项（合计16项基础设施、8项协议/故障）、真实浏览器20项通过；修复回执提交前重开后的查询衔接和横屏焦点遮挡。真实LLM0、模拟LLM0。本批仅写回文件内容；目录/权限/删除、caseDict、三方合并、大批量、旧执行收尾与清理继续。主线33/53、剩20，资源11/17、剩6，295项最终整项验收仍待。\n2026-11-07（旧沙箱收尾）：真实退出观察与已验证快照绑定独立持久凭证，封住旧终端/导出记录，保留未知退出码和原停止日志，解除算例校验阻塞；S3暂存仍阻止管理操作。FS/S3共12项基础设施、6项协议/故障，双库14项迁移协议，浏览器15条通过。新增2次真实DeepSeek推理、8,334 tokens，模型读回真实恢复文件；附带额外说明，严格格式仍未验收。模拟LLM0。主线33/53、剩20，资源11/17、剩6，295项最终整项验收仍待。\n2026-11-07（真实流式丢字修复/快照独立读取）：实际DeepSeek暴露平台1334字符只剩1220字符的异步消费竞态，已修复；两轮真实上游/SSE/持久化逐字一致，取消/断线后续聊通过。原镜像目录实际移走后，FS/S3快照下载和确认写回通过，S3真实模型读回通过。本轮11次真实推理，其中3次属于修复前失败场景、8次属于通过场景；已报告39808 tokens，两次取消/断开usage未知；模拟LLM0。自动清理仍待实现，主线33/53、剩20，资源11/17、剩6，295项最终整项验收仍待。\n2026-11-07（原始S3暂存清理）：已实现持久清理意图/回执、逐项核验删除、实际API删除中途退出后重试与界面确认；未知/变更文件阻止清理，快照及原镜像保留，成功后解除这份暂存的管理阻塞。新增3项实际基础设施、4项协议/故障和13项浏览器检查通过；清理后恢复文件由真实DeepSeek读取续答，2次真实调用8422 tokens，模拟0。原镜像、其他暂存/恢复副本清理和剩余故障矩阵未完成；主线33/53、剩20，资源11/17、剩6，295项最终验收继续。\n2026-11-07（暂存准备中断/并发取消）：清理意图改为先提交哈希，再写清单；只续写完整原暂存能重建出的已知前缀，未知字节不覆盖。9个实际API退出位置通过；SQLite/PostgreSQL两API竞争及连续取消3次，均先排空I/O再接续并只提交一次回执。新增14项实际基础设施、3项协议/故障检查，2次真实DeepSeek调用8397 tokens，模拟0；PG首次遗漏迁移失败保留，修复后复验通过。镜像/其他副本清理与全量资源边界继续，主线33/53、剩20，资源11/17、剩6，295项最终验收继续。\n2026-11-07（原镜像注册清理后端）：新增terminal.cleanup原生请求、固定外层gate核验与volume.ext4删除、持久意图/完成回执及恢复互斥。FS/S3真实删除、完整镜像哈希变更拒绝、实际flock/只读loop占用拒绝、元数据/快照保留通过；新增6项基础设施、6项协议/故障、双库12项schema检查。实际删除后真实DeepSeek读回恢复文件，2次调用8513 tokens，模拟0。清理者猝死独立对账和界面入口待完成。新迁移c6a1de7402ef仅隔离库验收，开发库未迁移；主线33/53、剩20，资源11/17、剩6，295项最终验收继续。\n2026-11-07（原镜像清理中断恢复及界面）：已登记清理者的实际所有者/子进程退出核验、独立对账凭证和原日志保留已实现；七处真实API退出、9项基础设施和1项证据故障检查通过。新增界面确认/断网重开只查询/显式重试，实际S3联动删除及13项镜像浏览器检查通过。本轮2次真实DeepSeek调用8580 tokens，模拟0；严格只回复字符串仍未通过。未登记身份窗口、PG/竞争/取消及原生定点故障等继续；主线33/53完成、剩20，资源11/17完成、剩6，295项最终验收目标保持。\n2026-11-07（清理启动观察与双库取消）：新增持久启动意图和created/host_ready/native_ready实际观察，created与native_ready之后API退出、未完成登记时的独立退出对账已通过；完全缺失出生观察或缺少WSL身份仍拒绝。SQLite/PostgreSQL双API竞争、连续三次取消、实际停止后接管和唯一回执通过；最终代码另复核PG。本轮真实DeepSeek4次、17092 tokens、模拟0，严格纯字符串格式仍未通过。未知WSL身份、PG启动对账、原生定点故障/权限/重启等继续；主线33/53完成、剩20，资源11/17完成、剩6，295项最终验收不缩减。\n2026-11-07（准备取消与存活API）：真实复现已终止请求被存活API误阻塞，新增terminal_request所有权隔离依据，仍要求已知子进程实际退出；修复准备取消后786432bytes节点预留残留。SQLite/PG最终代码各3项基础设施和1项证据故障检查通过，活动所有者双API回归5项通过。本轮真实DeepSeek4次16938 tokens，模拟0；首个验证脚本PID假设失败已单独保存。出生身份缺失和未知WSL窗口仍拒绝。主线33/53完成、剩20；资源11/17完成、剩6；295项最终验收目标保持。\n2026-11-16：沙箱初始清单在接受输入前登记摘要，恢复快照独立保留并验证该基线；新增三方文件比较、冲突保留和单事务批量新增/修改/删除。FS/SQLite与实际S3/SQLite均验证302项改动、并发冲突整批拒绝及重复确认保留后续编辑；FS另验证第二个文件应用后API实际退出、重启回滚与同确认重试。实际网页验证303项选择、冲突阻止确认、分页、关闭重开不重发及真实删除；390px深浅主题通过。共4次真实DeepSeek HTTP200，模拟0，原进程均核验退出。首轮初始权限字段缺失失败已保留。目录/类型/权限/caseDict完整恢复继续，不能据此关闭N4-05、FF-F58或FF-J16。见sandbox-file-changes.md。主线48/53、剩5，资源11/17、剩6，295目标保持。\n2026-11-16：caseDict 沙箱恢复接入原预览、确认和回执查询，复用专用语法/结构/阶段校验及文件事务。FS/SQLite 与实际 S3/SQLite 验证阶段拒绝、同内容新版本使预览失效、双方修改冲突、配置与两份历史和版本共同提交、重复确认保留后续编辑；FS 另在第二个实际日志文件应用后退出 API，重启完整回滚后同请求重试通过。实际网页验证旧预览拒绝、重新确认写入、版本与两份历史回读一致、关闭重开不重发及390px深浅主题。共4次真实DeepSeek HTTP200，模拟0；原进程13+7核验退出。见sandbox-dictionary-recovery.md；目录/类型/权限恢复和原组合验收继续。主线48/53剩5、资源11/17剩6，295交付状态保持。\n2026-11-16：目录树恢复已接入原预览/确认/回执，三方比较内容、目录、类型及Linux模式位。FS/SQLite与实际S3/SQLite均验证空目录、目录删除、双向类型互换、并发新增子文件保护和幂等；FS原子交换缺口与S3首对象实际写入后分别退出API，重启回滚及同请求重试通过。两种存储均在第二个真实Linux沙箱核对五组精确模式位。网页复现并修复父目录重新纳入冲突子文件，实际创建空目录、保留用户编辑、关闭重开不重发，390px深浅主题通过。共4次真实DeepSeek HTTP200，模拟0；FS24和S3 12个原进程身份核验不存在。见sandbox-tree-recovery.md。正常关闭导出、普通编辑后的权限延续、其他执行副本和原资源/宿主/数据库组合继续；主线48/53剩5、资源11/17剩6，295目标保持。\n2026-11-16：正常关闭沙箱复用目录树事务，完整发布空目录、删除、类型互换及Linux模式位；caseDict复用原校验，配置、两份历史及版本与导出共享提交，重复发布沿用原格式稳定回执。最终FS/SQLite和实际S3/SQLite各5组流程通过；各在第二个真实Linux沙箱核对四组模式位，实际并行编辑和未经确认的阶段变化均拒绝整批发布。终端复用已有有界额度等待。最终两轮共4次真实DeepSeek HTTP200，连同早一轮FS通过共6次，模拟0；最终各20个原进程身份已核验不存在。旧回执格式、测试空参数和S3额度暂忙失败均保留。见sandbox-normal-publication.md。普通编辑后的权限延续、其他执行副本及原资源/宿主/数据库组合继续；主线48/53剩5、资源11/17剩6，295目标保持。\n2026-11-16：普通文件保存将新摘要与原Linux模式位放入同一文件事务，删除重建不继承旧关联；配置和两份历史也接入，用户文件原数量及总量限额独立保留。FS/SQLite与实际S3/SQLite各完成4组编辑/故障检查及5组完整流程；普通文件实际应用后退出API（88），重启回滚后重新保存，在第二个真实Linux沙箱核对编辑内容、四组原模式位及重建文件默认777。每种存储2次真实DeepSeek HTTP200，合计4次、模拟0，各20个原进程身份核验不存在。见file-mode-continuity.md。其他执行副本/封存输入、Linux API宿主和原资源/数据库组合继续；主线48/53剩5、资源11/17剩6，295目标保持。\n2026-11-16：所选目录/文件的权限描述作为受摘要校验的内部文件纳入原封存、重试和S3冷恢复，工程handler保留原输入契约，S3空目录复用Cache.directories登记。FS/SQLite和实际S3/SQLite各3个真实作业验证四组模式位、空目录、改动当前文件后从原封存重试、类型化成果发布；S3另实际移出本地缓存后重建。每种存储2次真实DeepSeek HTTP200读取实际作业随机成果，共4次、模拟0；每轮20个终端原身份和6个Job根身份独立核验不存在。首轮S3未登记空目录失败保留。见attempt-mode-continuity.md。专用中间副本、Linux API宿主和原资源组合保持；下一阶段推进N4-07远端owner/worker关闭及恢复，不新增主线退出条件。主线48/53剩5、资源11/17剩6，295目标保持。"
     },
     {
@@ -13535,7 +13540,7 @@
       "work_package": "WP16",
       "domain": "J",
       "target_wave": "R6",
-      "delivery_status": "实施中｜Codex Docker 通过算例发布、冲突和强退副本保留，工作容器的 CPU、峰值内存与限额计数已接入停止回执，其他入口及部署矩阵继续",
+      "delivery_status": "实施中｜Docker CLI、Linux ParaView/Trame 和普通 PTY 已验内核用量；PTY 子进程合计、同 API 会话隔离、OOM 与停止回执通过",
       "required_work": "补 cgroup/配额/egress、并发 staging 和所有执行入口的每用户隔离与计量。",
       "acceptance_pack": "T10",
       "completion_rule": "全功能交付计划第 5 节及第 7 节",
@@ -13686,6 +13691,13 @@
         "file-mode-continuity.md",
         "attempt-mode-continuity.md",
         "FF-F58-docker-cli.md",
+        "../../tmp/f58-linux-compose-aix2j1_7/cli-compose-result.json",
+        "../../tmp/f58-linux-compose-5mnmfgn4/cli-compose-result.json",
+        "viz-load-acceptance.md",
+        "../server/linux_viz_compute_acceptance.py",
+        "../../tmp/j16-viz-compute-sb6fr85m/result.json",
+        "../server/linux_terminal_compute_acceptance.py",
+        "../../tmp/j16-pty-compute-m05we_sf/result.json",
         "../server/app/services/acp_case_files.py",
         "../server/app/services/codex_docker.py",
         "../server/app/services/codex_docker_stage.py",
@@ -13848,7 +13860,7 @@
       "work_package": "WP16",
       "domain": "J",
       "target_wave": "R6",
-      "delivery_status": "实施中｜同宿主 Linux 50 账号混合功能及退出复验通过，REST 已实测；最终混合首段正文 p95 14.54 秒、拖动 p95 310.6 ms，性能目标继续验收",
+      "delivery_status": "实施中｜50 账号混合功能和停止复验通过，REST 成功率 100%；首段正文 p95 13.18 秒、匹配拖动完成帧 p95 331.0 ms，性能目标继续验收",
       "required_work": "完成 50 用户混合 REST/PTY/viz/Agent/作业及安全/逃逸/egress 验收。REST 记录延迟与成功率，核对 SSE 和可视化性能预算。",
       "acceptance_pack": "T10",
       "completion_rule": "全功能交付计划第 5 节及第 7 节",
@@ -13899,7 +13911,9 @@
         "../../tmp/ff-j21-mixed-20261125/mixed-50-functional.json",
         "../../tmp/ff-j21-mixed-20261125/mixed-50.json",
         "../../tmp/ff-j21-mixed-20261125/phase-review.json",
-        "../../tmp/ff-j21-rest-20261124/linux-postgresql-steady-k6-10-timings-native-app.json"
+        "../../tmp/ff-j21-rest-20261124/linux-postgresql-steady-k6-10-timings-native-app.json",
+        "../server/mixed_load_test_support.py",
+        "../../tmp/ff-j21-mixed-5j242rlx/mixed-50.json"
       ],
       "completed": false
     },

@@ -397,7 +397,7 @@ async def terminal_ws(ws: WebSocket, cols: int = 80, rows: int = 24,
         detail=error.detail if isinstance(error,HTTPException) else error.detail()
         reason=detail.get('code') if isinstance(detail,dict) else None
         message=detail.get('message',str(detail)) if isinstance(detail,dict) else str(detail)
-        if reason in {'terminal_disk_limit','terminal_disk_unverified'}:
+        if reason and reason.startswith('terminal_') and reason.removeprefix('terminal_') in RESOURCE_LIMIT_MESSAGES:
             await ws.send_json({'type':'error','code':'terminal_resource_limit','reason':reason.removeprefix('terminal_'),
                                 'message':message,'status':409})
             await ws.close(code=1013)

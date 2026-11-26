@@ -25,10 +25,14 @@ TAIL_BYTES=256*1024
 
 def profile(value,case_id):
     fields={'terminal','distro','code','source_prefix','staging_prefix'}
-    if not isinstance(value,dict) or set(value) not in (fields,fields|{'credential'}):
+    if not isinstance(value,dict) or set(value)-{'credential','linux_compute_policy'}!=fields:
         raise ValueError('Invalid terminal ownership profile')
     settings=protocol.validate(value['terminal'])
     linux_host=settings['command']==list(protocol.LINUX_SHELL)
+    if 'linux_compute_policy' in value:
+        from .native_compute_v1 import validate_policy
+        if not linux_host or not any(validate_policy(value['linux_compute_policy']).values()):
+            raise ValueError('Terminal compute policy requires a Linux host shell and a limit')
     if 'credential' in value:
         from .terminal_credentials import validate
         validate(value['credential'])
@@ -87,7 +91,7 @@ def document(row):
     if stop=={}:stop=None
     if stop is not None:
         if root is None:raise ValueError('Terminal cleanup has no recorded root')
-        process_stop.validate(stop,root)
+        process_stop.validate(stop,root,linux_compute_policy=selected.get('linux_compute_policy'))
     if row.phase=='active' and (root is None or gate is None):raise ValueError('Active terminal has no registered gate')
     if row.phase=='closed' and (gate is None or stop is None or stop['verified'] is not True or row.error is not None):raise ValueError('Closed terminal lacks verified cleanup')
     if len(row.tail_text.encode('utf8'))>TAIL_BYTES:raise ValueError('Terminal tail exceeds its bound')
@@ -194,7 +198,7 @@ async def complete(owner,root,stop,*,tail='',exit_code=None,error=None,export=No
             journal['root']=root
         if stop is not None:
             if root is None:raise ValueError('Terminal cleanup has no actual root')
-            process_stop.validate(stop,root)
+            process_stop.validate(stop,root,linux_compute_policy=json.loads(row.profile_json).get('linux_compute_policy'))
         if error is None and (stop is None or stop['verified'] is not True):raise ExecutionConflict('evidence_invalid','Terminal has no verified cleanup')
         if error is not None and (not isinstance(error,str) or not re.fullmatch('[A-Za-z][A-Za-z0-9_]{0,79}',error)):raise ValueError('Invalid terminal error category')
         if exit_code is not None:

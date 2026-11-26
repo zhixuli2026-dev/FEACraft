@@ -10,8 +10,11 @@ FIELDS={'schema','launch_nonce','reason','grace_ms','request_sent','forced','sco
 CONTROL={'schema','nonce','role','stop_received','grace_forwarded','forced','exit_code'}
 
 
-def validate(value,identity):
-    if not isinstance(value,dict) or set(value) not in (FIELDS,FIELDS|{'scope_observation'}) or value['schema']!='vibeflow.process-stop.v1':
+def validate(value,identity,*,linux_compute_policy=None):
+    optional = {'scope_observation'}
+    if linux_compute_policy is not None:
+        optional.add('linux_compute_usage')
+    if not isinstance(value,dict) or set(value)-optional != FIELDS or value['schema']!='vibeflow.process-stop.v1':
         raise ValueError('Invalid process cleanup evidence')
     if value['launch_nonce']!=identity['launch_nonce'] or value['reason'] not in REASONS:
         raise ValueError('Cleanup belongs to another launch')
@@ -67,6 +70,15 @@ def validate(value,identity):
             or (identity['native'] is not None and value['native_state']!='exited')
             or (value['root_exit_code']==0 and (not value['control_valid'] or roles!=allowed))):
         raise ValueError('Cleanup verification lacks exit proof')
+    if linux_compute_policy is not None:
+        usage = value.get('linux_compute_usage')
+        if 'linux_compute_usage' in value:
+            from .linux_gate_compute import validate_report
+            if not identity.get('namespace_init') or not value['verified']:
+                raise ValueError('Linux compute usage requires a verified Linux scope')
+            validate_report(usage, identity['launch_nonce'], linux_compute_policy)
+        if value['reason'] in {'cpu_limit','memory_limit'} and (usage is None or usage['violation'] != value['reason']):
+            raise ValueError('Compute quota outcome differs from measured usage')
     return value
 
 

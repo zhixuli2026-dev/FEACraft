@@ -63,3 +63,20 @@ Node 安装包可通过 `fetch_node.py --archive PATH` 复用，始终校验官�
 - [最终部署与历史成果校验](../../tmp/linux-node-cli-20261118/deployment-result-v3.json)
 
 主线暂为 49/53、剩 4 项，资源预算 11/17、剩 6 项，全功能 2/295、剩 293 项。随后逐项核对原交付条件与已有证据，满足整项条件后再关闭；不会把其他功能的范围附加到已交付子功能上。
+
+## Linux Compose 内的隔离 CLI
+
+`docker-compose.docker-cli.yml` 可在单 API 部署中启用 Codex、Kimi 和 OpenCode 的 Docker 执行。API 是管理容器生命周期的可信进程，通过 Linux Docker 客户端访问同节点引擎。工作容器以 UID 65534 运行，根文件系统只读，网络为 `none`，同时沿用 CPU、内存和进程上限。模型请求经该回合的中继用账户自己的授权配置连接 DeepSeek。 [Compose 覆盖文件](../infra/docker-compose.docker-cli.yml) · [工作容器参数](../server/app/services/docker_cli_profile.py)
+
+受信任的 API 服务使用 Linux 引擎宿主的 PID 命名空间登记执行者。API 强制退出时，重启后的服务可检查原始进程是否真正退出。CLI 工作容器各自使用隔离的 PID 命名空间。已有部署按正常停机流程结束活动回合后，再切换 Compose 配方，使新回合登记宿主实际 PID。 [退出身份证明](../../tmp/ff-f58-crash-20261126/pid-namespace-probe.json)
+
+在 Linux API 宿主上准备供该部署使用的私有目录，权限设为 `0700`。API 和引擎使用同一个绝对路径，因此工作容器可以绑定存放在该目录内的特定算例副本。目录应位于公开算例数据之外。将绝对路径填入 `VIBEFLOW_DOCKER_CLI_STATE_DIR`，将可在 API 镜像运行的 Linux Docker 可执行文件填入 `VIBEFLOW_DOCKER_CLI_CLIENT`。`VIBEFLOW_DOCKER_CLI_SOCKET` 默认是 `/var/run/docker.sock`，API 持有该引擎的容器管理权限。 [环境示例](../infra/.env.example)
+
+从 `platform` 目录用同版源码和已有 Node CLI 工具层构建工作镜像。镜像包含启动器和 ACP 配置，容器内的 API 可以跨自身文件系统直接启动它。将镜像标签填入 `VIBEFLOW_ACP_DOCKER_IMAGE`，给 `VIBEFLOW_ACP_DOCKER_DEPLOYMENT` 分配部署专属 UUID，重启时沿用。CLI 状态卷按部署、账户和线程绑定，同一镜像和引擎保有原生续聊身份。 [工作镜像](../infra/Dockerfile.docker-cli-worker)
+
+```bash
+docker build --build-arg CLI_IMAGE=vibeflow/api:node-cli -t vibeflow/cli-worker:local -f infra/Dockerfile.docker-cli-worker .
+docker compose --env-file infra/.env -f infra/docker-compose.prod.yml -f infra/docker-compose.docker-cli.yml config --quiet
+```
+
+将同一组 Compose 文件用于 API 构建、迁移和启动。正式 API 中，Kimi 和 OpenCode 沿用 ACP 回合路由，Codex 使用 `runtime=docker` 的原生会话路由。备份私有目录、提供方密钥及需恢复的 CLI 状态卷。 [生产启动步骤](deployment.md) · [功能验收](FF-F58-docker-cli.md)

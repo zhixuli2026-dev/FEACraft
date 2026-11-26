@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 import time
 
 from ..config import get_settings
@@ -23,6 +24,9 @@ RESOURCE_LIMIT_MESSAGES={
     'log_limit':'可视化会话已达到累计输出限额',
     'disk_limit':'可视化工作目录用量或所在卷可用空间已达到限制',
     'disk_unverified':'无法核验可视化工作目录的磁盘用量',
+    'cpu_limit':'可视化会话已达到累计 CPU 限额',
+    'memory_limit':'可视化会话已达到内存限额',
+    'compute_unverified':'无法启用可视化会话的 Linux 内核额度',
 }
 
 
@@ -38,6 +42,12 @@ class VizSession:
         self.port_reservation=None
         self._budget=None;self._storage_task=None
         settings=get_settings()
+        if sys.platform == 'linux':
+            policy = {'cpu_limit_ns': settings.viz_session_linux_cpu_limit_seconds * 1_000_000_000,
+                      'memory_limit_bytes': settings.viz_session_linux_memory_limit_mb * 1024**2}
+            if any(policy.values()):
+                self.selected['linux_compute_policy'] = policy
+                self.owned.linux_compute_policy = policy
         self._lifetime=settings.viz_session_lifetime_seconds
         output_limit=settings.viz_session_max_output_bytes
         workspace_limit=settings.viz_session_workspace_limit_mb
@@ -68,6 +78,12 @@ class VizSession:
             raise ValueError('Visualization implementation changed before launch')
 
     async def allocate(self,*,db=None):
+        if self.owned.linux_compute_policy is not None:
+            from .linux_gate_compute import check_available
+            try:
+                await asyncio.to_thread(check_available, self.owned.linux_compute_policy)
+            except (OSError, ValueError) as error:
+                raise CaseWriteConflict('viz_compute_unverified', RESOURCE_LIMIT_MESSAGES['compute_unverified']) from error
         async def work():
             self.owner=await records.create(self.case_id,self.user_id,self.selected,db=db);self.id=self.owner.id
             if self.on_allocated is not None:self.on_allocated(self)
@@ -97,8 +113,16 @@ class VizSession:
             mesa_dir = env.get('VIBEFLOW_VTK_OSMESA_DIR')
             if os.name != 'nt' and self.selected.get('engine') != 'paraview' and mesa_dir:
                 env['LD_LIBRARY_PATH'] = os.pathsep.join(filter(None, (mesa_dir, env.get('LD_LIBRARY_PATH'))))
-            await self.owned.prepare(argv,cwd=self.selected['case_root'],env=env,runtime='windows')
-            await records.register_root(self.owner,self.owned.record)
+            if self.owned.linux_compute_policy is not None:
+                self.owned.on_namespace = lambda root, _init: records.register_root(self.owner, root)
+            try:
+                await self.owned.prepare(argv,cwd=self.selected['case_root'],env=env,runtime='windows')
+            except Exception as error:
+                if self.owned.on_namespace is not None and self.owned.namespace_init is None:
+                    raise CaseWriteConflict('viz_compute_unverified', RESOURCE_LIMIT_MESSAGES['compute_unverified']) from error
+                raise
+            if self.owned.on_namespace is None:
+                await records.register_root(self.owner,self.owned.record)
             await reauthorize();await records.released(self.owner);await asyncio.to_thread(self.verify_code)
             if self._budget is not None and self._budget.storage_watch is not None:
                 await self._budget.storage_watch.sample();self._budget.check()
@@ -122,8 +146,12 @@ class VizSession:
             # join target first so it cannot join the task awaiting itself.
             self._startup_task=None
             limit=self._budget.violation if isinstance(error,BudgetExceeded) else None
+            if isinstance(error,CaseWriteConflict) and error.code=='viz_compute_unverified':limit='compute_unverified'
             try:await finish_before_cancel(self.close(limit or 'executor_error',error=RESOURCE_LIMIT_ERROR if limit else type(error).__name__))
             except BaseException as cleanup_error:error.add_note('Visualization startup cleanup: '+type(cleanup_error).__name__)
+            usage=self.owned.linux_compute_usage
+            if limit is None and self.cleanup_verified and usage:
+                limit=usage['violation']
             if limit is not None:
                 raise CaseWriteConflict('viz_'+limit,RESOURCE_LIMIT_MESSAGES[limit]) from error
             raise
@@ -253,6 +281,12 @@ class VizSession:
             except BaseException as cleanup_error:
                 stop=self.owned.stop_result;failure=failure or type(cleanup_error).__name__
             self.cleanup_verified=stop.get('verified') if stop is not None else None
+            usage=self.owned.linux_compute_usage
+            if self.cleanup_verified and usage is not None:
+                stop['linux_compute_usage']=usage
+                if reason in {'root_exit','executor_error'} and usage['violation']:
+                    stop['reason']=usage['violation']
+                    failure=RESOURCE_LIMIT_ERROR
             if self.cleanup_verified is True:self.alive=False
             elif self.owned.proc is not None:failure=failure or 'RuntimeError'
             if self._pump_task is not None:

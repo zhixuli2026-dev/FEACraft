@@ -49,12 +49,16 @@ class Settings(BaseSettings):
     viz_session_lifetime_seconds: float = Field(default=0, ge=0, le=30*86400)
     viz_session_max_output_bytes: int = Field(default=0, ge=0, le=2**63-1)
     viz_session_workspace_limit_mb: int = Field(default=0, ge=0)
+    viz_session_linux_cpu_limit_seconds: int = Field(default=0, ge=0, le=86400)
+    viz_session_linux_memory_limit_mb: int = Field(default=0, ge=0, le=1024*1024)
     viz_owner_routes: dict[str, str] = Field(default_factory=dict)  # API hostname -> private API origin.
     terminal_owner_routes: dict[str, str] = Field(default_factory=dict)
     terminal_prepare_timeout_seconds: float = Field(default=300, ge=.1, le=3600)
     terminal_session_lifetime_seconds: float = Field(default=0, ge=0, le=30*86400)
     terminal_session_max_output_bytes: int = Field(default=0, ge=0, le=2**63-1)
     terminal_session_workspace_limit_mb: int = Field(default=0, ge=0)
+    terminal_session_linux_cpu_limit_seconds: int = Field(default=0, ge=0, le=86400)
+    terminal_session_linux_memory_limit_mb: int = Field(default=0, ge=0, le=1024*1024)
     codex_concurrent_sessions: int = Field(default=4, ge=1, le=128)
     codex_session_lifetime_seconds: float = Field(default=0, ge=0, le=30*86400)
     codex_session_max_output_bytes: int = Field(default=0, ge=0, le=2**63-1)
@@ -112,11 +116,14 @@ class Settings(BaseSettings):
     codex_wsl_state_root: str = ""  # Native Linux filesystem directory, provisioned for the non-root worker.
     acp_docker_image: str = ""  # Local, operator-selected image containing Linux ACP harnesses.
     acp_docker_deployment: str = ""  # Stable UUID for this deployment's Docker state volumes.
+    acp_docker_entrypoints_in_image: bool = False
 
     @model_validator(mode='after')
     def validate_acp_docker(self):
         if bool(self.acp_docker_image) != bool(self.acp_docker_deployment):
             raise ValueError('Docker ACP requires an image and a stable deployment UUID')
+        if self.acp_docker_entrypoints_in_image and not self.acp_docker_image:
+            raise ValueError('Packaged Docker CLI entrypoints require a configured image')
         if self.acp_docker_deployment:
             from uuid import UUID
             if self.acp_docker_image.startswith('-') or any(c.isspace() for c in self.acp_docker_image):

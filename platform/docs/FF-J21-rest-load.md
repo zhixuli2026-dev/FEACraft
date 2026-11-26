@@ -128,3 +128,11 @@ Windows API 换用独立 PostgreSQL 后，49 次实际 DeepSeek HTTP 200，29 �
 ```powershell
 & platform/server/.venv/Scripts/python.exe -B -u platform/server/live_llm_j21_mixed_acceptance.py --source-profile-id 26 --users 50 --k6 tmp/ff-j21-rest-20261124/k6-linux-amd64 --small-grid tmp/FF-D01-native-viewport-20261123/sample.vtp --large-grid tmp/FF-D22-viz-load-20261123/million-cells.vtp
 ```
+
+## 2026-11-26 混合负载完成帧复验
+
+隔离的渲染观察器给每次实际鼠标移动登记序号。客户端等到移动确认和同序号的 480×360 完整 JPEG 后才认定样本有效，计时截止到收到完整图像通知。上一移动的帧和编码仍在进行时的发布会被跳过。上方三轮的拖动数据按各自原口径保留。 [验收入口](../server/live_llm_j21_mixed_acceptance.py) · [观察与匹配实现](../server/mixed_load_test_support.py)
+
+50 用户实测完成 600/600 次 REST 和业务检查、50/50 个真实 DeepSeek 回合、两轮各 50 条 PTY 命令和两轮各 50 张匹配完成帧。REST p95 为 4,018.2 ms，成功率 100%。首段正文 p95 为 13,182.5 ms，首轮拖动完成帧 p95 为 331.0 ms，上游请求期间拖动完成帧 p95 为 368.9 ms。13 次上游调用与后一轮共同活动窗口重叠。50 次真实 `deepseek-flash` 推理均返回 HTTP 200，模拟 0 次。SSE 2,000 ms 和拖动 200 ms 继续验收。 [混合回执](../../tmp/ff-j21-mixed-5j242rlx/mixed-50.json)
+
+100 条会话停止证明齐全，隔离容器、数据卷和网络已经移除，原 11 个 Docker 容器 ID 逐项一致。C 盘可用从 39,827,193,856 B 变为 39,825,453,056 B。使用现有镜像，Docker 构建缓存回收 0 B。 [磁盘回执](../../tmp/ff-d22-phase-20261126/mixed-disk-after.json) · [Docker 占用](../../tmp/ff-d22-phase-20261126/docker-after.txt)

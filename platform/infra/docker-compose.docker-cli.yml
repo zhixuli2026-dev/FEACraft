@@ -1,0 +1,29 @@
+# Opt-in control service for a trusted Docker engine with a local shared filesystem.
+services:
+  api:
+    # Recovery checks the exact API process birth in the engine host's /proc.
+    pid: host
+    environment:
+      VIBEFLOW_ACP_DOCKER_IMAGE: ${VIBEFLOW_ACP_DOCKER_IMAGE:?Set the packaged CLI worker image}
+      VIBEFLOW_ACP_DOCKER_DEPLOYMENT: ${VIBEFLOW_ACP_DOCKER_DEPLOYMENT:?Set a stable deployment UUID}
+      VIBEFLOW_ACP_DOCKER_ENTRYPOINTS_IN_IMAGE: "true"
+      VIBEFLOW_CODEX_STATE_ROOT: ${VIBEFLOW_DOCKER_CLI_STATE_DIR:?Set the absolute private host directory}
+      DOCKER_HOST: unix:///var/run/docker.sock
+    volumes:
+      - type: bind
+        source: ${VIBEFLOW_DOCKER_CLI_STATE_DIR:?Set the absolute private host directory}
+        target: ${VIBEFLOW_DOCKER_CLI_STATE_DIR:?Set the absolute private host directory}
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${VIBEFLOW_DOCKER_CLI_CLIENT:?Set the absolute path to the Linux Docker executable}
+        target: /usr/local/bin/docker
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${VIBEFLOW_DOCKER_CLI_SOCKET:-/var/run/docker.sock}
+        target: /var/run/docker.sock
+        read_only: true
+        bind:
+          create_host_path: false

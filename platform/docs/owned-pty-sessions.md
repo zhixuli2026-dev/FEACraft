@@ -55,3 +55,11 @@ API 猝死时由所属 OS 范围清理进程。新 API 对原活跃记录只读�
 [terminal_staging_smoke.py](../server/terminal_staging_smoke.py) 用真实终端与可控 S3 适配层验证同步成功清理、远端冲突、case 不可写／来源重绑、原生已退出但同步待提交、临时及持续目录锁、清理副本禁止重传、复制完成后取消及选择提交失败；没有据此宣称真实远端 S3 服务验收。已有多会话和线程池隔离脚本继续通过隔离 API 验证，保留旧默认线程池规模的 12 个 PTY 后仍可编译真实 LaTeX 的断言（脚本上限 32）。共享启动门、进程树、请求基础、runtime 能力、core 和前端构建结果以本批 `tmp/mainline-N4-pty-evidence/` 通过记录为准；开发库没有迁移或重载。
 
 实现：[路由](../server/app/routers/terminal.py)、[会话生命周期](../server/app/services/terminal_sessions.py)、[持久台账](../server/app/services/terminal_records.py)、[所属交互传输](../server/app/services/owned_terminal.py)、[交互桥](../server/app/services/terminal_bridge.py)、[PTY gate](../server/app/services/terminal_pty_gate.py)、[原生身份映射](../server/app/services/terminal_identity_probe.py)、[迁移](../server/migrations/versions/b53a10c4f9d6_native_terminal_sessions.py)。
+
+## Linux PTY 内核额度
+
+Linux 普通终端可以配置单会话累计 CPU 与内存额度。API 先核对私有 cgroup v1 控制器，冻结当前额度并登记 PID 命名空间，再经原有 PTY gate 放行交互 Shell。终端及其子进程累计计量。达到 CPU 或内存额度时，WebSocket 返回 `terminal_resource_limit` 和相应原因，历史保留验证过的退出及用量 `stop.linux_compute_usage`。 [部署配置](deployment.md#可视化会话内核额度) · [实测入口](../server/linux_terminal_compute_acceptance.py)
+
+2026-11-26 在本机 Docker Linux、私有 cgroup v1 与实际 PostgreSQL 上验收。通过正式 WebSocket 输入命令，实测两个后台 Python 子进程加入同一终端的 CPU 计量组。累计 **1.023 秒**触发 1 秒额度，整个进程范围经核实为空。同一 API 上的另一账户仍能执行命令，窗口调整后 `stty` 返回 29 行、93 列，主动关闭后对端 API 读回一致的用量回执。其他账户访问负载会话返回 404。 [最终回执](../../tmp/j16-pty-compute-m05we_sf/result.json)
+
+在 64 MiB 额度内执行 160 MiB 分配，内核记录一次 OOM，峰值 67,108,864 字节，终端收到 `memory_limit`。默认配置完成实际输入和正常关闭。无控制器挂载权限的实例返回 `compute_unverified`，会话记录为零。四条退出回执均核验通过，临时控制组与 PTY 进程归零，原 11 个 Docker 服务标识一致。模型调用 0 次。

@@ -13,6 +13,7 @@ import subprocess
 import sys
 from uuid import UUID, uuid5
 
+from ..config import get_settings
 from . import acp_case_files, docker_cli_usage
 from .async_ops import finish_before_cancel
 from .docker_cli_profile import container_flags
@@ -120,9 +121,12 @@ def binding(source, target, *, readonly=False):
 
 
 def entry(image, mode):
+    launcher = ['--entrypoint','python',image,'-I','-u','/vf-runtime/entry.py',mode]
+    if get_settings().acp_docker_entrypoints_in_image:
+        return launcher
     worker = binding(ROOT/'docker_acp_entry.py', '/vf-runtime/entry.py', readonly=True)
     config = binding(ROOT/'acp_configuration.py', '/vf-runtime/acp_configuration.py', readonly=True)
-    return ['--mount',worker,'--mount',config,'--entrypoint','python',image,'-I','-u','/vf-runtime/entry.py',mode]
+    return ['--mount',worker,'--mount',config,*launcher]
 
 
 class ScopeTransport:
@@ -291,6 +295,10 @@ class Transport(ScopeTransport):
         self.input_dir, self.inputs = input_dir, inputs or {}
 
     async def prepare(self):
+        if os.name == 'posix' and self.thread.allow_drafts:
+            # Only the workspace is mounted. Its parent restricts host-side access.
+            self.cwd.parent.chmod(0o700)
+            self.cwd.chmod(0o777)
         mounts = ['--mount',binding(self.cwd, '/workspace', readonly=not self.thread.allow_drafts)]
         if self.inputs:
             await finish_before_cancel(asyncio.to_thread(acp_case_files.stage, self.input_dir, self.inputs))

@@ -13,6 +13,7 @@ from sqlalchemy import or_, select, update
 from ..db import SessionLocal
 from ..models import NativeVizSession
 from . import process_identity_native as identity,process_record,process_stop
+from .native_compute_v1 import validate_policy
 from .durable_events import now,json_text
 from .native_request_records import Owner
 from .terminal_records import verify_root
@@ -31,7 +32,9 @@ def digest(value):return hashlib.sha256(json_text(value).encode('utf8')).hexdige
 
 def profile(value):
     keys={'nonce','python','case_root','source_prefix','staging_prefix','run_dir','file_path','input_path','input_fingerprint','port','code'}
-    if not isinstance(value,dict) or set(value) not in (keys,keys|{'engine'}):raise ValueError('Invalid visualization profile')
+    if not isinstance(value,dict) or set(value)-{'engine','linux_compute_policy'}!=keys:raise ValueError('Invalid visualization profile')
+    if 'linux_compute_policy' in value and not any(validate_policy(value['linux_compute_policy']).values()):
+        raise ValueError('Visualization compute policy requires a limit')
     engine=value.get('engine','trame')
     if engine not in ('trame','paraview'):raise ValueError('Invalid visualization engine')
     if not isinstance(value['nonce'],str) or not re.fullmatch('[0-9a-f]{64}',value['nonce']):raise ValueError('Invalid visualization nonce')
@@ -82,7 +85,7 @@ def document(row):
         if ready['process']['platform']!=root['host']['platform']:raise ValueError('Visualization readiness crosses its runtime')
     if stop is not None:
         if root is None:raise ValueError('Visualization cleanup has no root')
-        process_stop.validate(stop,root)
+        process_stop.validate(stop,root,linux_compute_policy=selected.get('linux_compute_policy'))
     if row.phase=='active' and (root is None or ready is None):raise ValueError('Active visualization has no ready owned kernel')
     if row.phase=='closed' and (ready is None or stop is None or stop['verified'] is not True or row.error is not None):raise ValueError('Closed visualization lacks verified cleanup')
     return selected,root,ready,stop
@@ -153,14 +156,14 @@ async def heartbeat(owner,last_activity):
 
 async def complete(owner,root,stop,*,error=None,exit_code=None,last_activity):
     async with SessionLocal() as db:
-        row=await current(db,owner);_,previous,_,_=document(row)
+        row=await current(db,owner);selected,previous,_,_=document(row)
         if root is not None:
             process_record.validate(root,bound=False)
             if previous is not None and previous!=root:raise ValueError('Visualization cleanup changed its registered root')
             row.process_json=json_text(root)
         if stop is not None:
             if root is None:raise ValueError('Visualization cleanup has no actual root')
-            process_stop.validate(stop,root)
+            process_stop.validate(stop,root,linux_compute_policy=selected.get('linux_compute_policy'))
         if error is None and (stop is None or stop['verified'] is not True):raise ValueError('Visualization has no verified cleanup')
         if error is not None and (not isinstance(error,str) or not re.fullmatch('[A-Za-z][A-Za-z0-9_]{0,79}',error)):raise ValueError('Invalid visualization error category')
         if exit_code is not None:

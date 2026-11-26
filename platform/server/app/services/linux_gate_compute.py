@@ -60,6 +60,15 @@ def selected(encoded):
     return value,api
 
 
+def check_available(policy):
+    """Reject an unavailable controller before reserving an interactive session."""
+    status = Path('/proc/self/status').read_text(encoding='ascii').splitlines()
+    effective = next((int(line.split()[1], 16) for line in status if line.startswith('CapEff:')), 0)
+    if os.geteuid() != 0 or not effective & (1 << 21):  # CAP_SYS_ADMIN for the private controller mounts.
+        raise OSError('Linux compute requires the trusted root mount capability')
+    selected(selection(policy))
+
+
 def _membership(encoded):
     if len(encoded) > 4096:
         raise ValueError('Linux compute membership exceeds its bound')

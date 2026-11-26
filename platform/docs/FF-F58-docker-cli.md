@@ -103,3 +103,23 @@ CLI 关闭输入前读取所属工作容器的 cgroup CPU 累计用量、内存�
 上述 Codex 最终复验的持久化会话中，有 7 条停止回执同时保存了实际 cgroup 读数。
 
 Kimi 与 OpenCode 在同一 Docker 镜像及实际 RustFS 上分别完成算例读取、原生线程恢复、退出核验和后续回合。ACP 接口返回 6 份采样，逐条与持久化停止回执中的工作容器 ID 和用量一致。共记录 11 次真实 `deepseek-flash` HTTP 200，模型模拟 0 次。原 11 个 Docker 服务的容器 ID 一致，清理可再生成的 Docker 构建缓存回收 0 B，C 盘阶段结束可用 39,901,700,096 字节。原始模型和用量回执位于 `tmp/docker-acp-api-k3jcvll8/docker-acp-api-result.json`，磁盘与 Docker 记录位于 `tmp/ff-f58-codex-rustfs-edge-20261126/`。
+
+## 2026-11-26 Linux 生产 Compose
+
+在 Docker Desktop 的 Linux 引擎上，以生产 Compose、PostgreSQL 和 Linux 文件系统启动隔离 API。新的可选配方将私有状态目录以相同绝对路径提供给 API 和引擎，工作镜像自带启动器和 ACP 配置。此前在实际 Linux 文件系统复现了 UID 65534 可以读取 `0755` 工作区但无法写入。现在可写 ACP 工作区的直属父目录设置为 `0700`，容器获得其下可写工作区及单独的只读算例输入。 [部署步骤](linux-node-cli-deployment.md#linux-compose-内的隔离-cli) · [权限复现](../../tmp/ff-f58-linux-daemon-20261126/posix-mode-baseline.json)
+
+- Kimi 与 OpenCode 从正式 API 启动，通过实际工具读取挂载的算例标识。其他账户读回合返回 404。API 重启后，两种 CLI 分别在新的容器中继续原线程，回答原标识。
+- Kimi 审批前草稿未生成，其他账户批准返回 404。本人重复批准返回同一决定。实际容器以 UID 65534 写入草稿，正式算例经发布 API 更新。检查工作容器的无网络、只读根文件系统、768 MiB 内存和 64 PID 上限。
+- Codex 通过 `runtime=docker` 执行实际 shell 复制，正常退出后按原工作副本流程发布。六份停止回执均绑定真实工作容器 ID，含 cgroup CPU 累计用量与内存峰值，工作和中继容器逐一确认移除。
+
+该轮六个回合共 11 次真实 `deepseek-flash` HTTP 200，11 次均读到响应结束，模拟 0 次。早期脚本分别因审批事件分页和重启后的临时端口变化退出，游标轮询和重读实际端口后完整复验通过。隔离存储卷和网络已清理，原 11 个容器身份一致。C 盘可用从 39,823,982,592 B 变为 39,818,756,096 B。Docker 构建缓存约 5.857 GB，本轮回收 0 B。 [回执](../../tmp/f58-linux-compose-aix2j1_7/cli-compose-result.json) · [验收入口](../server/live_llm_docker_cli_compose_acceptance.py) · [Docker 占用](../../tmp/ff-f58-linux-daemon-20261126/docker-after.txt)
+
+## 并发暂存及 Linux API 强退恢复
+
+两条 Codex 会话从同一算例并行准备工作副本，初始共享文件相同，两个真实回合各以不同输入更新共享文件及各自独立的文件。一个批次完整发布。另一批次报告写回冲突，两份改动仍可在私有暂存区读取，独立文件未出现在正式算例。其他账户访问暂存区返回 404。
+
+默认容器 PID 命名空间中，API 重启后 PID 1 被新的进程占用，原进程核验返回身份变化。Docker CLI 配方采用宿主 PID 命名空间登记可信 API，工作容器仍使用各自的 PID 命名空间。真实故障测试让 Kimi 等待草稿批准，同时 Codex 已写入副本但尚未发布，再用 `SIGKILL` 将 API 进程终止为退出码 137。重启后逐个核对四个原工作和中继容器均已删除。未批准草稿未生成，Codex 私有改动可读，正式算例没有该文件，回合对账可重复提交。 [原进程核验对照](../../tmp/ff-f58-crash-20261126/pid-namespace-probe.json) · [故障验收回执](../../tmp/f58-linux-compose-5mnmfgn4/cli-compose-result.json)
+
+Kimi 在新工作容器恢复原生线程。Codex 对中断后无法对账的原生历史返回 `input_stale`，该请求未发起推理。由原回合提问建立文字交接后，新容器创建新线程，并用真实模型准确回复交接文本内的随机标识。最终轮 12 个实际回合的容器退出得到核验，其中 10 份停止回执记录了 cgroup 采样，两份强退回执对应已退出的工作容器。21 次真实 `deepseek-flash` 请求均为完整 HTTP 200，模拟 0 次。隔离卷和网络已清理，原 11 个服务完整容器 ID 一致。Docker 缓存回收 0 B。 [磁盘回执](../../tmp/ff-f58-crash-20261126/disk-after.json) · [Docker 占用](../../tmp/ff-f58-crash-20261126/docker-after.txt)
+
+FF-F58 按 T08 验收完成。范围覆盖 Codex、Kimi 和 OpenCode 的正式 Docker CLI 路由及对应工作台，账户私有原生状态、受限出站、审批与会话记录、并发整批发布和中断恢复均有实测。实际 Edge 和 RustFS 的工作台及发布回执见上文。FF-J16 继续验收其他执行入口的隔离及用量。 [部署及切换](linux-node-cli-deployment.md#linux-compose-内的隔离-cli)
