@@ -53,9 +53,9 @@ def limit_message(observation):
 
 
 class Watch:
-    def __init__(self,budget,root,*,allow_missing=False,scope='execution'):
+    def __init__(self,budget,root,*,allow_missing=False,scope='execution',base=None):
         self.budget=budget;self.root=Path(root)
-        self.base=storage._fs_root().resolve()
+        self.base=storage._fs_root().resolve() if base is None else Path(base)
         self.relative=self.root.relative_to(self.base).as_posix()
         self.identity=None;self.allow_missing=allow_missing
         self.lock=asyncio.Lock()
@@ -158,6 +158,8 @@ class Watch:
     async def run(self):
         while not self.budget.committed and self.budget.violation is None:
             await self.sample()
+            if self.budget.violation is not None:
+                break
             await asyncio.sleep(get_settings().execution_storage_poll_seconds)
 
 

@@ -25,10 +25,18 @@ TAIL_BYTES=256*1024
 
 def profile(value,case_id):
     fields={'terminal','distro','code','source_prefix','staging_prefix'}
-    if not isinstance(value,dict) or set(value)-{'credential','linux_compute_policy'}!=fields:
+    if not isinstance(value,dict) or set(value)-{'credential','linux_compute_policy','linux_home_policy'}!=fields:
         raise ValueError('Invalid terminal ownership profile')
     settings=protocol.validate(value['terminal'])
     linux_host=settings['command']==list(protocol.LINUX_SHELL)
+    if 'linux_home_policy' in value:
+        from .execution_storage import validate
+        if 'linux_home' not in settings:
+            raise ValueError('Terminal home storage policy requires a selected Linux home')
+        validate(value['linux_home_policy'])
+    if 'hard_quota_bytes' in settings.get('linux_home', {}) and settings['linux_home']['hard_quota_bytes'] != (
+            value.get('linux_home_policy', {}).get('max_workspace_bytes')):
+        raise ValueError('Terminal HOME hard quota differs from its storage policy')
     if 'linux_compute_policy' in value:
         from .native_compute_v1 import validate_policy
         if not linux_host or not any(validate_policy(value['linux_compute_policy']).values()):

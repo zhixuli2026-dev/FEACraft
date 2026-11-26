@@ -7,7 +7,7 @@ RUN sed -i -e 's|http://deb.debian.org/debian-security|https://snapshot.debian.o
     -e 's|http://deb.debian.org/debian|https://snapshot.debian.org/archive/debian/20261123T120000Z/|' \
     -e '/^Signed-By:/a Check-Valid-Until: no' /etc/apt/sources.list.d/debian.sources \
     && apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
-    libgl1 libglib2.0-0 libxrender1 libxext6 libgomp1 pandoc \
+    libgl1 libglib2.0-0 libxrender1 libxext6 libgomp1 pandoc rsync \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

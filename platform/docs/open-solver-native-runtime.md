@@ -30,6 +30,20 @@ SQLite 文件系统和 PostgreSQL 认证 SeaweedFS 共完成四个真实拉伸�
 
 SQLite 文件系统和 PostgreSQL 认证 SeaweedFS 共完成 8 个真实作业。两套环境分别在 210 GPa 原库之后发布同名的 105 GPa 新库，再指定历史发布续算。续算从旧模型得到 2 mm 位移，与从头计算的 MED 位移场逐值差为 0。原输入库的封存摘要、新库的独立发布、原别名保留、缺少引用的拒绝、同键重放及父子停止回执均经过验证。原生库为 132,714,519 B，ZIP 约 3.5 MB。真实 DeepSeek 4 次 HTTP 200，模拟 0。[平台续算证据](../../tmp/code-aster-restart-platform-validation-20261121.json)
 
+## Linux Code_Aster 子进程隔离
+
+原生 Linux Code_Aster 由受管执行门登记独立的 PID 和网络命名空间，使用 worker 的 Python 启动原有串行求解助手。助手将封存输入复制到私有临时卷中的 `/case`，只读挂载 Code_Aster 安装和系统工具。计算在丢弃能力的进程中运行，结束后校验并收集 MED、求解日志及计算库。Windows API 的 WSL 路径仍使用发行版内的 Python。
+
+计算库输出依赖 `rsync`。构建 API 与 worker 镜像时，由 `platform/infra/Dockerfile.api` 安装该工具。可将源码安装目录打成以 `code-aster-source/` 为顶层的 tar 归档，并运行 `platform/server/linux_code_aster_isolation_acceptance.py --bundle <归档> --api-image <已安装rsync的镜像> --storage fs`。使用 `--storage s3` 复验认证 SeaweedFS。 [验收入口](../server/linux_code_aster_isolation_acceptance.py) · [源码安装](solver-source-integration.md#code_aster)
+
+2026-11-26，在 UID 65534 的 Docker worker、PostgreSQL 和 Redis 上，用源码构建分别完成文件系统与认证 SeaweedFS 各四个真实作业。两个账户使用同名输入和输出，加载不同载荷并发布各自成果。较新的计算库发布后，历史计算库仍可用原摘要续算。杆端位移从约 1 mm 恢复并计算到约 2 mm，最终 MED 位移场与直接计算逐值一致。两套环境均校验父子停止、成果摘要和副本读回，S3 副本从空缓存启动。模型调用 0 次。 [文件系统回执](../../tmp/j16-code-aster-yt9qlzid/result.json) · [认证 S3 回执](../../tmp/j16-code-aster-02861khl/result.json)
+
+真实求解脚本核对了只读运行时、空有效能力集、`NoNewPrivs` 以及宿主对照文件不可见。worker 可连接隔离夹具的 Redis，计算进程无法连接同一地址。求解日志记录的网络命名空间编号与放行前保存的身份一致。
+
+首轮发现在镜像内发布计算库需要 `rsync`，最终验收使用在既有 API 镜像上安装 `rsync` 的测试镜像。网络探针改为检验两端实际连接和命名空间身份。初期探针还把 socket 留在了脚本的全局变量里，计算库续算读回时报反序列化错误。探针移入局部函数后，两套存储均通过。 [缺依赖试跑](../../tmp/j16-code-aster-5zkhix0t/result.json) · [路由探针试跑](../../tmp/j16-code-aster-u5i4nx3a/result.json) · [续算试跑](../../tmp/j16-code-aster-z9669l9e/result.json) · [反序列化日志](../../tmp/j16-code-aster-umhex6me/failed-job-4.log)
+
+原有 11 个 Docker 服务均核对，临时运行卷已清理。构建缓存约 5.857 GB，本阶段构建缓存回收 0 B。Windows C 盘可用空间从 39,768,621,056 B 变为 39,251,980,288 B。
+
 ## MOOSE 平台提交
 
 上传 `.i` 后调用 `POST /api/v1/cases/{id}/moose:solve`，请求体为 `{"input_path":"C-run/moose/thermal.i"}`，可附 `Idempotency-Key`。当前支持 `GeneratedMesh`、扩散和基础标量核、定值或通量边界，以及稳态和瞬态执行器。提供样例 `PointValue` 后处理。提交会封存 UTF-8 ASCII 范围内的单文件 HIT 配置，拒绝外部 `!include`、外部网格、动态模块和自选输出路径。结果在输入同级发布为 `thermal_out.csv` 与 `thermal_out.e`。重新计算可通过通用作业 `:repeat` 入口重新封存当前 `.i`。[算例](../server/examples/moose/thermal/line.i) · [API](api.md)
@@ -45,5 +59,17 @@ SQLite 文件系统与 PostgreSQL 认证 SeaweedFS 均完成两档真实扩散�
 WSL 的 Windows 挂载目录拒绝 MOOSE 写检查点时保留文件时间戳。平台复用已有的非特权 cgroup 管理，在作业的私有挂载命名空间内生成或解包检查点，再将结果复制回封存作业目录。临时文件系统随该命名空间释放。重新计算发布到独立成果，使用 MOOSE 的 `Problem/restart_file_base` 恢复原状态。原生预检发现 `--recover` 面向追加原 Exodus 文件，在全新的结果目录会尝试打开缺失的旧文件。[MOOSE 重启说明](https://mooseframework.inl.gov/application_usage/restart_recover.html) · [首轮挂载失败](../../tmp/moose-restart-native-20261121/full.log) · [原生预检](../../tmp/moose-restart-native-20261121/ext4-restored.log)
 
 SQLite 文件系统和 PostgreSQL 认证 SeaweedFS 的最终矩阵共 8 个实际作业。两套环境均以连续四步作对照，在发布 `t=0.3` 的新检查点后，仍从指定的历史 `t=0.2` 检查点恢复并运行到 `t=0.4`。恢复段的 CSV 中点值与对照相同，Exodus 11 个节点逐时刻比较的最大绝对差为 0。封存摘要、同键重放、同路径冲突与父子停止回执一起核验。首轮 CLI 使用了已安装版本不支持的选项，认证 S3 首轮也因没有物化发布文件而返回 500，两处修正后通过。最终矩阵真实 DeepSeek 4 次 HTTP 200，早一轮文件系统 2 次 HTTP 200，本轮模拟 0。[最终证据及失败留档](../../tmp/moose-restart-platform-validation-20261121.json)
+
+## Linux MOOSE 子进程隔离
+
+原生 Linux 的普通求解、检查点生成和续算使用相同的进程、文件系统与网络隔离。启动时复核封存的 MOOSE 可执行文件摘要。安装在可信运行目录外的源码包通过 `/run/moose` 只读挂载选定的 `bin` 入口、`lib` 和 `share`。依赖的绝对系统路径放在镜像系统目录或 `/opt`。运行可写当前作业副本，MPI 使用独立的 `/dev/shm`，检查点在 512 MiB 私有临时卷内解包和打包。检查点链接的求解器身份沿用封存的 ELF 摘要。
+
+复验使用打包后的源码安装目录及已安装的兼容依赖。先在能执行该构建的 Linux 上运行 `platform/native-solvers/moose/acceptance_bundle.py`，传入源码安装目录和新归档路径。再运行 `platform/server/linux_moose_isolation_acceptance.py --bundle <归档> --storage fs`，将 `fs` 换成 `s3` 可验证认证 SeaweedFS。 [归档入口](../native-solvers/moose/acceptance_bundle.py) · [作业实测入口](../server/linux_moose_isolation_acceptance.py)
+
+2026-11-26，UID 65534 的 Docker worker 在文件系统和认证 SeaweedFS 上各完成四个源码构建的真实 MOOSE 作业。两个账户分别提交连续计算和检查点计算。发布较新的 `t=0.3` 检查点后，仍可按历史发布从 `t=0.2` 续算。到 `t=0.4` 时，两种存储的续算中点均为 `45.950754454071`，各时间点的 11 节点场与连续计算的最大绝对差为 0。核验父子停止、独立 PID 和网络命名空间、原检查点摘要及不可变成果。认证 S3 由空缓存的第二 API 读回 CSV 和 Exodus。模型调用 0 次。 [文件系统回执](../../tmp/j16-moose-bpu7f7c2/result.json) · [认证 S3 回执](../../tmp/j16-moose-x1j0wbug/result.json)
+
+试跑先后发现解包时间超过夹具等待、镜像中的 Python 路径不同，以及 MPI 缺少共享内存挂载。夹具改为追踪安装容器退出，启动器使用自身的镜像解释器，并为 MOOSE 准备独占共享内存。另以 WSL 的 `nobody` 用户使用原入口运行真实检查点求解，校验归档中的 7 个条目。 [解包试跑](../../tmp/j16-moose-3x3bfyqa/result.json) · [解释器试跑](../../tmp/j16-moose-a33nbnst/result.json) · [MPI 试跑](../../tmp/j16-moose-1vx5toxv/result.json)
+
+共用启动器的认证 S3 终端回归通过。隔离试验结束后原 11 个 Docker 服务均核对，测试卷已清理。构建缓存为 5.857 GB，本阶段清理的构建缓存为 0 B。Windows C 盘可用空间从 39,751,442,432 B 变为 39,768,715,264 B。 [终端回归回执](../../tmp/j16-pty-compute-yfn1mhv_/result.json)
 
 FF-C08 继续按五个后端子任务验收目标部署、界面路径及原计划的剩余物理/并行组合。[开源后端子任务](FF-C08-solver-delivery.md)

@@ -51,6 +51,18 @@ Linux 检查点绑定 `native-linux`，Windows/WSL 检查点绑定原发行版�
 
 更新镜像前停止新提交并等待作业结束，备份数据库、算例与部署配置。使用目标镜像重建 API/worker；持久数据留在原卷。回退时恢复匹配的镜像和配置；旧镜像不支持本次 Linux 求解入口，不能继续提交依赖此功能的新任务。禁止用 `down -v` 作为更新或回退步骤。
 
+## Linux OpenFOAM 作业隔离
+
+原生 Linux 的正式网格、串行求解与检查点续算在原有作业门内启动。MPI 的网格分区、各 rank 与重建共用已登记的原生子进程范围。执行门只给进程挂载该次封存作业副本、只读清单和只读运行代码。系统工具维持只读，`/tmp` 与共享内存按作业隔离。已有作业参数、发布格式和停止凭据继续由原来的注册处理器管理。
+
+Linux 启动器在私有网络中启用回环接口，供本地 MPI rank 通信，再清除能力集。进程退出后，由原来拥有作业的 API 或 worker 核验整个范围已停止。Windows 使用原来的 WSL 启动路径。 [隔离启动器](../server/app/services/agent_shell_linux.py) · [实际验收入口](../server/linux_openfoam_isolation_acceptance.py)
+
+2026-11-26，对 UID 65534 的 Docker worker 使用真实 PostgreSQL、Redis 和 OpenFOAM v2406。文件系统和认证 SeaweedFS 均完成正式 `blockMesh`、串行 `icoFoam`、两 rank MPI 分区和重建。400 单元速度场的串行与 MPI 归一化最大差为 `1.0e-6`，满足原 `1e-5` 对照阈值。S3 空缓存 API 完成读回。隔离探针核对本地回环可通信、宿主 Redis 连接被阻断、兄弟文件不可见、封存清单只读和作业目录可写。两种存储均在实际 MPI 运行中从对端取消作业，父进程和原生子进程的停止回执均为已核验的 `cancelled`。文件系统保留上一份 MPI 速度场，S3 保留上一份串行速度场。模型调用 0 次。 [文件系统完整回执](../../tmp/j16-openfoam-h5xwk8v0/result.json) · [S3 完整回执](../../tmp/j16-openfoam-qrnsz3p_/result.json)
+
+首轮 MPI 启动时 PMIx 在私有网络内找不到已启用的接口，启用私有回环后复验通过。取消夹具在记录请求后继续等待持久停止回执。S3 对端的运行日志有读取延迟，曾在观察时间步前触发了日志额度。夹具改为在隔离 worker 上核对属于登记子进程的两个实际 `icoFoam` rank，再提交取消。 [PMIx 首轮日志](../../tmp/j16-openfoam-fagmujiw/job-5.log) · [S3 日志额度回执](../../tmp/j16-openfoam-2k8de7_t/unexpected-mpi-stop.json)
+
+原 11 个 Docker 服务均核对，隔离试验容器及临时卷已清理。构建缓存约 5.857 GB，本阶段回收 0 B。Windows C 盘可用空间从 39,246,512,128 B 变为 39,237,353,472 B。
+
 ## 尚未完成的范围
 
 本节证明 Linux 串行 OpenFOAM 工程链和检查点续算。后续 MPI/functionObject UDF、正式三维 Gmsh 验收单独记录；后续 TeX/SyncTeX 与 FloTHERM 辅助库已分别完成 Linux 入口及实际验收，见 [TeX 部署](linux-tex-deployment.md)和 [FloTHERM 部署](linux-flotherm-deployment.md)。各文档保留具体覆盖边界，不能由工具安装推定全部功能已验收。物理多主机、完整外部依赖、存储条件操作兼容和全功能交付继续按原任务推进。同主机的独立容器不冒充物理多主机。

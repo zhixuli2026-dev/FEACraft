@@ -37,7 +37,7 @@ def read(stream):
 
 
 def validate_linux_home(value, user_id=None):
-    if (not isinstance(value, dict) or set(value) != {'path', 'device', 'inode'}
+    if (not isinstance(value, dict) or set(value)-{'hard_quota_bytes'} != {'path', 'device', 'inode'}
             or not isinstance(value['path'], str) or '\0' in value['path'] or len(value['path']) > 4096
             or type(value['device']) is not int or value['device'] < 0
             or type(value['inode']) is not int or value['inode'] <= 0):
@@ -47,6 +47,10 @@ def validate_linux_home(value, user_id=None):
             or path.parent.name != 'users' or not re.fullmatch('[1-9][0-9]*', path.name)
             or (user_id is not None and path.name != str(user_id))):
         raise ValueError('Linux shell home crosses its selected account')
+    if 'hard_quota_bytes' in value and (type(value['hard_quota_bytes']) is not int
+            or value['hard_quota_bytes'] < 1024**2 or value['hard_quota_bytes'] % 1024**2
+            or int(path.name) >= 2**32-1):
+        raise ValueError('Invalid Linux shell home project quota')
     return value
 
 

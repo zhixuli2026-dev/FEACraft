@@ -25,6 +25,10 @@ class NativeComputeLimit(ChildExecutionError):
     """An owned process reached its configured Linux CPU or memory limit."""
 
 
+class NativeStorageLimit(ChildExecutionError):
+    """Linux account home usage exceeded the limit or could not be verified."""
+
+
 @contextmanager
 def context(address,capability):
     token=CURRENT.set((address,capability))
@@ -121,6 +125,8 @@ def run_native(purpose,parameters,*,timeout,capture=False,sink=None):
                     if message.get('error')=='TimeoutError':raise subprocess.TimeoutExpired(purpose,timeout)
                     if message.get('error')=='NativeComputeLimit':
                         raise NativeComputeLimit('命令已达到 Linux CPU 或内存额度，请查看执行回执')
+                    if message.get('error')=='NativeStorageLimit':
+                        raise NativeStorageLimit('Linux 账户 HOME 已达容量限制或无法核验用量，请查看执行回执')
                     raise ChildExecutionError('Owned native execution failed: '+str(message.get('error','unknown')))
                 else:
                     raise ChildExecutionError('Invalid native execution response')

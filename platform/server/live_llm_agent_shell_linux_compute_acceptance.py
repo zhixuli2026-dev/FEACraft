@@ -4,8 +4,12 @@ import asyncio
 from contextlib import AsyncExitStack, ExitStack
 import ipaddress
 import json
+import os
 from pathlib import Path
 import secrets
+import shlex
+import subprocess
+import sys
 import tempfile
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -13,7 +17,7 @@ from uuid import uuid4
 import aiohttp
 
 from live_llm_acceptance import source
-from linux_terminal_compute_acceptance import account, close_pty, command as send_command, open_pty, output, request
+from linux_terminal_compute_acceptance import account, assert_limit, close_pty, command as send_command, open_pty, output, request
 from mixed_load_test_support import API_IMAGE, WEB_IMAGE, Deployment, docker
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -225,10 +229,15 @@ async def approve(client, run, error):
         assert result['ok'] is False and result.get('code') == 'agent_compute_unverified',result
         await request(client,endpoint,'GET',approval+'/execution',token=token,expected=404)
         return {'tool_ok':False,'request_reserved':False,'reason':'agent_compute_unverified'}
+    if error=='home_admission':
+        assert not result['ok'] and result.get('code')=='agent_resource_limit' and 'HOME' in result['result'],result
+        await request(client,endpoint,'GET',approval+'/execution',token=token,expected=404)
+        return {'tool_ok':False,'request_reserved':False,'reason':'disk_limit'}
     record=await request(client,endpoint,'GET',approval+'/execution',token=token)
     if error:
         assert result['ok'] is False and result.get('code') == 'agent_resource_limit',result
-        assert record['phase']=='failed' and record['error']=='NativeComputeLimit',record
+        expected_error = 'NativeStorageLimit' if error == 'disk_limit' else 'NativeComputeLimit'
+        assert record['phase']=='failed' and record['error']==expected_error,record
     else:
         assert result['ok'] is True and run['marker'] in result['result'],result
         assert record['phase']=='succeeded' and record['error'] is None,record
@@ -311,7 +320,98 @@ async def check_home_terminal(client, endpoint, token, check, case=0):
         return await close_pty(client, endpoint, token, active)
 
 
-async def verify_s3(endpoints, config, receipt, addresses, *, home_reader=None):
+async def home_limit_record(client, endpoint, token, active, socket):
+    await assert_limit(socket, 'disk_limit')
+    row = await request(client, endpoint, 'GET', '/terminal/sessions/'+active['session'], token=token)
+    assert row['phase']=='failed' and row['error']=='TerminalResourceLimit',row
+    stop = row['stop']
+    assert stop['verified'] and stop['scope_empty'] and stop['reason']=='disk_limit',row
+    return row
+
+
+async def verify_home_budget(endpoints, config, receipt, writer_container):
+    writer, reader = endpoints
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90),trust_env=False) as client:
+        owner = await account(client,writer)
+        token,case = owner
+        other,_ = await account(client,reader)
+        user = await request(client,writer,'GET','/auth/me',token=token)
+        account_path = f"/work/shell-state/users/{int(user['id'])}"
+        receipt['home_budget'] = fixture = {'limit_bytes':1024**2,'written_bytes':2*1024**2}
+        fixture['initial_case_pty'] = await check_home_terminal(client,writer,token,"""
+mkdir -p "$HOME/nested" && printf 'kept' > "$HOME/nested/small" &&
+ln -s /usr "$HOME/runtime-link" &&
+dd if=/dev/zero of=Ref/case-data bs=1024 count=1200 status=none
+""".strip(),case=case)
+        await check_home_terminal(client,reader,other,'printf other > "$HOME/small"')
+        program = """from pathlib import Path
+import time
+home = Path.home()
+assert (home/'nested/small').read_text() == 'kept'
+assert Path('Ref/case-data').stat().st_size == 1200*1024
+(home/'agent-large').write_bytes(b'x' * (2*1024**2))
+time.sleep(15)
+(home/'agent-continued').touch()
+"""
+        command = await prepare(client,writer,config,'Agent exceeds account HOME limit',program,owner=owner)
+        async with AsyncExitStack() as stack:
+            peer_socket,peer = await open_pty(stack,client,reader,token)
+            assert peer['type']=='ready',peer
+            fixture['agent'] = await approve(client,command,'disk_limit')
+            fixture['same_account_peer'] = await home_limit_record(client,writer,token,peer,peer_socket)
+            _,denied = await open_pty(stack,client,writer,token,case)
+            assert denied['code']=='terminal_resource_limit' and denied['reason']=='disk_limit' and 'HOME' in denied['message'],denied
+            fixture['new_pty'] = denied
+        size = await asyncio.to_thread(docker,'exec',writer_container,'stat','-c','%s',account_path+'/agent-large')
+        assert int(size)==fixture['written_bytes']
+        await asyncio.to_thread(docker,'exec',writer_container,'test','!','-e',account_path+'/agent-continued')
+        blocked = await prepare(client,writer,config,'Reject new Agent command with over-limit HOME',
+                                "from pathlib import Path\n(Path.home()/'started').touch()\n",owner=owner)
+        fixture['new_agent'] = await approve(client,blocked,'home_admission')
+        await asyncio.to_thread(docker,'exec',writer_container,'test','!','-e',account_path+'/started')
+        fixture['other_account'] = await check_home_terminal(client,reader,other,
+            'test "$(cat "$HOME/small")" = other && test ! -e "$HOME/agent-large"')
+        await asyncio.to_thread(docker,'exec',writer_container,'unlink',account_path+'/agent-large')
+        async with AsyncExitStack() as stack:
+            socket,active = await open_pty(stack,client,writer,token,case)
+            assert active['type']=='ready',active
+            await send_command(socket,'dd if=/dev/zero of="$HOME/pty-large" bs=1024 count=2048 status=none; exit')
+            fixture['pty_write_and_exit'] = await home_limit_record(client,reader,token,active,socket)
+        size = await asyncio.to_thread(docker,'exec',writer_container,'stat','-c','%s',account_path+'/pty-large')
+        assert int(size)==fixture['written_bytes']
+        await asyncio.to_thread(docker,'exec',writer_container,'unlink',account_path+'/pty-large')
+        fixture['resumed_pty'] = await check_home_terminal(client,reader,token,
+            'test "$(cat "$HOME/nested/small")" = kept && test -L "$HOME/runtime-link"')
+        print('AGENT_HOME_BUDGET_VERIFIED', flush=True)
+
+
+PROJECT_LIMIT_MIB = 2
+PROJECT_EXCESS = """import errno
+import os
+from pathlib import Path
+target = Path.home()/'over-quota'
+with target.open('wb') as stream:
+    try:
+        os.posix_fallocate(stream.fileno(), 0, 1536*1024)
+    except OSError as error:
+        assert error.errno == errno.EDQUOT, error
+    else:
+        raise AssertionError('The Linux kernel admitted a write beyond the shared project quota')
+target.unlink()
+"""
+
+
+def provision_project_homes(root, accounts):
+    script = ROOT/'platform/server/app/services/linux_home_quota.py'
+    command = [sys.executable, '-B', str(script)]
+    if os.name == 'nt':
+        native = '/mnt/'+script.drive[0].lower()+script.as_posix()[2:]
+        command = ['wsl.exe', '-d', 'vibeflow-linux', '--user', 'root', '--exec', '/usr/bin/python3', '-B', native]
+    subprocess.run([*command, '--root', root, '--uid', '65534', '--gid', '65534', '--limit-mib',
+                    str(PROJECT_LIMIT_MIB), *map(str,accounts)], check=True, timeout=30)
+
+
+async def verify_s3(endpoints, config, receipt, addresses, *, home_reader=None, quota_root=None):
     writer, reader = endpoints
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90),trust_env=False) as client:
         program = isolated_program(addresses[0], '/work/data/s3-local-outside-marker')
@@ -321,17 +421,27 @@ async def verify_s3(endpoints, config, receipt, addresses, *, home_reader=None):
             marker = 'pty'+uuid4().hex
             agent_value = 'agent'+uuid4().hex
             fixture = receipt['home'] = {}
+            other, _ = await account(client,writer)
+            first_allocation = other_allocation = ''
+            if quota_root is not None:
+                async with AsyncExitStack() as stack:
+                    _, blocked = await open_pty(stack,client,reader,owner[0])
+                    assert blocked['code']=='terminal_resource_limit' and blocked['reason']=='disk_unverified', blocked
+                ids = [(await request(client,writer,'GET','/auth/me',token=key))['id'] for key in (owner[0], other)]
+                await asyncio.to_thread(provision_project_homes, quota_root, ids)
+                first_allocation = ' && fallocate -l 768K "$HOME/pty-blocks" && truncate -s 16M "$HOME/sparse-file"'
+                other_allocation = ' && fallocate -l 1536K "$HOME/other-blocks"'
+                fixture['project_quota'] = {'limit_bytes':PROJECT_LIMIT_MIB*1024**2, 'unprovisioned':blocked['reason']}
             fixture['first_pty'] = await check_home_terminal(client, writer, owner[0], f"""
 test "$HOME" = /home/user && test "$PWD" != "$HOME" &&
 test "$HISTFILE" = /tmp/.bash_history &&
 printf '%s' {marker} > "$HOME/from-pty"
-""".strip(), case=owner[1])
-            other, _ = await account(client,writer)
+""".strip()+first_allocation, case=owner[1])
             fixture['other_pty'] = await check_home_terminal(client, reader, other, """
 test "$PWD" = "$HOME" && test ! -e "$HOME/from-pty" &&
 test ! -e /work/shell-state/users && test "$(ls -1 /home)" = user &&
 printf '%s' other-account > "$HOME/from-pty"
-""".strip())
+""".strip()+other_allocation)
             program += f"""
 assert Path.home() == Path('/home/user')
 assert (Path.home()/'from-pty').read_text() == {marker!r}
@@ -339,6 +449,8 @@ assert list(Path('/home').iterdir()) == [Path.home()]
 assert not Path('/work/shell-state/users').exists()
 (Path.home()/'from-agent').write_text({agent_value!r})
 """
+            if quota_root is not None:
+                program += PROJECT_EXCESS
         command = await prepare(client,writer,config,'Agent S3 staging write',program,owner=owner)
         record = await approve(client,command,None)
         peer = await request(client,reader,'GET',command['approval']+'/execution',token=command['token'])
@@ -355,6 +467,9 @@ test "$(cat from-pty)" = {marker} && test "$(cat from-agent)" = {agent_value}
 """.strip()
             child, = record['children']['children'].values()
             assert child['identity']['host']['uid'] == child['identity']['namespace_init']['uid'] == 65534
+            if quota_root is not None:
+                check += ' && test "$(stat -c %s sparse-file)" = 16777216 && python3 -c '+shlex.quote(PROJECT_EXCESS)
+                fixture['project_quota'].update(agent_edquot=True)
             fixture['peer_pty'] = await check_home_terminal(client, reader, owner[0], check)
             before = await asyncio.to_thread(docker, 'inspect', '-f', '{{.State.StartedAt}}', home_reader)
             await asyncio.to_thread(docker, 'restart', home_reader)
@@ -377,6 +492,9 @@ test "$(cat from-pty)" = {marker} && test "$(cat from-agent)" = {agent_value}
                 except TimeoutError as error:
                     raise AssertionError('Restarted peer API did not become healthy') from error
                 fixture['restarted_pty'] = await check_home_terminal(fresh, restarted, owner[0], check)
+            if quota_root is not None:
+                fixture['project_quota'].update(pty_edquot=True, independently_allocated_bytes=1536*1024,
+                                                retained_sparse_logical_bytes=16*1024**2)
             fixture.update(api_restarted=True, cross_account=True, native_uid=65534,
                            pty_to_agent=True, agent_to_peer_pty=True, case_staging_separate=True)
             print('AGENT_SHARED_HOME_VERIFIED', flush=True)
@@ -404,13 +522,30 @@ def main(args):
                 deployment.configure_s3(output)
                 print('AGENT_AUTHENTICATED_S3_READY', flush=True)
             if args.shared_home:
-                state = deployment.volume('shell-state', '/work/shell-state')
-                docker('run', '--rm', '--network', 'none', '--pull=never', '--mount', state, '--mount', deployment.data,
+                state_options = ()
+                install_home = ()
+                if args.quota_anchor:
+                    deployment.runtime.extend(('--volumes-from', args.quota_anchor))
+                else:
+                    state_options = ('--mount', deployment.volume('shell-state', '/work/shell-state'))
+                    install_home = ('/work/shell-state',)
+                docker('run', '--rm', '--network', 'none', '--pull=never', *state_options, '--mount', deployment.data,
                        '--entrypoint', '/usr/bin/install', args.api_image, '-d', '-o', '65534', '-g', '65534',
-                       '/work/shell-state', '/work/data/files')
-                deployment.runtime.extend(('--mount',state))
+                       *install_home, '/work/data/files')
+                deployment.runtime.extend(state_options)
                 deployment.env['VIBEFLOW_LINUX_SHELL_STATE_ROOT']='/work/shell-state'
                 deployment.flags.extend(('-e','VIBEFLOW_LINUX_SHELL_STATE_ROOT'))
+            if args.quota_anchor:
+                quotas = {'VIBEFLOW_LINUX_SHELL_REQUIRE_PROJECT_QUOTA':'true',
+                          'VIBEFLOW_EXECUTION_WORKSPACE_LIMIT_MB':str(PROJECT_LIMIT_MIB),
+                          'VIBEFLOW_NODE_STORAGE_MIN_FREE_MB':'8'}
+                deployment.env.update(quotas)
+                deployment.flags.extend(flag for key in quotas for flag in ('-e',key))
+            if args.home_budget:
+                quotas = {'VIBEFLOW_EXECUTION_WORKSPACE_LIMIT_MB':'1','VIBEFLOW_TERMINAL_SESSION_WORKSPACE_LIMIT_MB':'4',
+                          'VIBEFLOW_EXECUTION_STORAGE_POLL_SECONDS':'1','VIBEFLOW_NODE_STORAGE_MIN_FREE_MB':'8'}
+                deployment.env.update(quotas)
+                deployment.flags.extend(flag for key in quotas for flag in ('-e',key))
             base=tuple(deployment.runtime)
             ipv6_loopback = ('--sysctl','net.ipv6.conf.lo.disable_ipv6=0')
             variants=((deployment.a,1,64,('--cgroupns','private','--cap-add','SYS_ADMIN',*ipv6_loopback)),
@@ -440,11 +575,21 @@ def main(args):
                 endpoints = [endpoint for _,_,endpoint in services]
                 if args.storage == 's3':
                     docker('exec',services[0][1],'/usr/bin/touch','/work/data/s3-local-outside-marker')
-                    asyncio.run(verify_s3(endpoints[:2],source_profile,result,addresses,
-                                          home_reader=services[1][1] if args.shared_home else None))
-                    docker('exec',services[0][1],'/usr/local/bin/python','-B','-c',
-                           'from pathlib import Path; assert not list(Path("/work/data/files/.staging").glob("job-*"))')
-                    result['remaining_s3_stages'] = 0
+                    if args.home_budget:
+                        asyncio.run(verify_home_budget(endpoints[:2],source_profile,result,services[0][1]))
+                    else:
+                        asyncio.run(verify_s3(endpoints[:2],source_profile,result,addresses,
+                                              home_reader=services[1][1] if args.shared_home else None,
+                                              quota_root=args.quota_root))
+                    stages = docker('exec',services[0][1],'/usr/local/bin/python','-B','-c',
+                           'from pathlib import Path; entries = list(Path("/work/data/files/.staging").glob("job-*")); '
+                           'dirs = [p for p in entries if p.is_dir()]; '
+                           'assert set(entries) == set(dirs + [p.with_suffix(".manifest.json") for p in dirs]); '
+                           'assert all((p / "Ref" / "case-data").stat().st_size == 1200*1024 for p in dirs); '
+                           'print(len(dirs))')
+                    result['remaining_s3_stages'] = int(stages)
+                    # The failed Agent command retains its admitted case copy for recovery.
+                    assert result['remaining_s3_stages'] == int(args.home_budget), result['remaining_s3_stages']
                 else:
                     asyncio.run(verify(endpoints,source_profile,result,addresses))
                 for _,identifier,_ in services:
@@ -484,7 +629,13 @@ if __name__=='__main__':
     parser.add_argument('--api-image', default=API_IMAGE)
     parser.add_argument('--storage', choices=('fs','s3'), default='fs')
     parser.add_argument('--shared-home', action='store_true', help='Verify account homes with a non-root API and authenticated S3')
+    parser.add_argument('--home-budget', action='store_true', help='Verify shared HOME limits with authenticated S3')
+    parser.add_argument('--quota-anchor', help='Fixture container mounting a dedicated quota filesystem at /work/shell-state')
+    parser.add_argument('--quota-root', help='Host path of the fixture project quota filesystem')
     args = parser.parse_args()
+    if bool(args.quota_anchor) != bool(args.quota_root) or (args.quota_anchor and args.home_budget):
+        parser.error('Use both quota fixture options together and run sampled limits separately')
+    args.shared_home = args.shared_home or args.home_budget or bool(args.quota_anchor)
     if args.shared_home and args.storage != 's3':
-        parser.error('--shared-home requires the S3 acceptance scenario')
+        parser.error('Home acceptance requires --storage s3')
     main(args)

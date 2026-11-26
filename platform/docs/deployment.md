@@ -108,11 +108,15 @@ Linux 单 API 部署可加载 `infra/docker-compose.docker-cli.yml`，从正式 
 
 在具备私有 cgroup v1 控制组命名空间的 Linux API 上，可设置 `VIBEFLOW_VIZ_SESSION_LINUX_CPU_LIMIT_SECONDS` 和 `VIBEFLOW_VIZ_SESSION_LINUX_MEMORY_LIMIT_MB`。生产 Compose 将同名 `.env` 配置传给 API，默认均为 `0`，分别表示关闭对应额度。共享的内核启动门需要可信根进程具备 `SYS_ADMIN`，其已有控制器挂载保持只读。隔离验证采用 Docker 的 `--cgroupns private --cap-add SYS_ADMIN`。 [可视化内核额度及验收](viz-load-acceptance.md#linux-可视化会话内核额度)
 
+### Linux 终端与 Agent Shell
+
 同一 Linux 部署可用 `VIBEFLOW_TERMINAL_SESSION_LINUX_CPU_LIMIT_SECONDS` 和 `VIBEFLOW_TERMINAL_SESSION_LINUX_MEMORY_LIMIT_MB` 设置普通 PTY 会话的独立额度。配置默认为 `0`。启用后，API 在会话登记前核验控制器，成功终止时在 `stop.linux_compute_usage` 写入内核计量。 [终端内核额度及验收](owned-pty-sessions.md#linux-pty-内核额度)
 
 Linux 普通 PTY 会话默认使用独立文件系统和网络命名空间。绑定算例的终端可写该算例或 S3 暂存副本。两种会话均从干净的交互 Bash 启动，历史和临时目录随会话结束清理。 [终端隔离及验收](owned-pty-sessions.md#普通-linux-终端隔离)
 
 生产 Compose 在 `/data/linux-shell-state` 挂载独立的 `linuxshellstate` 卷，并用 `VIBEFLOW_LINUX_SHELL_STATE_ROOT` 启用账户 HOME。两个 API 副本挂载同一卷，并使用同一账户数据库及服务 UID。非 root 部署需让 API 的服务 UID 可写此卷。备份时将该状态卷与账户数据库配套保留。 [账户目录及验收](owned-pty-sessions.md#linux-账户-home-持久化)
+
+挂载状态卷后，`VIBEFLOW_EXECUTION_WORKSPACE_LIMIT_MB` 同时用作每个账户的 HOME 容量上限，默认 4096 MiB。所有 API 副本应保持该配置相同。`VIBEFLOW_NODE_STORAGE_MIN_FREE_MB` 设定所在卷应保留的可用空间，`VIBEFLOW_EXECUTION_STORAGE_POLL_SECONDS` 控制运行期间的检查间隔。 [容量行为](owned-pty-sessions.md#账户-home-容量控制)
 
 Linux Agent 命令通过 `VIBEFLOW_AGENT_SHELL_LINUX_CPU_LIMIT_SECONDS` 和 `VIBEFLOW_AGENT_SHELL_LINUX_MEMORY_LIMIT_MB` 设置每条命令及其后代的累计 CPU 与内存额度。两项默认均为 `0`，独立启用。启用时同样需要私有 cgroup v1 命名空间及受信执行门的控制器权限。命令达到额度时可在工具执行详情读取 `stop.linux_compute_usage`。 [Agent 命令额度](owned-agent-shell.md#linux-agent-命令内核额度)
 
@@ -123,6 +127,23 @@ Linux Agent 命令的可写工作区为当前算例或该命令的 S3 暂存目�
 Linux CalculiX 和 SU2 求解使用独立的文件系统和网络命名空间。工作区为本次作业副本，系统运行时只读。`VIBEFLOW_CALCULIX` 和 `VIBEFLOW_SU2` 可指向镜像外的单文件可执行程序，依赖库从系统运行时目录加载。 [CalculiX 子进程隔离](calculix-publication.md#linux-求解子进程隔离) · [SU2 子进程隔离](su2-publication.md#linux-求解子进程隔离)
 
 Linux Elmer 复用同一隔离入口，`VIBEFLOW_ELMER` 可指向源码构建的串行发行包入口。求解进程按只读方式使用同包的 `share/elmersolver/lib`。 [Elmer 子进程隔离](elmer-runtime.md#linux-求解子进程隔离)
+
+Linux MOOSE 的 `VIBEFLOW_MOOSE` 可指向源码包的实际 ELF 入口。外部 `bin` 入口及其 `lib` 和 `share` 目录按只读方式挂载，包中引用的绝对库路径放在可信系统目录或 `/opt`。检查点暂存卷和 MPI 共享内存随进程范围回收。 [MOOSE 子进程隔离](open-solver-native-runtime.md#linux-moose-子进程隔离)
+
+Linux Code_Aster 用 `VIBEFLOW_CODE_ASTER` 指定 `/opt` 内的独立安装入口 `bin/run_aster`。API 和 worker 使用包含 `rsync` 的镜像，原生子进程使用私有网络并从只读安装运行，计算库随算例成果发布。 [Code_Aster 子进程隔离](open-solver-native-runtime.md#linux-code_aster-子进程隔离)
+
+### Linux 账户 HOME 硬配额
+
+把一块启用了 `quota` 和 `project` 功能、以 `prjquota` 挂载的专用 ext4 文件系统接给 `linuxshellstate`。所有 API 副本使用同一状态卷和相同的 HOME 限额。宿主文件系统根目录和 `users/` 由 root 管理，账户目录由 API 的 UID/GID 使用。宿主上的配置工具需要 Linux 5.14 或更新版本的 `quotactl_fd`。 [配额接口](https://man7.org/linux/man-pages/man2/quotactl.2.html)
+
+例如，服务 UID/GID 为 65534、上限为 4096 MiB、已注册账户 ID 为 17 和 23 时，在宿主运行下列命令。
+
+```bash
+sudo python3 platform/server/app/services/linux_home_quota.py \
+  --root /srv/feacraft-shell-state --uid 65534 --gid 65534 --limit-mib 4096 17 23
+```
+
+配置 `LINUX_SHELL_REQUIRE_PROJECT_QUOTA=true` 和 `EXECUTION_WORKSPACE_LIMIT_MB=4096`，并使 `linuxshellstate` 挂载该专用文件系统。直接启动 API 时使用对应的 `VIBEFLOW_` 环境变量。新增账户在首次使用 HOME 前运行同一配置工具。已有 HOME 数据迁移时，先关闭相关会话，在新卷创建项目目录，再复制原 HOME 的内容，由目标目录继承项目配额。上线前核对文件和空间用量，备份保留原数据卷。 [硬配额实测](owned-pty-sessions.md#账户-home-内核硬配额)
 
 ## 日常检查和恢复
 

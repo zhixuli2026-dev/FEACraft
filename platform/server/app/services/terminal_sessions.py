@@ -14,14 +14,14 @@ from .case_write import CaseWriteConflict
 from .execution_budget import Budget
 from .owned_terminal import OwnedTerminal
 from .terminal_output import OutputQueue
-from . import terminal_records as records, terminal_completion
+from . import execution_storage, terminal_records as records, terminal_completion
 
 RESOURCE_LIMIT_ERROR='TerminalResourceLimit'
 RESOURCE_LIMIT_MESSAGES={
     'timeout':'终端已达到运行时限',
     'log_limit':'终端已达到累计输出限额',
-    'disk_limit':'终端工作目录用量或所在卷可用空间已达到限制',
-    'disk_unverified':'无法核验终端工作目录的磁盘用量',
+    'disk_limit':'终端工作目录、账户 HOME 或所在卷的磁盘用量已达到限制',
+    'disk_unverified':'无法核验终端工作目录或账户 HOME 的磁盘用量',
     'cpu_limit':'终端已达到累计 CPU 限额',
     'memory_limit':'终端已达到内存限额',
     'compute_unverified':'无法启用终端的 Linux 内核额度',
@@ -40,7 +40,7 @@ class TerminalSession:
         self.transport=OwnedTerminal();self.owner=None;self.id=None;self.shell=None;self.alive=None
         self._buf=deque();self._buf_bytes=0;self._subscribers=[];self.last_activity=time.time()
         self._pump_task=None;self._watch_task=None;self._heartbeat_task=None;self._close_task=None
-        self._storage_task=None
+        self._storage_tasks=[];self._home_watch=None
         self._pending_completion=None
         self._input_task=None;self._input_queue=asyncio.Queue(maxsize=1024);self.pending_input_bytes=0
         self._pending_resize=None;self._resize_wakeup=False
@@ -65,11 +65,19 @@ class TerminalSession:
                 disk_root=await self.exporter.reserve_image()
             linux_home = None
             if sys.platform == 'linux' and shell == 'cmd':
-                from .linux_shell_home import select as select_home
-                linux_home = await asyncio.to_thread(select_home, settings, self.user_id)
+                from .linux_shell_home import HomeWatch, select as select_home
+                try:
+                    linux_home = await asyncio.to_thread(select_home, settings, self.user_id)
+                except CaseWriteConflict as error:
+                    if error.code == 'linux_home_quota_unverified':
+                        raise CaseWriteConflict('terminal_disk_unverified', str(error)) from error
+                    raise
             selected=self.transport.configure(shell,cwd=cwd,cols=cols,rows=rows,distro=distro,disk_root=disk_root,
                                               linux_home=linux_home)
             selected.update(source_prefix=self.source_prefix,staging_prefix=self.staging_prefix)
+            if linux_home is not None:
+                selected['linux_home_policy'] = execution_storage.policy()
+                self._home_watch = HomeWatch(linux_home, selected['linux_home_policy'])
             if credential is not None:selected['credential']=credential
             owned = self.transport.owned
             if sys.platform == 'linux' and shell == 'cmd':
@@ -86,7 +94,6 @@ class TerminalSession:
                     owned.on_namespace = lambda root, _init: records.register_root(self.owner, root)
             workspace_limit=settings.terminal_session_workspace_limit_mb
             if ordinary and workspace_limit and self.case_id is not None:
-                from . import execution_storage
                 if cwd is None:raise ValueError('Case-bound terminal has no working directory')
                 # Admission uses the same bounded sampler and root identity as
                 # running checks. No process is registered or released yet.
@@ -97,7 +104,7 @@ class TerminalSession:
                 })
                 watch=execution_storage.Watch(self._budget,cwd,scope='terminal_workspace')
                 self._budget.storage_watch=watch
-                await self._check_storage_admission()
+            await self._check_storage_admission()
             await finish_before_cancel(allocate())
             self._heartbeat_task=asyncio.create_task(self._renew())
             try:
@@ -114,8 +121,7 @@ class TerminalSession:
                 # before the bridge handshake. Its bytes now count physically.
                 await self.exporter.release_image_reservation()
             await reauthorize()
-            if self._budget is not None:
-                await self._check_storage_admission()
+            await self._check_storage_admission()
             await self.transport.release()
             if ordinary and (lifetime or output_limit or self._budget is not None):
                 deadline=time.monotonic()+lifetime if lifetime else float('inf')
@@ -123,7 +129,7 @@ class TerminalSession:
                     self._budget=Budget(self.id,deadline,output_limit)
                 else:
                     self._budget.attempt_id=self.id;self._budget.deadline=deadline
-                    self._storage_task=asyncio.create_task(self._budget.storage_watch.run())
+            self._storage_tasks=[asyncio.create_task(watch.run()) for watch in self._storage_watches()]
             self.alive=True;self._pump_task=asyncio.create_task(self._pump())
             if shell=='wsl-sandbox':
                 self.exporter.owner=self.owner
@@ -145,14 +151,22 @@ class TerminalSession:
                 raise CaseWriteConflict('terminal_'+limit, RESOURCE_LIMIT_MESSAGES[limit]) from error
             raise
 
+    def _storage_watches(self):
+        if self._budget is not None and self._budget.storage_watch is not None:
+            yield self._budget.storage_watch
+        if self._home_watch is not None:
+            yield self._home_watch
+
     async def _check_storage_admission(self):
-        from .execution_storage import limit_message
-        await self._budget.storage_watch.sample()
-        reason=self._budget.violation
-        if reason is not None:
-            message=(limit_message(self._budget.storage_observation) if reason=='disk_limit'
-                     else RESOURCE_LIMIT_MESSAGES[reason])
-            raise CaseWriteConflict('terminal_'+reason,message)
+        for watch in self._storage_watches():
+            await watch.sample()
+            reason=watch.budget.violation
+            if reason is not None:
+                message=(execution_storage.limit_message(watch.observed) if reason=='disk_limit'
+                         else RESOURCE_LIMIT_MESSAGES[reason])
+                if watch is self._home_watch:
+                    message = 'Linux 账户 HOME：'+message
+                raise CaseWriteConflict('terminal_'+reason,message)
 
     @property
     def release_attempted(self):
@@ -207,15 +221,18 @@ class TerminalSession:
         failure=None
         tasks=[self._pump_task,self._input_task]
         if self.exporter is not None:tasks.append(self.exporter.task)
-        if self._storage_task is not None:tasks.append(self._storage_task)
+        tasks.extend(self._storage_tasks)
         deadline=self._budget.remaining() if self._budget is not None and self._budget.deadline!=float('inf') else None
         done,_=await asyncio.wait(tasks,timeout=deadline,return_when=asyncio.FIRST_COMPLETED)
-        if self._budget is not None:
-            if not done:self._budget.trip('timeout','deadline')
-            if self._budget.violation is not None:
-                try:await self.close(self._budget.violation,error=RESOURCE_LIMIT_ERROR)
-                except Exception:pass  # Existing closure path retains and reports the failure.
-                return
+        if self._budget is not None and not done:
+            self._budget.trip('timeout','deadline')
+        violation=self._budget.violation if self._budget is not None else None
+        if violation is None and self._home_watch is not None:
+            violation=self._home_watch.budget.violation
+        if violation is not None:
+            try:await self.close(violation,error=RESOURCE_LIMIT_ERROR)
+            except Exception:pass  # Existing closure path retains and reports the failure.
+            return
         if self.exporter is not None and self.exporter.task.done() and self._close_task is None:
             try:await self.close('executor_error',error='SandboxExportEnded')
             except Exception:pass
@@ -312,9 +329,14 @@ class TerminalSession:
                     failure = RESOURCE_LIMIT_ERROR
             if self.cleanup_verified is True:self.alive=False
             if self.cleanup_verified is not True:failure=failure or 'RuntimeError'
-            if self._storage_task is not None:
-                self._storage_task.cancel()
-                await asyncio.gather(self._storage_task,return_exceptions=True)
+            for task in self._storage_tasks:
+                task.cancel()
+            await asyncio.gather(*self._storage_tasks,return_exceptions=True)
+            if self._home_watch is not None and self.cleanup_verified and stop['reason']=='root_exit':
+                await self._home_watch.sample()
+                if self._home_watch.budget.violation is not None:
+                    stop['reason'] = self._home_watch.budget.violation
+                    failure = RESOURCE_LIMIT_ERROR
             if self._pump_task is not None:
                 try:await asyncio.wait_for(asyncio.shield(self._pump_task),5)
                 except BaseException as pump_error:

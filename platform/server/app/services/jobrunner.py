@@ -212,6 +212,7 @@ class JobProcess:
         self._diagnostics_sealed = False
         self.evidence_snapshot: dict | None = None
         self.isolated_workspace = False
+        self.openfoam_serial = False
         self.remote_workspace_prefix = None
         self.finished = False
         self.phase = "queued"
@@ -297,6 +298,13 @@ class JobProcess:
             if os.name!='nt' and self.runtime=='windows':
                 from .job_linux_namespaces import prepared as namespace_prepared
                 self._owned_process.on_namespace=lambda process,init:namespace_prepared(self.owner,process,init)
+                if self.openfoam_serial:
+                    from .openfoam_runtime import child_environment, isolated_argv
+                    parts = shlex.split(argv[-1])
+                    libraries = parts[parts.index('--source-library-dir')+1] if '--source-library-dir' in parts else None
+                    argv = isolated_argv(self.cwd, argv, source_libraries=libraries)
+                    env = child_environment(env)
+                    self._owned_process.isolate_linux_network=True
             from .native_execution import NativeExecutor
             if NativeExecutor.applies(self.argv):
                 self._children=NativeExecutor(self.owner,self.cwd,self.argv,self.max_log_bytes)
@@ -928,14 +936,16 @@ async def _launch_claimed(owner, guard, job_id, command, case_s3_prefix, *, runt
     try:
         await guard.checkpoint()
         from ..db import SessionLocal
-        from ..models import Job
         async with SessionLocal() as db:
-            job = await db.get(Job, job_id)
-            if job is None:
-                raise job_execution.ExecutionConflict('state_conflict', 'Owned job was removed')
+            job, attempt = await job_execution._owned(db, owner)
             case_id = job.case_id
+            from .openfoam_runtime import SERIAL_HANDLERS
+            binding = json.loads(attempt.input_manifest_json).get('handler') or {}
+            openfoam_serial = os.name != 'nt' and runtime == 'windows' and binding.get('key') in SERIAL_HANDLERS
         from .attempt_workspace import runtime_workspace
         isolated_cwd = await runtime_workspace(owner)
+        if openfoam_serial and isolated_cwd is None:
+            raise ValueError('Native OpenFOAM requires a sealed attempt workspace')
         execution_prefix, cwd, log_path = await finish_before_cancel(asyncio.to_thread(prepare_paths))
         if isolated_cwd is not None:
             cwd = isolated_cwd
@@ -967,6 +977,7 @@ async def _launch_claimed(owner, guard, job_id, command, case_s3_prefix, *, runt
                     staging_prefix=execution_prefix if _use_s3() and isolated_cwd is None else None,
                     source_prefix=case_s3_prefix if _use_s3() and isolated_cwd is None else None, owner=owner)
     jp.isolated_workspace = isolated_cwd is not None
+    jp.openfoam_serial = openfoam_serial
     jp.remote_workspace_prefix = case_s3_prefix if _use_s3() else None
     jp._launch_guard = guard
     _registry[job_id] = jp

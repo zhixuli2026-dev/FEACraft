@@ -85,3 +85,7 @@ Linux 的 `run_shell_command` 使用已批准的同一 POSIX 命令、算例与�
 ## Linux 账户 HOME
 
 启用账户状态卷时，Linux Agent 命令使用同一账户的普通 Linux 终端 HOME。算例工作目录、S3 暂存写回、命令授权和默认网络隔离继续由原执行入口处理。父进程按工具调用者选择 HOME，工具参数无法选择其他账户目录。 [终端行为和验收](owned-pty-sessions.md#linux-账户-home-持久化)
+
+使用采样容量控制时，账户 HOME 超限会返回 `agent_resource_limit`。运行中触发会停止已登记的子进程范围，并在执行详情记录验证过的 `disk_limit`。放行前发现超限会拒绝执行。运行失败的算例暂存副本保留用于恢复。 [账户 HOME 容量控制](owned-pty-sessions.md#账户-home-容量控制)
+
+启用 ext4 硬配额后，Agent Shell 与普通终端在同一账户目录里分配的块共享硬上限。命令收到内核的 `EDQUOT`。未配置或无法核验项目的账户在放行前收到 `agent_resource_limit`。 [内核硬配额及验收](owned-pty-sessions.md#账户-home-内核硬配额)

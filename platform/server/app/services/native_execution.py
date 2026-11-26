@@ -17,7 +17,7 @@ import time
 import uuid
 
 from .async_ops import finish_before_cancel
-from .native_execution_client import ADDRESS,CAPABILITY,ChildExecutionError,NativeComputeLimit,context,latex_probe_timeout
+from .native_execution_client import ADDRESS,CAPABILITY,ChildExecutionError,NativeComputeLimit,NativeStorageLimit,context,latex_probe_timeout
 from .owned_process import OwnedProcess,wsl_path
 from . import native_child_records as records
 
@@ -86,6 +86,7 @@ class NativeExecutor:
         self.slots=asyncio.Semaphore(1 if self.wsl_compute is not None else 4)
         self.records=records
         self.before_release=None
+        self.home_watch=None
         self.linux_compute=None
         self.windows_compute_scope=None
 
@@ -216,6 +217,9 @@ class NativeExecutor:
                 ['python3','-I','-S',native_path(NATIVE),'--config',native_path(config_path),'--sha256',digest])
             argv=(['/bin/bash','--noprofile','--norc','-c',command] if self.runtime=='windows' else
                 ['wsl.exe','-d',self.profile['--distro'],'--user','nobody','--exec','bash','--noprofile','--norc','-c',command])
+            if self.runtime=='windows':
+                from .openfoam_runtime import isolated_argv
+                argv = isolated_argv(self.cwd, argv, source_libraries=config.get('source_library_dir'))
             return argv,int(self.profile['--timeout']),self.max_log_bytes
         if self.kind=='paraview':
             if purpose!='paraview_run' or parameters!={'script':self.profile['--script'],
@@ -244,8 +248,12 @@ class NativeExecutor:
             if (config['source']['plan']['input'],config['distro'],config['execution_id'])!=(self.profile['--input'],distro,identifier):
                 raise ValueError('Code_Aster configuration differs from the registered invocation')
             native_path = wsl_path if self.runtime=='wsl' else str
-            command = ['/usr/bin/unshare','--user','--map-root-user','--mount','--net',
-                       '/usr/bin/python3','-I','-S',native_path(NATIVE),'--root='+native_path(self.cwd),
+            confined = ['/usr/bin/unshare','--user','--map-root-user','--mount']
+            python = sys.executable
+            if self.runtime=='wsl':
+                confined.append('--net')
+                python = '/usr/bin/python3'
+            command = [*confined,python,'-I','-S',native_path(NATIVE),'--root='+native_path(self.cwd),
                        '--config='+native_path(config_path),'--executable='+executable]
             if config['source']['plan'].get('base'):
                 helper = self.profile['--state-sha256']
@@ -276,17 +284,22 @@ class NativeExecutor:
                 config = json.loads(checked_path(self.cwd,CONFIG).read_text(encoding='utf8'))
                 source = config['source']
                 native_path = wsl_path if self.runtime=='wsl' else str
-                command = [*child_env,'/usr/bin/unshare','--user','--map-root-user','--mount',
-                    '/usr/bin/python3','-I','-S',native_path(NATIVE),'--root='+native_path(self.cwd),
-                    '--input='+name,'--base='+output_base(name),'--executable='+executable,
-                    '--executable-sha256='+self.profile['--executable-sha256'],'--model-sha256='+source['model_sha256']]
+                if self.runtime=='wsl':
+                    command = [*child_env,'/usr/bin/unshare','--user','--map-root-user','--mount',
+                               '/usr/bin/python3','-I','-S',native_path(NATIVE),'--executable='+executable]
+                else:
+                    command = [executable]
+                command.extend(['--root='+native_path(self.cwd), '--input='+name,'--base='+output_base(name),
+                    '--executable-sha256='+self.profile['--executable-sha256'],'--model-sha256='+source['model_sha256']])
                 if source['checkpoint']:
                     command.append('--checkpoint')
                 if config.get('restart') is not None:
                     command.append('--restart='+config['restart']['checkpoint_path'])
             else:
-                command = [*child_env,executable,'-i',name,'Outputs/csv=true','Outputs/exodus=true',
+                command = [executable,'-i',name,'Outputs/csv=true','Outputs/exodus=true',
                            'Outputs/file_base='+output_base(name)]
+                if self.runtime=='wsl':
+                    command[:0]=child_env
             if self.runtime=='wsl':
                 command = ['wsl.exe','-d',distro,'--user','nobody','--exec',*command]
             return command,int(self.profile['--timeout']),self.max_log_bytes
@@ -410,7 +423,7 @@ class NativeExecutor:
             except (OSError,asyncio.TimeoutError):pass
 
     async def _execute(self,entry,purpose,parameters,argv,timeout,limit,output):
-        owned=entry.owned;reserved=False;error=None;pump=None;root=None;stopping=None
+        owned=entry.owned;reserved=False;error=None;pump=None;root=None;stopping=None;home_monitor=None
         budget=getattr(self,'execution_budget',None)
         if entry.deadline is None:entry.deadline=time.monotonic()+timeout
         expiry=asyncio.get_running_loop().call_later(max(0,entry.deadline-time.monotonic()),entry.stop,'timeout')
@@ -427,6 +440,10 @@ class NativeExecutor:
             if budget.violation=='log_limit':
                 self.stop('log_limit')
                 entry.stop('log_limit')
+        async def monitor_home():
+            await self.home_watch.run()
+            if self.home_watch.budget.violation is not None:
+                entry.stop(self.home_watch.budget.violation)
         try:
             check_active()
             await asyncio.wait_for(self.slots.acquire(),max(0,entry.deadline-time.monotonic()))
@@ -518,11 +535,19 @@ class NativeExecutor:
                     # file/commit operations inside the callback still drain.
                     async with asyncio.timeout_at(entry.deadline):
                         await self.before_release()
+                if self.home_watch is not None:
+                    async with asyncio.timeout_at(entry.deadline):
+                        await self.home_watch.sample()
+                    if self.home_watch.budget.violation is not None:
+                        entry.stop(self.home_watch.budget.violation)
+                        raise NativeStorageLimit('Linux account home did not pass admission')
                 await owned.verify_registration()
                 async def release():
                     check_active()
                     await owned.release()
                 await self.records.release(self.owner,self.parent_nonce,entry.id,owned,release)
+                if self.home_watch is not None:
+                    home_monitor=asyncio.create_task(monitor_home())
                 async def read_output():
                     count=0
                     while True:
@@ -562,9 +587,19 @@ class NativeExecutor:
                 await owned.stop(reason=reason,grace_ms=0 if reason=='root_exit' else 500)
                 if self.kind=='agent.shell' and (owned.stop_result is None or owned.stop_result['verified'] is not True):
                     raise ChildExecutionError('Agent child cleanup was not verified')
+                if home_monitor is not None:
+                    home_monitor.cancel()
+                    await asyncio.gather(home_monitor,return_exceptions=True)
+                    home_monitor=None
+                    if owned.stop_result['reason']=='root_exit':
+                        await self.home_watch.sample()
+                        if self.home_watch.budget.violation is not None:
+                            owned.stop_result['reason']=self.home_watch.budget.violation
                 await asyncio.wait_for(asyncio.shield(pump),5)
                 if self.kind=='agent.shell' and owned.stop_result['reason'] in {'cpu_limit','memory_limit'}:
                     raise NativeComputeLimit('The Agent command reached its admitted Linux compute limit')
+                if self.kind=='agent.shell' and owned.stop_result['reason'] in {'disk_limit','disk_unverified'}:
+                    raise NativeStorageLimit('The Agent command crossed its Linux account home storage limit')
                 sample_diagnostics()
                 if budget is not None and budget.violation=='log_limit':
                     raise ChildExecutionError('Native output exceeded the shared allowance')
@@ -607,9 +642,9 @@ class NativeExecutor:
                             error=error or type(checkpoint_error).__name__;self.failure=error
             finally:
                 if acquired:self.slots.release()
-                for task in (pump,root,stopping):
+                for task in (pump,root,stopping,home_monitor):
                     if task is not None and not task.done():task.cancel()
-                await asyncio.gather(*(task for task in (pump,root,stopping) if task is not None),return_exceptions=True)
+                await asyncio.gather(*(task for task in (pump,root,stopping,home_monitor) if task is not None),return_exceptions=True)
                 owned.close()
 
     async def _prepare(self,entry,argv,env):
@@ -618,17 +653,34 @@ class NativeExecutor:
             argv=[*argv[:3],'--user','root',*argv[5:]]
         if self.linux_compute is not None:
             self.linux_compute.bind(entry.owned)
-        if sys.platform=='linux' and self.kind in {'calculix','su2','elmer'}:
+        if sys.platform=='linux' and self.kind=='mpi' and self.runtime=='windows':
+            from .openfoam_runtime import child_environment
+            entry.owned.isolate_linux_network=True
+            env=child_environment(env)
+        if sys.platform=='linux' and self.kind=='code-aster':
+            # The owned outer gate freezes the private network identity. The
+            # Code_Aster helper still builds and drains its own chroot.
+            entry.owned.isolate_linux_network=True
+            env={key:value for key,value in env.items() if key in {'PATH','LANG','LC_ALL','LC_CTYPE','TZ'}}
+        if sys.platform=='linux' and self.kind in {'calculix','su2','elmer','moose'}:
             entry.owned.isolate_linux_network=True
             launcher=Path(__file__).with_name('agent_shell_linux.py')
+            options = []
+            if self.kind=='elmer':
+                options.append('--elmer')
+            if self.kind=='moose':
+                options.append('--moose')
+                if '--native-sha256' in self.profile:
+                    options.extend(('--moose-checkpoint-sha256',self.profile['--native-sha256']))
             argv=['/usr/bin/unshare','--user','--map-root-user','--mount','--pid','--fork','--kill-child=SIGKILL',
                   sys.executable,'-I','-S','-u',str(launcher),'--workspace',str(self.cwd),
-                  '--solver-sha256',self.profile['--executable-sha256'],
-                  *(['--elmer'] if self.kind=='elmer' else []),'--',*argv]
+                  '--solver-sha256',self.profile['--executable-sha256'],*options,'--',*argv]
             env={key:value for key,value in env.items()
                  if key in {'PATH','LANG','LC_ALL','LC_CTYPE','TZ'}
                  or key.startswith(('OMP_','MKL_','OPENBLAS_'))
                  or self.kind=='calculix' and (key=='CCX_SOLVER' or key.startswith('CCX_NPROC_'))}
+            if self.kind=='moose':
+                env.update(OMP_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
         entry.owned.windows_compute_parent=self.windows_compute_scope
         return await entry.owned.prepare(argv,cwd=self.cwd,env=env,runtime=self.runtime)
 

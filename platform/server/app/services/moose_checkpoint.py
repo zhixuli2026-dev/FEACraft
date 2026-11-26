@@ -71,11 +71,13 @@ def main():
         parser.add_argument('--'+key,required=True)
     parser.add_argument('--restart')
     parser.add_argument('--checkpoint',action='store_true')
+    parser.add_argument('--private-tmp',action='store_true')
     args = parser.parse_args()
     root = Path(args.root)
     # This process is launched in its own mount namespace by the owned gate.
     # Unmounting the namespace reclaims scratch even when the job is killed.
-    subprocess.run(['/usr/bin/mount','-t','tmpfs','-o','size=512m,mode=0700,nosuid,nodev','tmpfs','/tmp'],check=True)
+    if not args.private_tmp:
+        subprocess.run(['/usr/bin/mount','-t','tmpfs','-o','size=512m,mode=0700,nosuid,nodev','tmpfs','/tmp'],check=True)
     scratch = Path('/tmp')
     shutil.copyfile(root/args.input,scratch/'model.i')
     argv = [args.executable,'-i','model.i','Outputs/csv=true','Outputs/exodus=true','Outputs/file_base=result']

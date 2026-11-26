@@ -22,9 +22,9 @@ from .async_ops import finish_before_cancel
 from .case_write import coordinate,CaseWriteConflict
 from .command_safety import command_block_reason
 from .durable_events import json_text
-from .native_execution_client import NativeComputeLimit,run_native
+from .native_execution_client import NativeComputeLimit, NativeStorageLimit, run_native
 from .native_request_execution import scope
-from . import native_request_records as records
+from . import execution_storage, native_request_records as records
 from .owned_process import wsl_path
 from .supervisor import register,unregister
 from .terminal_protocol import validate_linux_home
@@ -56,7 +56,7 @@ async def linux_compute_policy(runtime):
 
 def profile(value):
     keys={'conversation_id','tool_call_id','args_sha256','command_sha256','runtime','distro','cwd','source_prefix','staging_prefix','timeout_seconds','authorization','launcher_sha256'}
-    if not isinstance(value,dict) or set(value)-{'linux_compute_policy','linux_network','linux_launcher_sha256','linux_home'}!=keys:
+    if not isinstance(value,dict) or set(value)-{'linux_compute_policy','linux_network','linux_launcher_sha256','linux_home','linux_home_policy'}!=keys:
         raise ValueError('Invalid Agent shell profile')
     if type(value['conversation_id']) is not int or value['conversation_id']<=0:raise ValueError('Invalid Agent conversation')
     if not isinstance(value['tool_call_id'],str) or not 1<=len(value['tool_call_id'])<=40:raise ValueError('Invalid Agent tool identity')
@@ -73,6 +73,13 @@ def profile(value):
         if 'linux_launcher_sha256' not in value:
             raise ValueError('Linux Agent home requires its isolated launcher')
         validate_linux_home(value['linux_home'])
+    if 'linux_home_policy' in value:
+        if 'linux_home' not in value:
+            raise ValueError('Agent home storage policy requires a selected Linux home')
+        execution_storage.validate(value['linux_home_policy'])
+    if 'hard_quota_bytes' in value.get('linux_home', {}) and value['linux_home']['hard_quota_bytes'] != (
+            value.get('linux_home_policy', {}).get('max_workspace_bytes')):
+        raise ValueError('Agent HOME hard quota differs from its storage policy')
     if 'linux_compute_policy' in value:
         from .native_compute_v1 import validate_policy
         if value['runtime'] != 'windows' or not any(validate_policy(value['linux_compute_policy']).values()):
@@ -144,6 +151,7 @@ class Execution:
         self.scope_started=False
         self.conversation_id=None
         self.executor=None
+        self.home_watch=None
         from .conversation_execution import active_owner
         self.conversation_owner = active_owner.get()
 
@@ -176,12 +184,20 @@ class Execution:
                 if compute_policy is not None:
                     self.selected['linux_compute_policy'] = compute_policy
                 if sys.platform == 'linux' and runtime == 'windows':
-                    from .linux_shell_home import select as select_home
+                    from .linux_shell_home import HomeWatch, select as select_home
                     self.selected['linux_network'] = 'private'
                     self.selected['linux_launcher_sha256'] = hashlib.sha256(LINUX_LAUNCHER.read_bytes()).hexdigest()
                     linux_home = await asyncio.to_thread(select_home, get_settings(), self.user_id)
                     if linux_home is not None:
                         self.selected['linux_home'] = linux_home
+                        self.selected['linux_home_policy'] = execution_storage.policy()
+                        self.home_watch = HomeWatch(linux_home, self.selected['linux_home_policy'])
+                        await self.home_watch.sample()
+                        reason = self.home_watch.budget.violation
+                        if reason is not None:
+                            message = (execution_storage.limit_message(self.home_watch.observed) if reason == 'disk_limit'
+                                       else '无法核验磁盘用量')
+                            raise NativeStorageLimit('Linux 账户 HOME：'+message)
                 async def reserve():self.owner=await records.create(case.id,self.user_id,'agent.shell',self.selected,db=db)
                 await finish_before_cancel(reserve())
                 from . import audit
@@ -212,6 +228,7 @@ class Execution:
             self.scope_started=True
             async with scope(self.case_id,self.user_id,self.selected['cwd'],'agent.shell',self.selected,owner=self.owner,before_release=self.reauthorize) as executor:
                 self.executor=executor
+                executor.home_watch=self.home_watch
                 invoke=partial(run_native,'agent_shell',{'command':self.args['command'],'distro':self.selected['distro']},
                     timeout=self.selected['timeout_seconds'],capture=True)
                 operation=asyncio.create_task(executor.run_sync(invoke,timeout=self.selected['timeout_seconds']+20))
@@ -249,7 +266,9 @@ class Execution:
         except Exception as error:
             result = {'ok':False, 'result':type(error).__name__+': '+str(error),
                       'execution_id':self.owner.id if self.owner else None}
-            if isinstance(error, NativeComputeLimit):
+            if isinstance(error, (NativeComputeLimit, NativeStorageLimit)):
+                result['code'] = 'agent_resource_limit'
+            elif isinstance(error, CaseWriteConflict) and error.code == 'linux_home_quota_unverified':
                 result['code'] = 'agent_resource_limit'
             elif isinstance(error, CaseWriteConflict) and error.code == 'agent_compute_unverified':
                 result['code'] = error.code

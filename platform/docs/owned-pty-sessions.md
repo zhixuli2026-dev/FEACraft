@@ -84,4 +84,24 @@ Docker 实测复用本机镜像，原 11 个运行服务的容器标识均已核
 
 首轮在实测跨实例读回后，重启夹具继续查询旧端口而超时。复跑通过 Docker 读取重启后的实际端口。正式轮收到 2 次真实 DeepSeek HTTP 200，两轮共 4 次，模拟 0 次。另用独立 Linux 进程验证冻结目录被替换时拒绝启动，修正身份后正常挂载。空配置下的终端文件隔离、CPU、OOM、缩放和停止回执已复验。 [首轮回执](../../tmp/j16-agent-linux-qxvp0wt9/agent-compute.json) · [临时 HOME 回归](../../tmp/j16-pty-compute-c3tze2k2/result.json)
 
-原 11 个 Docker 服务均核对。构建缓存 5.857 GB，回收 0 B。Windows C 盘可用空间由 39,765,528,576 B 变为 39,761,289,216 B。本次持久化覆盖同一状态卷上的 Linux 终端和 Agent Shell。其他执行入口、账户目录的用量控制和跨物理宿主场景继续验收。
+原 11 个 Docker 服务均核对。构建缓存 5.857 GB，回收 0 B。Windows C 盘可用空间由 39,765,528,576 B 变为 39,761,289,216 B。本次持久化覆盖同一状态卷上的 Linux 终端和 Agent Shell。
+
+### 账户 HOME 容量控制
+
+普通 Linux 终端和 Agent Shell 按同一账户目录合计保留字节，使用 `VIBEFLOW_EXECUTION_WORKSPACE_LIMIT_MB` 作为上限，默认 4096 MiB。算例目录仍独立计量。执行前、放行前、运行中，以及正常退出后检查目录和所在卷的可用空间。扫描使用冻结的目录身份，符号链接只计链接本身的字节。
+
+发现超限时停止本次受管进程范围，写入 `disk_limit` 停止回执。同账户已经打开的其他会话在各自检查时也会停止。新会话在用量恢复前暂缓放行。采样间隔内可能短暂超过上限，已写入的文件仍留在 HOME。管理员可在状态卷移走或删除已确认的文件后复核，新会话重新测量后可继续。无法核验目录时回执使用 `disk_unverified`。 [部署配置](deployment.md#linux-终端与-agent-shell)
+
+2026-11-26，在两套 UID 65534 的 API、PostgreSQL、Redis 和认证 SeaweedFS 上实测。账户 HOME 上限 1 MiB。Agent 写入 2 MiB 后命令和对端已打开的同账户终端均验证停止，延迟写入的标记未生成。同账户的新 PTY 与新 Agent 命令均被拒绝，另一账户正常执行。清理时仅移除测试文件，原来的小文件和符号链接仍在，终端可重新打开。另一次算例终端写完立即退出，回执仍记录 `disk_limit`。算例独立保留 1,228,800 字节文件；失败 Agent 命令的单份 S3 暂存目录和恢复清单仍可核对。正式轮收到 3 次真实 DeepSeek HTTP 200，模拟调用 0 次。 [容量实测回执](../../tmp/j16-agent-linux-gpedrelw/agent-compute.json) · [实测入口](../server/live_llm_agent_shell_linux_compute_acceptance.py)
+
+前两轮的运行检查均通过，随后夹具对保留的 S3 暂存目录判定错误。最终夹具同时核对目录、清单以及保留的算例文件。三轮容量实测与正常写回复验共收到 11 次真实 DeepSeek HTTP 200，其中最终两轮 5 次，模拟调用 0 次。本地文件系统 PTY 的 CPU、OOM、交互和隔离回归通过，模型调用 0 次。 [首轮](../../tmp/j16-agent-linux-ed4wxx4o/agent-compute.json) · [第二轮](../../tmp/j16-agent-linux-76qlr30v/agent-compute.json) · [正常写回复验](../../tmp/j16-agent-linux-g9u8kn9t/agent-compute.json) · [文件系统 PTY 回归](../../tmp/j16-pty-compute-sybn2siu/result.json)
+
+隔离试验结束后，原 11 个 Docker 服务均核对。构建缓存 5.857 GB，回收 0 B。Windows C 盘的可用空间从 39,752,892,416 B 变为 39,752,470,528 B。
+
+### 账户 HOME 内核硬配额
+
+Linux 部署可以启用 `VIBEFLOW_LINUX_SHELL_REQUIRE_PROJECT_QUOTA`，让普通终端和 Agent Shell 共享同一账户的 ext4 项目硬配额。宿主工具按账户 ID 配置项目，设置硬块上限并从内核读回。两个 API 在放行前核验项目编号、继承属性、宿主生成的配额回执和内核显示的容量。执行门绑定已核验的目录，运行期继续检查卷保留空间。文件系统超过硬上限时直接拒绝块分配并返回 `EDQUOT`。HOME 仍可打开，用户可在终端删除自己的文件恢复空间。 [部署步骤](deployment.md#linux-账户-home-硬配额) · [Linux 配额接口](https://man7.org/linux/man-pages/man2/quotactl.2.html)
+
+2026-11-26，在独立 ext4 测试卷及两套 UID 65534 的 API 上通过认证 SeaweedFS 验收。硬上限为 2 MiB。同账户终端先分配 768 KiB 后，Agent 和对端终端各申请 1,536 KiB，均实际收到 `EDQUOT`。另一个账户可独立分配 1,536 KiB。16 MiB 的稀疏文件正常保留，配额按实际分配块计量。未配置项目的账户返回 `disk_unverified`。API 重启后文件和硬上限都继续有效。另将独立测试文件系统换用不同的设备号重新挂载，核对原数据和 `EDQUOT` 后通过。 [最终硬配额回执](../../tmp/j16-agent-linux-1w90u323/agent-compute.json) · [首次实测](../../tmp/j16-agent-linux-7os2tyyy/agent-compute.json) · [卷重挂载回执](../../tmp/j16-home-quota-remount-20261126.log)
+
+硬配额两轮共 4 次真实 DeepSeek HTTP 200。未启用项目配额时，原采样超限停止及清理后恢复回归通过，收到 3 次真实 DeepSeek HTTP 200。模拟调用 0 次。Compose 核验两个 API 副本共用同一卷和一致的配额设置。原 11 个 Docker 服务及测试卷清理均已核对，构建缓存约 5.857 GB，阶段内回收 0 B。Windows C 盘可用空间从 39,251,075,072 B 变为 39,245,545,472 B。 [采样回归回执](../../tmp/j16-agent-linux-_ddeauvp/agent-compute.json)
