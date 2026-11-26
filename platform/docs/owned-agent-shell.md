@@ -81,3 +81,7 @@ Linux 的 `run_shell_command` 使用已批准的同一 POSIX 命令、算例与�
 认证 SeaweedFS 复验中，Agent 从已登记的 S3 快照暂存目录读取输入并写出标识文件，原 API 完成同步及清理。另一 API 使用独立的空文件缓存，直接从同一认证存储读回相同字节及同一条已核验退出回执。命令无法读取挂载范围外的实际本地对照文件，成功结束后原 API 剩余暂存目录数为 0。S3 轮有 2 次真实 DeepSeek HTTP 200，两种后端最终轮合计 12 次，模型模拟调用 0 次。 [认证 S3 回执](../../tmp/j16-agent-linux-06mdpgy7/agent-compute.json) · [真实验收入口](../server/live_llm_agent_shell_linux_compute_acceptance.py)
 
 隔离容器、卷及网络均已清理，原 11 个 Docker 服务标识一致。C 盘可用由 39,744,159,744 B 变为 39,743,496,192 B，构建缓存 5.857 GB，回收 0 B。FF-J16 仍覆盖用户常驻环境及其他执行入口的统一隔离。 [磁盘读数](../../tmp/ff-j16-agent-filesystem-20261126/disk-after.json) · [Docker 占用](../../tmp/ff-j16-agent-filesystem-20261126/docker-after.txt)
+
+## Linux 账户 HOME
+
+启用账户状态卷时，Linux Agent 命令使用同一账户的普通 Linux 终端 HOME。算例工作目录、S3 暂存写回、命令授权和默认网络隔离继续由原执行入口处理。父进程按工具调用者选择 HOME，工具参数无法选择其他账户目录。 [终端行为和验收](owned-pty-sessions.md#linux-账户-home-持久化)

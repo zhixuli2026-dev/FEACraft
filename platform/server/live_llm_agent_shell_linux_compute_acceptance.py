@@ -1,7 +1,7 @@
 """Disposable Linux Agent quota verification using only authorized DeepSeek."""
 import argparse
 import asyncio
-from contextlib import ExitStack
+from contextlib import AsyncExitStack, ExitStack
 import ipaddress
 import json
 from pathlib import Path
@@ -13,7 +13,7 @@ from uuid import uuid4
 import aiohttp
 
 from live_llm_acceptance import source
-from linux_terminal_compute_acceptance import account, request
+from linux_terminal_compute_acceptance import account, close_pty, command as send_command, open_pty, output, request
 from mixed_load_test_support import API_IMAGE, WEB_IMAGE, Deployment, docker
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -178,9 +178,9 @@ async def stream(client, endpoint, path, token, payload):
                 frames.append(json.loads(line[6:]))
         return frames
 
-async def prepare(client, endpoint, config, label, program):
+async def prepare(client, endpoint, config, label, program, *, owner=None):
     compile(program, f'{label}/Ref/check.py', 'exec')
-    token, case = await account(client,endpoint)
+    token, case = owner if owner is not None else await account(client,endpoint)
     profile = await request(client,endpoint,'POST','/provider-profiles',token=token,json={
         'provider':'deepseek','name':'Real Linux resource test','api_key':config['key'],
         'base_url':config['base_url'],'default_model':config['model']})
@@ -302,46 +302,44 @@ async def verify(endpoints,config,receipt,addresses):
         receipt['other_account_status']=404
         receipt['peer_receipt_equal']=True
 
-def configure_s3(deployment, output):
-    from botocore.exceptions import BotoCoreError, ClientError
-    from live_llm_authenticated_s3_compose_acceptance import signed_client
-
-    identity = (secrets.token_hex(12), secrets.token_hex(24))
-    secret = output/'seaweed-identity.json'
-    secret.write_text(json.dumps({'identities':[{'name':'fixture', 'actions':['Admin','Read','Write','List','Tagging'],
-        'credentials':[{'accessKey':identity[0], 'secretKey':identity[1]}]}]}), encoding='utf8')
-    deployment.stack.callback(secret.unlink, missing_ok=True)
-    name = deployment.label+'-seaweedfs'
-    server = deployment.run_container(name, '--tmpfs','/data:rw,size=512m,uid=65534,gid=65534','--publish','127.0.0.1::8333',
-        '--mount', f'type=bind,source={secret},target=/run/secrets/s3.json,readonly',
-        'vibeflow/seaweed:4.52-local','server','-s3','-s3.port=8333','-dir=/data',
-        '-s3.config=/run/secrets/s3.json','-master.telemetry=false')
-    client = signed_client('http://'+docker('port',server,'8333/tcp'),identity)
-
-    def ready():
-        try:
-            client.list_buckets()
-        except (BotoCoreError, ClientError):
-            return False
-        return True
-
-    Deployment.wait(ready)
-    bucket = deployment.label
-    client.create_bucket(Bucket=bucket)
-    print('AGENT_AUTHENTICATED_S3_READY', flush=True)
-    settings = {'VIBEFLOW_STORAGE_BACKEND':'s3', 'VIBEFLOW_ALLOW_PARTIAL_S3':'true',
-                'VIBEFLOW_S3_ENDPOINT':f'http://{name}:8333', 'VIBEFLOW_S3_BUCKET':bucket,
-                'VIBEFLOW_S3_REGION':'us-west-2', 'VIBEFLOW_S3_ACCESS_KEY':identity[0],
-                'VIBEFLOW_S3_SECRET_KEY':identity[1]}
-    deployment.env.update(settings)
-    deployment.flags.extend(option for setting in settings for option in ('-e',setting))
+async def check_home_terminal(client, endpoint, token, check, case=0):
+    async with AsyncExitStack() as stack:
+        socket, active = await open_pty(stack, client, endpoint, token, case)
+        assert active['type'] == 'ready', active
+        await send_command(socket, check+""" && printf '\n%s%s\n' 'HOME_' 'CHECK_OK'""")
+        await output(socket, rb'HOME_CHECK_OK')
+        return await close_pty(client, endpoint, token, active)
 
 
-async def verify_s3(endpoints, config, receipt, addresses):
-    writer, reader, _ = endpoints
+async def verify_s3(endpoints, config, receipt, addresses, *, home_reader=None):
+    writer, reader = endpoints
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90),trust_env=False) as client:
-        command = await prepare(client,writer,config,'Agent S3 staging write',
-                                isolated_program(addresses[0], '/work/data/s3-local-outside-marker'))
+        program = isolated_program(addresses[0], '/work/data/s3-local-outside-marker')
+        owner = None
+        if home_reader is not None:
+            owner = await account(client,writer)
+            marker = 'pty'+uuid4().hex
+            agent_value = 'agent'+uuid4().hex
+            fixture = receipt['home'] = {}
+            fixture['first_pty'] = await check_home_terminal(client, writer, owner[0], f"""
+test "$HOME" = /home/user && test "$PWD" != "$HOME" &&
+test "$HISTFILE" = /tmp/.bash_history &&
+printf '%s' {marker} > "$HOME/from-pty"
+""".strip(), case=owner[1])
+            other, _ = await account(client,writer)
+            fixture['other_pty'] = await check_home_terminal(client, reader, other, """
+test "$PWD" = "$HOME" && test ! -e "$HOME/from-pty" &&
+test ! -e /work/shell-state/users && test "$(ls -1 /home)" = user &&
+printf '%s' other-account > "$HOME/from-pty"
+""".strip())
+            program += f"""
+assert Path.home() == Path('/home/user')
+assert (Path.home()/'from-pty').read_text() == {marker!r}
+assert list(Path('/home').iterdir()) == [Path.home()]
+assert not Path('/work/shell-state/users').exists()
+(Path.home()/'from-agent').write_text({agent_value!r})
+"""
+        command = await prepare(client,writer,config,'Agent S3 staging write',program,owner=owner)
         record = await approve(client,command,None)
         peer = await request(client,reader,'GET',command['approval']+'/execution',token=command['token'])
         assert peer['children']==record['children'] and peer['cleanup_verified']
@@ -350,6 +348,38 @@ async def verify_s3(endpoints, config, receipt, addresses):
                               params={'path':'Ref/agent-shell-output.txt'}) as reply:
             assert reply.status==200 and await reply.text()==command['marker']
         receipt.update(s3_write_read_on_cold_peer=True, s3_request=record)
+        if home_reader is not None:
+            check = f"""
+test "$PWD" = "$HOME" && test "$HOME" = /home/user &&
+test "$(cat from-pty)" = {marker} && test "$(cat from-agent)" = {agent_value}
+""".strip()
+            child, = record['children']['children'].values()
+            assert child['identity']['host']['uid'] == child['identity']['namespace_init']['uid'] == 65534
+            fixture['peer_pty'] = await check_home_terminal(client, reader, owner[0], check)
+            before = await asyncio.to_thread(docker, 'inspect', '-f', '{{.State.StartedAt}}', home_reader)
+            await asyncio.to_thread(docker, 'restart', home_reader)
+            after = await asyncio.to_thread(docker, 'inspect', '-f', '{{.State.StartedAt}}', home_reader)
+            assert before != after
+            restarted = 'http://' + await asyncio.to_thread(docker, 'port', home_reader, '8000/tcp')
+            assert restarted.startswith('http://127.0.0.1:')
+            fixture['published_port_changed'] = restarted != reader
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90), trust_env=False) as fresh:
+                try:
+                    async with asyncio.timeout(30):
+                        while True:
+                            try:
+                                async with fresh.get(restarted+'/api/health') as response:
+                                    if response.status == 200 and (await response.json())['ok']:
+                                        break
+                            except aiohttp.ClientError:
+                                pass
+                            await asyncio.sleep(.25)
+                except TimeoutError as error:
+                    raise AssertionError('Restarted peer API did not become healthy') from error
+                fixture['restarted_pty'] = await check_home_terminal(fresh, restarted, owner[0], check)
+            fixture.update(api_restarted=True, cross_account=True, native_uid=65534,
+                           pty_to_agent=True, agent_to_peer_pty=True, case_staging_separate=True)
+            print('AGENT_SHARED_HOME_VERIFIED', flush=True)
 
 
 def main(args):
@@ -371,21 +401,35 @@ def main(args):
             deployment.env['VIBEFLOW_VAULT_KEY_PATH']='/work/data/live-vault'
             deployment.flags.extend(('-e','VIBEFLOW_VAULT_KEY_PATH'))
             if args.storage == 's3':
-                configure_s3(deployment,output)
+                deployment.configure_s3(output)
+                print('AGENT_AUTHENTICATED_S3_READY', flush=True)
+            if args.shared_home:
+                state = deployment.volume('shell-state', '/work/shell-state')
+                docker('run', '--rm', '--network', 'none', '--pull=never', '--mount', state, '--mount', deployment.data,
+                       '--entrypoint', '/usr/bin/install', args.api_image, '-d', '-o', '65534', '-g', '65534',
+                       '/work/shell-state', '/work/data/files')
+                deployment.runtime.extend(('--mount',state))
+                deployment.env['VIBEFLOW_LINUX_SHELL_STATE_ROOT']='/work/shell-state'
+                deployment.flags.extend(('-e','VIBEFLOW_LINUX_SHELL_STATE_ROOT'))
             base=tuple(deployment.runtime)
             ipv6_loopback = ('--sysctl','net.ipv6.conf.lo.disable_ipv6=0')
             variants=((deployment.a,1,64,('--cgroupns','private','--cap-add','SYS_ADMIN',*ipv6_loopback)),
-                      (deployment.b,0,0,ipv6_loopback),
-                      (deployment.c,1,64,('--cgroupns','private',)))
+                      (deployment.b,0,0,ipv6_loopback), (deployment.c,1,64,('--cgroupns','private',)))
+            if args.shared_home:
+                variants=((deployment.a,0,0,ipv6_loopback), (deployment.b,0,0,ipv6_loopback))
             services=[]
             for name,seconds,memory,cap in variants:
                 # Replicas share case files, so all variants use the same service UID.
-                deployment.runtime[:]=['0:0' if entry=='65534:65534' else entry for entry in base]
+                deployment.runtime[:]=base if args.shared_home else [
+                    '0:0' if entry=='65534:65534' else entry for entry in base]
                 deployment.runtime.extend((*cap,'-e',f'VIBEFLOW_AGENT_SHELL_LINUX_CPU_LIMIT_SECONDS={seconds}',
                     '-e',f'VIBEFLOW_AGENT_SHELL_LINUX_MEMORY_LIMIT_MB={memory}',
                     '-e','VIBEFLOW_FFJ16_TEST_CANARY=isolated-fixture-payload'))
                 if args.storage == 's3' and name == deployment.b:
-                    deployment.runtime.extend(('--tmpfs','/work/data/files:rw,size=256m'))
+                    cache = '/work/data/files:rw,size=256m'
+                    if args.shared_home:
+                        cache += ',uid=65534,gid=65534'
+                    deployment.runtime.extend(('--tmpfs',cache))
                 identifier,endpoint=deployment.api(name)
                 services.append((name,identifier,endpoint))
             try:
@@ -396,7 +440,8 @@ def main(args):
                 endpoints = [endpoint for _,_,endpoint in services]
                 if args.storage == 's3':
                     docker('exec',services[0][1],'/usr/bin/touch','/work/data/s3-local-outside-marker')
-                    asyncio.run(verify_s3(endpoints,source_profile,result,addresses))
+                    asyncio.run(verify_s3(endpoints[:2],source_profile,result,addresses,
+                                          home_reader=services[1][1] if args.shared_home else None))
                     docker('exec',services[0][1],'/usr/local/bin/python','-B','-c',
                            'from pathlib import Path; assert not list(Path("/work/data/files/.staging").glob("job-*"))')
                     result['remaining_s3_stages'] = 0
@@ -438,4 +483,8 @@ if __name__=='__main__':
     parser.add_argument('--source-profile-id', type=int, required=True)
     parser.add_argument('--api-image', default=API_IMAGE)
     parser.add_argument('--storage', choices=('fs','s3'), default='fs')
-    main(parser.parse_args())
+    parser.add_argument('--shared-home', action='store_true', help='Verify account homes with a non-root API and authenticated S3')
+    args = parser.parse_args()
+    if args.shared_home and args.storage != 's3':
+        parser.error('--shared-home requires the S3 acceptance scenario')
+    main(args)

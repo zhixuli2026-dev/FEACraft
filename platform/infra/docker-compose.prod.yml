@@ -61,6 +61,7 @@ services:
       VIBEFLOW_DATABASE_URL: postgresql+asyncpg://vibeflow:${PG_PASSWORD:?Set PG_PASSWORD in infra/.env or the process environment}@postgres:5432/vibeflow
       VIBEFLOW_STORAGE_BACKEND: ${VIBEFLOW_STORAGE_BACKEND:-fs}
       VIBEFLOW_STORAGE_FS_ROOT: /data/files
+      VIBEFLOW_LINUX_SHELL_STATE_ROOT: /data/linux-shell-state
       VIBEFLOW_INDEX_ROOT: /data/index
       VIBEFLOW_ALLOW_PARTIAL_S3: ${VIBEFLOW_ALLOW_PARTIAL_S3:-false}
       VIBEFLOW_CORS_ORIGINS: ${WEB_ORIGIN:-http://localhost:8080}
@@ -86,7 +87,7 @@ services:
       VIBEFLOW_REDIS_HOST: redis
       VIBEFLOW_REDIS_PORT: 6380
       VIBEFLOW_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-    volumes: [casedata:/data/files, runtimeconfig:/data/runtime, indexdata:/data/index]
+    volumes: [casedata:/data/files, runtimeconfig:/data/runtime, indexdata:/data/index, linuxshellstate:/data/linux-shell-state]
     secrets: [provider_vault]
     depends_on:
       postgres: {condition: service_healthy}
@@ -145,3 +146,4 @@ volumes:
   redisdata:
   runtimeconfig:
   indexdata:
+  linuxshellstate:

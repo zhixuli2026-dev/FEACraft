@@ -63,3 +63,25 @@ Linux 普通终端可以配置单会话累计 CPU 与内存额度。API 先核�
 2026-11-26 在本机 Docker Linux、私有 cgroup v1 与实际 PostgreSQL 上验收。通过正式 WebSocket 输入命令，实测两个后台 Python 子进程加入同一终端的 CPU 计量组。累计 **1.023 秒**触发 1 秒额度，整个进程范围经核实为空。同一 API 上的另一账户仍能执行命令，窗口调整后 `stty` 返回 29 行、93 列，主动关闭后对端 API 读回一致的用量回执。其他账户访问负载会话返回 404。 [最终回执](../../tmp/j16-pty-compute-m05we_sf/result.json)
 
 在 64 MiB 额度内执行 160 MiB 分配，内核记录一次 OOM，峰值 67,108,864 字节，终端收到 `memory_limit`。默认配置完成实际输入和正常关闭。无控制器挂载权限的实例返回 `compute_unverified`，会话记录为零。四条退出回执均核验通过，临时控制组与 PTY 进程归零，原 11 个 Docker 服务标识一致。模型调用 0 次。
+
+## 普通 Linux 终端隔离
+
+普通 Linux 终端在已登记的 PTY gate 放行后，用专用文件系统、PID 和网络命名空间启动交互 Bash。拥有算例权限时挂载该算例目录或该会话独占的 S3 暂存副本。临时配置下，全局终端从自己的 `/tmp` 启动，Shell 的 HOME 和历史也在该临时目录。运行时目录只读，进程没有 Linux capabilities，网络命名空间没有外部接口。会话回执通过 `linux_launcher_sha256` 记录选定的启动器版本。 [启动器](../server/app/services/agent_shell_linux.py) · [PTY gate](../server/app/services/terminal_pty_gate.py)
+
+Docker 中用两个真实账户和 PostgreSQL 验证了算例读写、跨账户文件不可见、跨账户会话详情返回 404、宿主临时文件不可见，以及对 Docker 网络内实际可达的测试 Redis 连接被拒。前台命令经实际 Ctrl+C 返回 130，跨实例重连保留同一会话及临时文件，窗口调整后 `stty` 返回 34 行、107 列。全局终端退出码 7 同时出现在 WebSocket 与持久回执。CPU 累计 1.012 秒触发额度，64 MiB 限制触发一次内核 OOM。 [文件系统回执](../../tmp/j16-pty-compute-q0ws5a1p/result.json)
+
+认证 SeaweedFS 另在 UID 65534 的两个 API 上验收。算例写回后，空缓存实例读到了相同字节和一致的停止回执，暂存目录清空。两种存储的终端测试都通过实际 WebSocket 执行命令，模型调用 0 次。API 作为 root 运行时，沙箱映射该宿主 UID，所有入口强制使用非特权宿主 UID 及统一常驻环境仍属 FF-J16。 [认证 S3 回执](../../tmp/j16-pty-compute-y4yizgt7/result.json) · [实测入口](../server/linux_terminal_compute_acceptance.py)
+
+Docker 实测复用本机镜像，原 11 个运行服务的容器标识均已核对。构建缓存为 5.857 GB，本轮回收 0 B。Windows C 盘可用空间由 39,740,411,904 B 变为 39,756,001,280 B。
+
+## Linux 账户 HOME 持久化
+
+配置 `VIBEFLOW_LINUX_SHELL_STATE_ROOT` 后，普通 Linux 终端和 Agent Shell 按已认证账户选择同一个目录，挂载为 `/home/user`。无算例终端从 HOME 启动，算例终端和 Agent Shell 仍从授权算例或其 S3 暂存目录启动。终端历史和 `/tmp` 仍按会话隔离。空配置沿用隔离的临时环境。 [账户目录选择](../server/app/services/linux_shell_home.py) · [Linux 启动器](../server/app/services/agent_shell_linux.py)
+
+账户目录位于算例卷和 CLI 私有状态之外。会话配置保存账户目录的设备号和 inode。放行后，Linux 启动器打开目录并复核该身份，再按已打开的目录挂载。HOME 内容由用户在各自的会话内管理。 [Agent Shell 的同账户挂载](owned-agent-shell.md#linux-账户-home)
+
+2026-11-26，在 UID 65534 的两套 Docker API、PostgreSQL 和认证 SeaweedFS 上实测。同一账户的算例终端写入文件，经过审批的真实 Agent 命令读到该文件并写入第二份文件。另一 API 的无算例终端读到两份文件。测试重启该 API 后取得新的端口并再次读回相同字节。另一个账户在自己的 HOME 写了同名文件，两个账户的文件彼此独立。四个终端及 Agent 命令均取得已核验的停止回执，算例结果仍正常写回 S3。 [正式回执](../../tmp/j16-agent-linux-hk6e3pdz/agent-compute.json) · [真实验收入口](../server/live_llm_agent_shell_linux_compute_acceptance.py)
+
+首轮在实测跨实例读回后，重启夹具继续查询旧端口而超时。复跑通过 Docker 读取重启后的实际端口。正式轮收到 2 次真实 DeepSeek HTTP 200，两轮共 4 次，模拟 0 次。另用独立 Linux 进程验证冻结目录被替换时拒绝启动，修正身份后正常挂载。空配置下的终端文件隔离、CPU、OOM、缩放和停止回执已复验。 [首轮回执](../../tmp/j16-agent-linux-qxvp0wt9/agent-compute.json) · [临时 HOME 回归](../../tmp/j16-pty-compute-c3tze2k2/result.json)
+
+原 11 个 Docker 服务均核对。构建缓存 5.857 GB，回收 0 B。Windows C 盘可用空间由 39,765,528,576 B 变为 39,761,289,216 B。本次持久化覆盖同一状态卷上的 Linux 终端和 Agent Shell。其他执行入口、账户目录的用量控制和跨物理宿主场景继续验收。

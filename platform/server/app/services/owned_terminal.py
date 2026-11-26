@@ -15,6 +15,7 @@ from . import process_identity_native as identity,terminal_protocol as protocol
 BRIDGE=Path(__file__).with_name('terminal_bridge.py')
 GATE=Path(__file__).with_name('terminal_pty_gate.py')
 PROBE=Path(__file__).with_name('terminal_identity_probe.py')
+LINUX_LAUNCHER=Path(__file__).with_name('agent_shell_linux.py')
 
 
 class OwnedTerminal:
@@ -24,7 +25,8 @@ class OwnedTerminal:
         self.release_attempted=False;self.released=False;self.stop_operation=None;self.exit_code=None
         self.input_sequence=0;self.input_waiters={};self.input_lock=asyncio.Lock()
 
-    def configure(self,shell,*,cwd=None,cols=80,rows=24,distro='vibeflow-linux',external_export=False,disk_root=None):
+    def configure(self,shell,*,cwd=None,cols=80,rows=24,distro='vibeflow-linux',external_export=False,disk_root=None,
+                  linux_home=None):
         native=shell in {'wsl','wsl-sandbox'}
         if native and (not isinstance(distro,str) or not re.fullmatch('[a-z0-9-]+',distro)):raise ValueError('Invalid terminal distribution')
         if shell=='cmd':
@@ -39,7 +41,12 @@ class OwnedTerminal:
                 'bash',wsl_path(BRIDGE.with_name('sandbox_wsl.sh')),workdir,'bash -l']
             if disk_root is not None:command+=['--persistent-export',wsl_path(disk_root)]
             elif external_export:command.append('--external-export')
-        self.profile=protocol.validate({'shell':shell,'cwd':workdir,'command':command,'cols':cols,'rows':rows,'nonce':self.owned.nonce})
+        profile={'shell':shell,'cwd':workdir,'command':command,'cols':cols,'rows':rows,'nonce':self.owned.nonce}
+        if command==list(protocol.LINUX_SHELL):
+            profile['linux_launcher_sha256']=hashlib.sha256(LINUX_LAUNCHER.read_bytes()).hexdigest()
+        if linux_home is not None:
+            profile['linux_home']=linux_home
+        self.profile=protocol.validate(profile)
         self.distro=distro if native else None
         self.cwd=cwd
         self.code={key:hashlib.sha256(path.read_bytes()).hexdigest() for key,path in self.code_paths().items()}
@@ -47,6 +54,7 @@ class OwnedTerminal:
 
     def code_paths(self):
         paths={'bridge_sha256':BRIDGE,'pty_gate_sha256':GATE,'identity_probe_sha256':PROBE,'protocol_sha256':Path(protocol.__file__)}
+        if self.profile is not None and 'linux_launcher_sha256' in self.profile:paths['linux_launcher_sha256']=LINUX_LAUNCHER
         if self.profile is not None and self.profile['shell']=='wsl-sandbox':
             paths['sandbox_sha256']=BRIDGE.with_name('sandbox_wsl.sh')
             paths['tree_metadata_sha256']=BRIDGE.with_name('tree_metadata_native.py')

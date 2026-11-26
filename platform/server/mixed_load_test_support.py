@@ -1,9 +1,11 @@
 """Disposable Linux stack and real ParaView connection for FF-J21 mixed load."""
 
 import asyncio
+from contextlib import closing
 import json
 import os
 from pathlib import Path
+import secrets
 import subprocess
 import time
 from urllib.request import ProxyHandler, build_opener
@@ -166,6 +168,45 @@ print(json.dumps(values))
                            env=dict(os.environ, **(environment or {})), timeout=55)
         self.stack.callback(docker, 'rm', '--force', '--volumes', container)
         return container
+
+    def configure_s3(self, evidence):
+        import boto3
+        from botocore.config import Config as S3Config
+        from botocore.exceptions import BotoCoreError, ClientError
+
+        access_key, secret_key = secrets.token_hex(12), secrets.token_hex(24)
+        identity_file = evidence / 'seaweed-identity.json'
+        identity_file.write_text(json.dumps({'identities': [{'name': 'fixture',
+            'actions': ['Admin', 'Read', 'Write', 'List', 'Tagging'],
+            'credentials': [{'accessKey': access_key, 'secretKey': secret_key}]}]}), encoding='utf-8')
+        self.stack.callback(identity_file.unlink, missing_ok=True)
+        name = self.label + '-seaweedfs'
+        server = self.run_container(name, '--tmpfs', '/data:rw,size=512m,uid=65534,gid=65534',
+            '--publish', '127.0.0.1::8333',
+            '--mount', f'type=bind,source={identity_file},target=/run/secrets/s3.json,readonly',
+            'vibeflow/seaweed:4.52-local', 'server', '-s3', '-s3.port=8333', '-dir=/data',
+            '-s3.config=/run/secrets/s3.json', '-master.telemetry=false')
+        client = boto3.client('s3', endpoint_url='http://'+docker('port', server, '8333/tcp'),
+            aws_access_key_id=access_key, aws_secret_access_key=secret_key, region_name='us-west-2',
+            config=S3Config(signature_version='s3v4', s3={'addressing_style': 'path'}, proxies={},
+                            connect_timeout=2, read_timeout=8, retries={'total_max_attempts': 1}))
+
+        def ready():
+            try:
+                client.list_buckets()
+            except (BotoCoreError, ClientError):
+                return False
+            return True
+
+        with closing(client):
+            self.wait(ready)
+            client.create_bucket(Bucket=self.label)
+        settings = {'VIBEFLOW_STORAGE_BACKEND': 's3', 'VIBEFLOW_ALLOW_PARTIAL_S3': 'true',
+            'VIBEFLOW_S3_ENDPOINT': f'http://{name}:8333', 'VIBEFLOW_S3_BUCKET': self.label,
+            'VIBEFLOW_S3_REGION': 'us-west-2', 'VIBEFLOW_S3_ACCESS_KEY': access_key,
+            'VIBEFLOW_S3_SECRET_KEY': secret_key}
+        self.env.update(settings)
+        self.flags.extend(option for setting in settings for option in ('-e', setting))
 
     @staticmethod
     def wait(check, seconds=45):

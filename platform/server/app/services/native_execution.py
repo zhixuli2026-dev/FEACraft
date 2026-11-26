@@ -618,6 +618,17 @@ class NativeExecutor:
             argv=[*argv[:3],'--user','root',*argv[5:]]
         if self.linux_compute is not None:
             self.linux_compute.bind(entry.owned)
+        if sys.platform=='linux' and self.kind in {'calculix','su2','elmer'}:
+            entry.owned.isolate_linux_network=True
+            launcher=Path(__file__).with_name('agent_shell_linux.py')
+            argv=['/usr/bin/unshare','--user','--map-root-user','--mount','--pid','--fork','--kill-child=SIGKILL',
+                  sys.executable,'-I','-S','-u',str(launcher),'--workspace',str(self.cwd),
+                  '--solver-sha256',self.profile['--executable-sha256'],
+                  *(['--elmer'] if self.kind=='elmer' else []),'--',*argv]
+            env={key:value for key,value in env.items()
+                 if key in {'PATH','LANG','LC_ALL','LC_CTYPE','TZ'}
+                 or key.startswith(('OMP_','MKL_','OPENBLAS_'))
+                 or self.kind=='calculix' and (key=='CCX_SOLVER' or key.startswith('CCX_NPROC_'))}
         entry.owned.windows_compute_parent=self.windows_compute_scope
         return await entry.owned.prepare(argv,cwd=self.cwd,env=env,runtime=self.runtime)
 

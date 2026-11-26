@@ -45,8 +45,12 @@ def profile(value,case_id):
     names={'bridge_sha256','pty_gate_sha256','identity_probe_sha256','protocol_sha256'}
     variants=(names,names|{'sandbox_sha256'},names|{'sandbox_sha256','disk_sha256'},
               names|{'sandbox_sha256','tree_metadata_sha256'},names|{'sandbox_sha256','disk_sha256','tree_metadata_sha256'})
+    if 'linux_launcher_sha256' in settings:
+        variants=(names|{'linux_launcher_sha256'},)
     if not isinstance(value['code'],dict) or set(value['code']) not in variants or any(not isinstance(x,str) or not re.fullmatch('[0-9a-f]{64}',x) for x in value['code'].values()):
         raise ValueError('Invalid terminal implementation profile')
+    if value['code'].get('linux_launcher_sha256')!=settings.get('linux_launcher_sha256'):
+        raise ValueError('Linux terminal launcher digest differs from its gate profile')
     for key in ('source_prefix','staging_prefix'):
         if value[key] is not None and (not isinstance(value[key],str) or not value[key] or len(value[key])>4096 or '\0' in value[key]):raise ValueError('Invalid terminal staging profile')
     if value['staging_prefix'] is not None and (case_id is None or value['source_prefix'] is None):raise ValueError('Terminal staging has no case source')
@@ -55,6 +59,8 @@ def profile(value,case_id):
 
 def document(row):
     selected=profile(json.loads(row.profile_json),row.case_id)
+    if 'linux_home' in selected['terminal']:
+        protocol.validate_linux_home(selected['terminal']['linux_home'],row.created_by)
     if 'credential' in selected and selected['credential']['owner_id']!=row.created_by:raise ValueError('Terminal API belongs to another owner')
     if selected['terminal']['shell']!=row.shell or selected['terminal']['nonce']!=row.launch_nonce:raise ValueError('Terminal profile crosses its session')
     identity.validate(json.loads(row.owner_identity_json))
@@ -101,6 +107,8 @@ def document(row):
 async def create(case_id,user_id,selected):
     from .job_execution import WORKER_ID
     profile(selected,case_id)
+    if 'linux_home' in selected['terminal']:
+        protocol.validate_linux_home(selected['terminal']['linux_home'],user_id)
     owner=Owner(str(uuid.uuid4()),secrets.token_hex(32),WORKER_ID,selected['terminal']['nonce'])
     birth=await asyncio.to_thread(identity.observe,os.getpid())
     async with SessionLocal() as db:

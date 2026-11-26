@@ -63,7 +63,12 @@ class TerminalSession:
                 from .sandbox_export_execution import SandboxExport,LIFETIME
                 self.exporter=SandboxExport(None)
                 disk_root=await self.exporter.reserve_image()
-            selected=self.transport.configure(shell,cwd=cwd,cols=cols,rows=rows,distro=distro,disk_root=disk_root)
+            linux_home = None
+            if sys.platform == 'linux' and shell == 'cmd':
+                from .linux_shell_home import select as select_home
+                linux_home = await asyncio.to_thread(select_home, settings, self.user_id)
+            selected=self.transport.configure(shell,cwd=cwd,cols=cols,rows=rows,distro=distro,disk_root=disk_root,
+                                              linux_home=linux_home)
             selected.update(source_prefix=self.source_prefix,staging_prefix=self.staging_prefix)
             if credential is not None:selected['credential']=credential
             owned = self.transport.owned

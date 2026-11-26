@@ -2,6 +2,16 @@
 
 本次迁移覆盖本地文件存储的 `/calculix:solve`：输入及包含文件封存到作业自己的目录，真实 CCX 子进程受持久化进程监督，成功结果先形成不可变版本，再更新原 DAT/FRD/STA 等下载路径。已有结果不会被复制到新求解目录充当本次产物。注册处理器为 `calculix.solve@1`，发布描述为 `calculix.v1`；不同输入文件使用不同发布通道。
 
+## Linux 求解子进程隔离
+
+由平台登记的 Linux CalculiX 子进程在私有 PID、挂载和网络命名空间内求解。唯一可写的宿主挂载是本次尝试的运行目录，临时文件使用私有文件系统。系统运行时只读。管理员配置的独立可执行文件经过摘要复核并按单文件只读挂载，旁边的目录和文件不随之挂载。子进程清除 Linux capabilities，API 在回执中记录网络命名空间和整个子进程范围的停止核验。 [Linux 启动器](../server/app/services/agent_shell_linux.py) · [原生进程登记](../server/app/services/native_execution.py)
+
+2026-11-26，本地存储实际用 UID 65534 的 Docker worker，通过 PostgreSQL 和 Redis 执行两个账户的真实 CalculiX 求解。两个原生子进程的运行登记至停止区间重叠 3,164 ms，隔离检查验证了宿主对照文件不可见、测试 TCP 连接被拒及两个网络命名空间独立。1000、2000 和 1500 的节点载荷均与独立刚度计算一致，最大绝对位移差约 3.33×10⁻⁸。1500 直接使用镜像自带的 `ccx`。无效输入返回失败，两个账户的既有成果字节均保留。 [本地文件系统回执](../../tmp/j16-calculix-tbuob3ad/result.json) · [实测入口](../server/linux_solver_isolation_acceptance.py)
+
+认证 SeaweedFS 轮次同样完成三次真实求解，两个并行子进程的登记区间重叠 3,139 ms。成果版本与在线 FRD 的摘要和内容一致。无效输入失败后出现 `file_sync_busy`，两次重试后读回既有成果，独立空缓存 API 也读回同一字节。两种存储各取得四组父进程和求解子进程停止证明，模型调用 0 次。 [认证 S3 回执](../../tmp/j16-calculix-my1u803b/result.json)
+
+共享启动器的普通 Linux PTY 和 Agent 也在认证 S3 上复验。终端完成窗口缩放、Ctrl+C、重连及写回。Agent 使用真实 `deepseek-flash` 收到 2 次 HTTP 200，模拟 0 次。原 11 个 Docker 服务完成核对。构建缓存 5.857 GB，回收 0 B。Windows C 盘可用空间从 39,755,927,552 B 到 39,749,373,952 B。 [PTY 回执](../../tmp/j16-pty-compute-xoa195kp/result.json) · [Agent 回执](../../tmp/j16-agent-linux-u492bbgi/agent-compute.json)
+
 ## 已实现行为
 
 - 主输入、递归 INCLUDE、`.rin` 重启文件、已有 `.eig` 及卡片声明的输入依赖进入封存清单；缺失、循环、越界路径在创建作业前报错。INCLUDE 相对作业根目录解析，保持 CCX 的原生规则。

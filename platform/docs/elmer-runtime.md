@@ -6,6 +6,16 @@
 
 原生进程退出码为 0，写出了结果和 VTU。读取 VTU 的实际坐标和温度，`x=0`、`0.5`、`1` 分别为 `0`、`50.00000000000001`、`100.00000000000001`，与解析解的最大绝对误差为 `1.42e-14`。独立求解器验收的模型调用为 0 次。[输入](../../tmp/elmer-heat-line-lg27zb2h/heat.sif) · [原生日志](../../tmp/elmer-heat-line-lg27zb2h/solver.log) · [验证结果](../../tmp/elmer-heat-line-lg27zb2h/run.json)
 
+## Linux 求解子进程隔离
+
+Linux Elmer 子进程使用私有 PID、挂载和网络命名空间。工作目录为本次尝试，系统运行时只读。部署仍用 `VIBEFLOW_ELMER` 选定可执行文件。有 `share/elmersolver/lib` 布局的发行包，经可执行文件摘要校验后，将入口和模块目录分别只读挂载在 `/run/elmer` 下。运行环境按该目录设置 `ELMER_HOME` 和 `ELMER_LIB`，保留相对库搜索路径。 [Linux 启动器](../server/app/services/agent_shell_linux.py) · [实测入口](../server/linux_solver_isolation_acceptance.py)
+
+2026-11-26，在 UID 65534 的 Docker worker 上，沿用源码构建的串行 Elmer 发行包和实际 PostgreSQL、Redis。本地文件系统和认证 SeaweedFS 各运行两账户并行算例、一次直接启动发行包入口及一次故意越界的续算。两个原生子进程的登记区间分别重叠 3,215 ms 与 3,185 ms，分别使用独立网络。核验了只读模块目录、测试连接被拒、宿主对照文件不可见和跨账户详情 404。 [本地文件系统回执](../../tmp/j16-elmer-9hpcqx3a/result.json) · [认证 S3 回执](../../tmp/j16-elmer-fk35x4q5/result.json)
+
+三档轴向应力分别与 210、420 和 315 MPa 的解析解一致。跨两种存储的最大应力误差为 6.56×10⁻⁷ Pa，最大位移误差为 6.51×10⁻¹⁹ m。检查同时核对实际 VTU 中两个六面体与两个边界四边形、四个网格文件的封存摘要，以及 ASCII 检查点摘要。位置 99 的续算失败后，原结果字节保持一致，S3 另经空缓存 API 独立读回。八个作业的父子进程停止凭据均已核验，模型调用 0 次。 [源码发行包验收](solver-source-integration.md#elmer)
+
+共用启动器的 CalculiX、普通 Linux 终端和 Agent 均通过认证 S3 回归。Agent 使用真实 `deepseek-flash` 收到 2 次 HTTP 200，模拟调用 0 次。原 11 个 Docker 服务已核对，构建缓存 5.857 GB，回收 0 B。Windows C 盘可用空间由 39,770,931,200 B 变为 39,765,893,120 B。 [CalculiX 回执](../../tmp/j16-calculix-9fo3ex1s/result.json) · [PTY 回执](../../tmp/j16-pty-compute-p4uastlc/result.json) · [Agent 回执](../../tmp/j16-agent-linux-o46x020k/agent-compute.json)
+
 ## 平台提交与结果
 
 将 `.sif`、`mesh.header`、`mesh.nodes`、`mesh.elements` 和 `mesh.boundary` 放入同一算例。在 SIF 的 `Mesh DB` 中使用算例下的相对路径。通过 `POST /api/v1/cases/{id}/elmer:solve` 提交 `input_path`，响应包含 `job_id`。可用 `Idempotency-Key` 查询同一次提交，用 `GET /api/v1/jobs/{job_id}` 查看作业和产物发布状态。Windows 求解器使用 `VIBEFLOW_ELMER` 配置或本地便携包，运行时能力清单显示发现结果。

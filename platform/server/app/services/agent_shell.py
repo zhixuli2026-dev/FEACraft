@@ -27,6 +27,7 @@ from .native_request_execution import scope
 from . import native_request_records as records
 from .owned_process import wsl_path
 from .supervisor import register,unregister
+from .terminal_protocol import validate_linux_home
 
 MAX_OUTPUT=1024*1024
 WINDOWS_LAUNCHER=Path(__file__).with_name('agent_shell_native.py').resolve()
@@ -55,7 +56,7 @@ async def linux_compute_policy(runtime):
 
 def profile(value):
     keys={'conversation_id','tool_call_id','args_sha256','command_sha256','runtime','distro','cwd','source_prefix','staging_prefix','timeout_seconds','authorization','launcher_sha256'}
-    if not isinstance(value,dict) or set(value)-{'linux_compute_policy','linux_network','linux_launcher_sha256'}!=keys:
+    if not isinstance(value,dict) or set(value)-{'linux_compute_policy','linux_network','linux_launcher_sha256','linux_home'}!=keys:
         raise ValueError('Invalid Agent shell profile')
     if type(value['conversation_id']) is not int or value['conversation_id']<=0:raise ValueError('Invalid Agent conversation')
     if not isinstance(value['tool_call_id'],str) or not 1<=len(value['tool_call_id'])<=40:raise ValueError('Invalid Agent tool identity')
@@ -68,6 +69,10 @@ def profile(value):
         digest = value['linux_launcher_sha256']
         if value.get('linux_network') != 'private' or not isinstance(digest,str) or not re.fullmatch('[0-9a-f]{64}',digest):
             raise ValueError('Invalid Linux Agent workspace launcher')
+    if 'linux_home' in value:
+        if 'linux_launcher_sha256' not in value:
+            raise ValueError('Linux Agent home requires its isolated launcher')
+        validate_linux_home(value['linux_home'])
     if 'linux_compute_policy' in value:
         from .native_compute_v1 import validate_policy
         if value['runtime'] != 'windows' or not any(validate_policy(value['linux_compute_policy']).values()):
@@ -108,7 +113,10 @@ def command(selected,parameters):
             raise ValueError('Agent Linux workspace launcher changed')
         python = str(Path(getattr(sys,'_base_executable',sys.executable)).resolve())
         argv = ['/usr/bin/unshare','--user','--map-root-user','--mount','--pid','--fork','--kill-child=SIGKILL',
-                python,'-I','-S','-u',str(LINUX_LAUNCHER),'--workspace',selected['cwd'],'--',text]
+                python,'-I','-S','-u',str(LINUX_LAUNCHER),'--workspace',selected['cwd']]
+        if 'linux_home' in selected:
+            argv.extend(('--home-selection', json.dumps(selected['linux_home'])))
+        argv.extend(('--',text))
     return argv,selected['timeout_seconds'],MAX_OUTPUT
 
 
@@ -168,8 +176,12 @@ class Execution:
                 if compute_policy is not None:
                     self.selected['linux_compute_policy'] = compute_policy
                 if sys.platform == 'linux' and runtime == 'windows':
+                    from .linux_shell_home import select as select_home
                     self.selected['linux_network'] = 'private'
                     self.selected['linux_launcher_sha256'] = hashlib.sha256(LINUX_LAUNCHER.read_bytes()).hexdigest()
+                    linux_home = await asyncio.to_thread(select_home, get_settings(), self.user_id)
+                    if linux_home is not None:
+                        self.selected['linux_home'] = linux_home
                 async def reserve():self.owner=await records.create(case.id,self.user_id,'agent.shell',self.selected,db=db)
                 await finish_before_cancel(reserve())
                 from . import audit

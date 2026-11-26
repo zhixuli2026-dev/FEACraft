@@ -81,6 +81,9 @@ def document(request):
     private_network = False
     if request.kind=='agent.shell':
         selected=profile(request.kind,json.loads(request.profile_json))
+        if 'linux_home' in selected:
+            from .terminal_protocol import validate_linux_home
+            validate_linux_home(selected['linux_home'],request.created_by)
         linux_compute_policy = selected.get('linux_compute_policy')
         private_network = selected.get('linux_network') == 'private'
         if request.conversation_id!=selected['conversation_id'] or request.tool_call_id!=selected['tool_call_id']:
@@ -158,6 +161,9 @@ def allowed_purposes(request):
 async def create(case_id,user_id,kind,settings,*,db=None):
     from .job_execution import WORKER_ID
     scope(case_id,kind);profile(kind,settings)
+    if kind=='agent.shell' and 'linux_home' in settings:
+        from .terminal_protocol import validate_linux_home
+        validate_linux_home(settings['linux_home'],user_id)
     owner=Owner(str(uuid.uuid4()),secrets.token_hex(32),WORKER_ID,secrets.token_hex(32))
     birth=await asyncio.to_thread(os_identity.observe,os.getpid())
     async def insert(db):
